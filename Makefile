@@ -10,6 +10,7 @@ format:
 
 
 lint:
-	pylint --disable=R,C cov=costs costs.py
+	pylint --disable=R,C costs.py
+#	pylint --disable=R,C cov=costs costs.py
 
 all: install format lint test
