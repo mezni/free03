@@ -18,4 +18,4 @@ lint:
 clean:
 	find . -name '__pycache__' -exec rm -fr {} +
 
-all: install lint test format
+all: install lint test format clean
