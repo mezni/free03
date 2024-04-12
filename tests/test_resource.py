@@ -32,3 +32,17 @@ def test_resource_model_from_dict():
     assert resource.cloud_resource_id == cloud_resource_id
     assert resource.resource_name == "i-193b1a174798b8ede"
     assert resource.cloud_type == "aws"
+
+
+def test_resource_model_to_dict():
+    resource_id = str(uuid.uuid4())
+    cloud_resource_id = str(uuid.uuid4())
+    resource_dict = {
+        "resource_id": resource_id,
+        "cloud_resource_id": cloud_resource_id,
+        "resource_name": "i-193b1a174798b8ede",
+        "cloud_type": "aws",
+    }
+    resource = r.Resource.from_dict(resource_dict)
+
+    assert resource.to_dict() == resource_dict
