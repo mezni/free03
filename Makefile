@@ -7,7 +7,7 @@ test:
 # 	python -m pytest -vv test_costs.py
 format:
 #	black *.py
-	find . -name \*\.py |xargs black --check
+	find . -name \*\.py |xargs black
 
 
 lint:
