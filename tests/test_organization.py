@@ -12,6 +12,8 @@ def test_organisation_model_init():
     assert org.org_id == org_id
     assert org.name == "Aurora Innovations"
     assert org.currency == "USD"
+    assert org.is_demo == False
+    assert org.is_active == True
     assert org.created_at == None
     assert org.updated_at == None
     assert org.deleted_at == None
