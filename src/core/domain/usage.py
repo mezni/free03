@@ -5,7 +5,16 @@ class Usage:
     """Definition of the Usage entity"""
 
     def __init__(
-        self, usage_id, org_id, source_id, provider, resource_id, resource_name, period
+        self,
+        usage_id,
+        org_id,
+        source_id,
+        provider,
+        resource_id,
+        resource_name,
+        period,
+        usage_amount,
+        usage_currency,
     ):
         self.usage_id = usage_id
         self.org_id = org_id
@@ -14,6 +23,8 @@ class Usage:
         self.resource_id = resource_id
         self.resource_name = resource_name
         self.period = period
+        self.usage_amount = usage_amount
+        self.usage_currency = usage_currency
 
     @classmethod
     def from_dict(cls, data):
@@ -26,6 +37,8 @@ class Usage:
             resource_id=data["resource_id"],
             resource_name=data["resource_name"],
             period=data["period"],
+            usage_amount=data["usage_amount"],
+            usage_currency=data["usage_currency"],
         )
 
     def to_dict(self):
@@ -38,4 +51,6 @@ class Usage:
             "resource_id": self.resource_id,
             "resource_name": self.resource_name,
             "period": self.period,
+            "usage_amount": self.usage_amount,
+            "usage_currency": self.usage_currency,
         }
