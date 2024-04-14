@@ -3,3 +3,4 @@ pytest
 black
 click
 pytest-cov
+uuid7
