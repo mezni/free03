@@ -12,7 +12,7 @@ format:
 
 
 lint:
-	pylint --disable=R,C costs
+	pylint --disable=R,C src
 	pylint --disable=R,C tests
 #	pylint --disable=R,C cov=costs costs.py
 
