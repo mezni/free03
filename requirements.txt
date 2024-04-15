@@ -4,3 +4,4 @@ black
 click
 pytest-cov
 uuid7
+pydantic
