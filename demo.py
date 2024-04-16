@@ -1,12 +1,13 @@
-from tinydb import TinyDB       
+from tinydb import TinyDB
+
 db = TinyDB("demodb.json")
 new_item = {"name": "Book", "quantity": 5}
-db.insert(new_item) 
-
+db.insert(new_item)
 
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 
 class DBConnectionHandler:
 
@@ -29,6 +30,7 @@ class DBConnectionHandler:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
-        
-db_conn=DBConnectionHandler()
+
+
+db_conn = DBConnectionHandler()
 db_conn.session.add(new_item)
