@@ -6,3 +6,4 @@ pytest-cov
 uuid7
 pydantic
 tinydb
+SQLAlchemy
