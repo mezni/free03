@@ -1,101 +1,78 @@
 import uuid
-
-usage_input = [
-    {
-        "resource_id": uuid.UUID("6c19bceb-0472-450c-8d23-97c755a137f8"),
-        "resource_name": "i-37854322484",
-        "period": "2024-04-01",
-        "usage_amount": 0.0127,
-        "usage_currency": "USD",
-    },
-    {
-        "resource_id": uuid.UUID("6c19bceb-0472-450c-8d23-97c755a137f8"),
-        "resource_name": "i-37854322484",
-        "period": "2024-04-02",
-        "usage_amount": 0.0123,
-        "usage_currency": "USD",
-    },
-    {
-        "resource_id": uuid.UUID("6c19bceb-0472-450c-8d23-97c755a137f8"),
-        "resource_name": "i-37854322484",
-        "period": "2024-04-03",
-        "usage_amount": 0.0122,
-        "usage_currency": "USD",
-    },
-    {
-        "resource_id": uuid.UUID("e21e035d-d948-4218-b3c4-9bb513c558fd"),
-        "resource_name": "i-37854322232",
-        "period": "2024-04-01",
-        "usage_amount": 0.012,
-        "usage_currency": "USD",
-    },
-]
+import dataclasses
 
 
-class Resource:
-    def __init__(self, code, resource_id, resource_name):
-        self.code = code
-        self.resource_id = resource_id
-        self.resource_name = resource_name
-
-
-class Usage:
-    def __init__(self, code, resource_id, period, usage_amount, usage_currency):
-        self.code = code
-        self.resource_id = resource_id
+# Entities Layer
+@dataclasses.dataclass
+class Period:
+    def __init__(self, period_code, period):
+        self.period_code = period_code
         self.period = period
-        self.usage_amount = usage_amount
-        self.usage_currency = usage_currency
+
+    @classmethod
+    def from_dict(self, d):
+        return self(**d)
+
+    def to_dict(self):
+        return dataclasses.asdict(self)
 
 
-usage = []
+# Database Layer
+import sqlite3
 
 
-class ResourceRepo:
-    def __init__(self):
-        self.resources = []
-        self.usages = []
+class SqliteDB:
+    def __init__(self, db_file):
+        self.connection = sqlite3.connect(db_file)
+        self.create_tables()
 
-    def find_resource(self, resource_id=None, resource_name=None):
-        for r in self.resources:
-            if resource_id and r.resource_id == resource_id:
-                return r.code
-            elif resource_name and r.resource_name == resource_name:
-                return r.code
-            else:
-                return None
-
-    def add_resource(self, code, resource_id, resource_name):
-        self.resources.append(Resource(code, resource_id, resource_name))
-
-    def add_usage(self, code, resource_id, period, usage_amount, usage_currency):
-        self.usages.append(
-            Usage(code, resource_id, period, usage_amount, usage_currency)
+    def create_tables(self):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS periods (
+                period_code UUID PRIMARY KEY,
+                period TEXT
+            )
+        """
         )
+        self.connection.commit()
+
+    def close(self):
+        self.connection.close()
 
 
-resource_repo = ResourceRepo()
-for u in usage_input:
-    resource_code = resource_repo.find_resource(resource_id=u["resource_id"])
-    if not resource_code:
-        resource_code = uuid.uuid4()
-        resource_repo.add_resource(
-            code=resource_code,
-            resource_id=u["resource_id"],
-            resource_name=u["resource_name"],
+# DAO Layer
+class PeriodDAO:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def add(self, period):
+        cursor = self.connection.cursor()
+        cursor.execute(
+            "INSERT INTO periods (period_code, period) VALUES (?, ?)",
+            (period.period_code, period.period),
         )
-    usage_code = uuid.uuid4()
-    resource_repo.add_usage(
-        code=usage_code,
-        resource_id=u["resource_id"],
-        period=u["period"],
-        usage_amount=u["usage_amount"],
-        usage_currency=u["usage_currency"],
-    )
+        self.connection.commit()
 
-print("## resources")
-for res in resource_repo.resources:
-    print(res.resource_id)
-print("## usages")
-for usa in resource_repo.usages:
-    print(usa.resource_id, usa.code)
+    def list(self):
+        period_list = []
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT * FROM periods")
+        result = cursor.fetchall()
+        for row in result:
+            p=Period(row[0], row[1])
+            period_list.append(p)
+        return period_list
+
+
+if __name__ == "__main__":
+    db = SqliteDB("_demo.db")
+    period_dao = PeriodDAO(db.connection)
+    p1 = Period(str(uuid.uuid4()), "2024-04-01")
+    p2 = Period(str(uuid.uuid4()), "2024-04-02")
+    period_dao.add(p1)
+    period_dao.add(p2)
+    pl = period_dao.list()
+    for i in pl:
+        print (i.period_code, i.period)
