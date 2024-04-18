@@ -40,11 +40,8 @@ class Resource:
 
 
 class Usage:
-    def __init__(
-        self, code, usage_id, resource_id, period, usage_amount, usage_currency
-    ):
+    def __init__(self, code, resource_id, period, usage_amount, usage_currency):
         self.code = code
-        self.usage_id = usage_id
         self.resource_id = resource_id
         self.period = period
         self.usage_amount = usage_amount
@@ -57,30 +54,48 @@ usage = []
 class ResourceRepo:
     def __init__(self):
         self.resources = []
+        self.usages = []
 
     def find_resource(self, resource_id=None, resource_name=None):
-        for resource in self.resources:
-            if resource_id and resource.resource_id == resource_id:
-                return resource.code
-            elif resource_name and resource.resource_name == resource_name:
-                return resource.code
+        for r in self.resources:
+            if resource_id and r.resource_id == resource_id:
+                return r.code
+            elif resource_name and r.resource_name == resource_name:
+                return r.code
             else:
                 return None
 
     def add_resource(self, code, resource_id, resource_name):
         self.resources.append(Resource(code, resource_id, resource_name))
 
+    def add_usage(self, code, resource_id, period, usage_amount, usage_currency):
+        self.usages.append(
+            Usage(code, resource_id, period, usage_amount, usage_currency)
+        )
+
 
 resource_repo = ResourceRepo()
 for u in usage_input:
     resource_code = resource_repo.find_resource(resource_id=u["resource_id"])
     if not resource_code:
+        resource_code = uuid.uuid4()
         resource_repo.add_resource(
-            code=uuid.uuid4(),
+            code=resource_code,
             resource_id=u["resource_id"],
             resource_name=u["resource_name"],
         )
+    usage_code = uuid.uuid4()
+    resource_repo.add_usage(
+        code=usage_code,
+        resource_id=u["resource_id"],
+        period=u["period"],
+        usage_amount=u["usage_amount"],
+        usage_currency=u["usage_currency"],
+    )
 
-print("fin")
-for r in resource_repo.resources:
-    print(r.resource_id)
+print("## resources")
+for res in resource_repo.resources:
+    print(res.resource_id)
+print("## usages")
+for usa in resource_repo.usages:
+    print(usa.resource_id, usa.code)
