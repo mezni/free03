@@ -61,7 +61,7 @@ class PeriodDAO:
         cursor.execute("SELECT * FROM periods")
         result = cursor.fetchall()
         for row in result:
-            p=Period(row[0], row[1])
+            p = Period(row[0], row[1])
             period_list.append(p)
         return period_list
 
@@ -75,4 +75,4 @@ if __name__ == "__main__":
     period_dao.add(p2)
     pl = period_dao.list()
     for i in pl:
-        print (i.period_code, i.period)
+        print(i.period_code, i.period)
