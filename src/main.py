@@ -82,6 +82,41 @@ class PeriodRepository:
     def add(self, period):
         self.periods.append(period)
 
+    def generate_dates(self, start_date, end_date):
+        current_date = start_date
+        while current_date <= end_date:
+            yield current_date
+            current_date += timedelta(days=1)
+
+    def get_interval_gap(self, period_name):
+        period_interval_gap = []
+
+        period_min_max = self.get_period_min_max()
+        if not period_min_max["period_min"] and not period_min_max["period_max"]:
+            period_interval_gap.append(period_name)
+        else:
+            period_date = datetime.strptime(period_name, "%Y-%m-%d")
+            period_min_date = datetime.strptime(
+                period_min_max["period_min"], "%Y-%m-%d"
+            )
+            period_max_date = datetime.strptime(
+                period_min_max["period_max"], "%Y-%m-%d"
+            )
+
+            if period_date > period_max_date:
+                start_date = period_max_date + timedelta(days=1)
+                end_date = period_date
+                for curr_date in self.generate_dates(start_date, end_date):
+                    period_interval_gap.append(curr_date.strftime("%Y-%m-%d"))
+
+            if period_date < period_min_date:
+                start_date = period_date
+                end_date = period_min_date - timedelta(days=1)
+                for curr_date in self.generate_dates(start_date, end_date):
+                    period_interval_gap.append(curr_date.strftime("%Y-%m-%d"))
+
+        return period_interval_gap
+
     def get_period_by_name(self, period_name):
         l = [p for p in self.periods if p.period_name == period_name]
         if l:
@@ -89,31 +124,46 @@ class PeriodRepository:
         else:
             return None
 
+    def get_period_min_max(self):
+        period_min = None
+        period_max = None
+
+        for p in self.periods:
+            if not period_max or p.period_name > period_max:
+                period_max = p.period_name
+            if not period_min or p.period_name < period_min:
+                period_min = p.period_name
+        return {"period_min": period_min, "period_max": period_max}
+
     def list(self):
         return self.periods
 
 
 def main():
     data = [
-        {"period_name": "2024-04-01"},
-        {"period_name": "2024-04-01"},
-        {"period_name": "2024-04-02"},
         {"period_name": "2024-04-03"},
-        {"period_name": "2024-04-03"},
+        {"period_name": "2024-04-06"},
+        {"period_name": "2024-04-06"},
+        {"period_name": "2024-04-01"},
     ]
     period_repo = PeriodRepository()
 
     for d in data:
+        print(d)
         period_saved = period_repo.get_period_by_name(d["period_name"])
-        if not period_saved:
-            period_dto = PeriodInputDto(d["period_name"])
-            period = PeriodPresenter.dto_to_entity(period_dto)
-            period_repo.add(period)
-        else:
+        if period_saved:
             period = period_saved
+        else:
+            period_gap = period_repo.get_interval_gap(d["period_name"])
+            for p in period_gap:
+                period_dto = PeriodInputDto(p)
+                period = PeriodPresenter.dto_to_entity(period_dto)
+                print(f"    = {period.period_name}")
+                period_repo.add(period)
 
     period_list = period_repo.list()
     for p in period_list:
         print(f"period= {p.period_code} - {p.period_name} - {p.period_date}")
+
 
 main()
