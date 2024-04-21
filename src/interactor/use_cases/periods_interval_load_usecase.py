@@ -2,13 +2,14 @@
 """
 
 from typing import List
+from src.domain.entities.period import Period
 
 
-class DumpPeriodIntervalCase:
+class LoadPeriodIntervalUseCase:
     """This class is responsible for load Period interval."""
 
     def __init__(self):
         pass
 
-    def execute(self, usage: List[str]):
+    def execute(self, period_list: List[str]) -> List[Period]:
         return []
