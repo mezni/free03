@@ -65,7 +65,7 @@ class Period:
         }
 
 
-period_code = uuid.uuid4()
-period_name = "2024-04-01"
-period = Period(period_code, period_name)
-print(period.to_dict())
+# period_code = uuid.uuid4()
+# period_name = "2024-04-01"
+# period = Period(period_code, period_name)
+# print(period.to_dict())
