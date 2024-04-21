@@ -16,6 +16,4 @@ class LoadPeriodIntervalUseCase:
         self.period_repo = period_repo
 
     def execute(self, period_list: List[str]) -> List[Period]:
-        period = Period(uuid.uuid4(), period_list[0])
-        self.period_repo.create_period(period)
         return []
