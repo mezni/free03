@@ -2,7 +2,6 @@ import pytest
 import uuid
 
 
-
 @pytest.fixture
 def fixture_period_entity_valid():
     """Fixture with Period example"""

@@ -10,7 +10,6 @@ from src.domain.entities.period import Period
 class PeriodRepositoryInterface(ABC):
     """This class is the interface for the PeriodRepository"""
 
-
     @abstractmethod
     def get_by_name(self, period_name: str) -> Optional[Period]:
         """Get a Period by name
@@ -26,4 +25,3 @@ class PeriodRepositoryInterface(ABC):
         :param period_name: period name
         :return: Period
         """
-
