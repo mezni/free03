@@ -10,4 +10,4 @@ def test_periods_interval_load_usecase():
     use_case = LoadPeriodIntervalUseCase(period_repo)
     period_list = ["2024-04-20", "2024-04-21"]
     result = use_case.execute(period_list)
-    assert result == []
+    assert len(result) == 2

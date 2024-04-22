@@ -41,3 +41,14 @@ class PeriodRepositoryInterface(ABC):
         :param description : period name
         :return: Period
         """
+
+    @abstractmethod
+    def get_periods_periods_interval(
+        self, period_name_min: str, period_name_max: str
+    ) -> List[Period]:
+        """Get Period List interval
+
+        :param period_name_min :
+        :param period_name_max :
+        :return: List Period
+        """

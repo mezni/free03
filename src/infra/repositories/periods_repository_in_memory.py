@@ -38,3 +38,15 @@ class PeriodInMemoryRepository(PeriodRepositoryInterface):
     def get_period_by_name(self, period_name: str) -> Period:
         result = next((p for p in self._periods if p.period_name == period_name), None)
         return result
+
+    def get_periods_periods_interval(
+        self, period_name_min: str, period_name_max: str
+    ) -> List[Period]:
+        result = []
+        period_name_date_curr = datetime.strptime(period_name_min, "%Y-%m-%d")
+        while period_name_date_curr <= datetime.strptime(period_name_max, "%Y-%m-%d"):
+            period_name_curr = period_name_date_curr.strftime("%Y-%m-%d")
+            stored_period = self.get_period_by_name(period_name_curr)
+            result.append(stored_period)
+            period_name_date_curr += timedelta(days=1)
+        return result

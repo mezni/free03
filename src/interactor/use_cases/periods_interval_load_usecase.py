@@ -16,4 +16,7 @@ class LoadPeriodIntervalUseCase:
         self.period_repo = period_repo
 
     def execute(self, period_list: List[str]) -> List[Period]:
-        return []
+        result = self.period_repo.create_periods_interval(
+            min(period_list), max(period_list)
+        )
+        return result
