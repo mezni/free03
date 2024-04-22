@@ -1,3 +1,2 @@
-[![work03 CI](https://github.com/mezni/work03/actions/workflows/main.yml/badge.svg)](https://github.com/mezni/work03/actions/workflows/main.yml)
-
-# work03
+[![loader-service](https://github.com/mezni/work03/actions/workflows/loader-service.yml/badge.svg)](https://github.com/mezni/work03/actions/workflows/loader-service.yml)
+# loader-service
