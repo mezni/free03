@@ -8,3 +8,4 @@ uuid7
 pydantic
 tinydb
 SQLAlchemy
+sqlalchemy_utils
