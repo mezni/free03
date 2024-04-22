@@ -1,0 +1,10 @@
+pylint
+pytest
+pytest-mock
+black
+click
+pytest-cov
+uuid7
+pydantic
+tinydb
+SQLAlchemy
