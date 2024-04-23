@@ -1,9 +1,5 @@
-""" Module for entities
-
-"""
-
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from uuid import UUID as CodeId
 
 
