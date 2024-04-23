@@ -19,3 +19,6 @@ class Period(Base):
     __tablename__ = "periods"
     period_code = Column(UUID, primary_key=True, index=True)
     period_name = Column(String(60), unique=True, nullable=False, index=True)
+
+
+#    period_date = Column(Date, unique=True, nullable=False)
