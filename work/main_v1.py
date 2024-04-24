@@ -38,7 +38,7 @@ class PeriodNameList(BaseModel):
 async def main():
     print("# Enter")
     p = PeriodName(period_name="2024-04-12")
-    l=PeriodNameList(period_interval=["2024-04-20", "2024-04-01", "2024-04-10"])
+    l = PeriodNameList(period_interval=["2024-04-20", "2024-04-01", "2024-04-10"])
     print(l)
 
 
