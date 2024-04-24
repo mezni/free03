@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from pydantic import BaseModel
+from src.entities import Period
 
 
 class PeriodSchemaIn(BaseModel):
@@ -20,11 +21,5 @@ class PeriodSchemaIn(BaseModel):
         self.period_year = self.period_date.year
 
 
-class PeriodSchemaOut(BaseModel):
-    period_code: uuid.UUID
-    period_name: str
-    period_date: datetime
-    period_day: int
-    period_month: int
-    period_year: int
-    period_is_holiday: bool
+class PeriodSchemaOut(Period):
+    pass

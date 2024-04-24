@@ -10,8 +10,9 @@ class PeriodRepositoryInterface(ABC):
     ) -> Optional[PeriodSchemaOut]:
         pass
 
-    @abstractmethod
-    async def get_period_by_name(
-        self, period_in: PeriodSchemaIn
-    ) -> Optional[PeriodSchemaOut]:
-        pass
+
+#    @abstractmethod
+#    async def get_period_by_name(
+#        self, period_in: PeriodSchemaIn
+#    ) -> Optional[PeriodSchemaOut]:
+#        pass
