@@ -11,7 +11,7 @@ class PeriodInputDTO(BaseModel):
     period_day: int = None
     period_month: int = None
     period_year: int = None
-    period_quarter: int = None 
+    period_quarter: int = None
     period_day_of_week: int = None
     period_day_of_year: int = None
     period_week_of_year: int = None
@@ -25,8 +25,9 @@ class PeriodInputDTO(BaseModel):
         self.period_year = self.period_date.year
         self.period_quarter = self.period_date.month // 3 + 1
         self.period_day_of_week = self.period_date.weekday() + 1
-        self.period_day_of_year= self.period_date.timetuple().tm_yday
-        self.period_week_of_year= self.period_date.isocalendar()[1]
+        self.period_day_of_year = self.period_date.timetuple().tm_yday
+        self.period_week_of_year = self.period_date.isocalendar()[1]
+
 
 class PeriodOutputtDTO(Period):
     pass
