@@ -1,11 +1,10 @@
-import uuid
 from datetime import datetime
 from pydantic import BaseModel
-from src.entities import Period
+from src.entities import Period, UUIDType, generate_uuid
 
 
 class PeriodInputDTO(BaseModel):
-    period_code: uuid.UUID = None
+    period_code: UUIDType = None
     period_name: str
     period_date: datetime = None
     period_day: int = None
@@ -18,7 +17,7 @@ class PeriodInputDTO(BaseModel):
     period_is_holiday: bool = False
 
     def model_post_init(self, __context) -> None:
-        self.period_code = uuid.uuid4()
+        self.period_code = generate_uuid()
         self.period_date = datetime.strptime(self.period_name, "%Y-%m-%d")
         self.period_day = self.period_date.day
         self.period_month = self.period_date.month
