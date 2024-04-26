@@ -1,8 +1,10 @@
 import asyncio
 
+from src.infra.in_memory_repositories import InMemoryProviderRepository
+
 
 async def main():
-    pass
+    repo = InMemoryProviderRepository()
 
 
 asyncio.run(main())
