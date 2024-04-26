@@ -2,7 +2,8 @@ import asyncio
 
 
 async def main():
-    pass
+    """In Memory controller"""
+    logger = Logger()
 
 
 asyncio.run(main())
