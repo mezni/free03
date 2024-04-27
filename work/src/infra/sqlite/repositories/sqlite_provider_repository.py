@@ -1,8 +1,6 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 from typing import Dict
 from sqlalchemy.future import select
+from src.infra.sqlite.config import AsyncSession, sessionmaker
 from src.infra.sqlite.models.provider import ProviderModel
 
 
@@ -16,8 +14,11 @@ class SqliteProviderRepository:
     async def create_provider(self, payload: Dict):
         async with self.AsyncSessionLocal() as session:
             async with session.begin():
-                item = ProviderModel(**payload)
-                session.add(item)
+                item_db = ProviderModel(**payload)
+                session.add(item_db)
+                session.commit()
+                session.refresh(item_db)
+                return item_db
 
     async def get_all_provider(self):
         async with self.AsyncSessionLocal() as session:
@@ -26,13 +27,13 @@ class SqliteProviderRepository:
                 result = q.scalars().all()
                 return result
 
-
-#    async def create_provider(self, payload):
-#        async with self.AsyncSessionLocal() as session:
-#            async with session.begin():
-#                session.add(payload)
-
-#    async def get_all_provider(self):
-#        async with self.AsyncSessionLocal() as session:
-#            async with session.begin():
-#                return await session.execute(Post.__table__.select()).scalars().all()
+    async def get_provider_by_name(self, provider_name: str):
+        async with self.AsyncSessionLocal() as session:
+            async with session.begin():
+                q = await session.execute(
+                    select(ProviderModel).where(
+                        ProviderModel.provider_name == provider_name
+                    )
+                )
+                result = q.scalars().first()
+                return result
