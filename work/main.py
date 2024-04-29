@@ -1,10 +1,16 @@
-
 import asyncio
+from src.load_costs_repository import LoadCostsRepository
+from src.load_costs_usecase import LoadCostsUseCase
 
 
 async def main():
     db_url = "sqlite+aiosqlite:///_costs.db"
-    DATA_SOURCE = "csv" # List
+    DATA_SOURCE = "csv"  # List
+    SOURCE_PATH = "csv"
+    costs_repo = LoadCostsRepository()
+    costs_usecase = LoadCostsUseCase(costs_repo)
+    data = costs_usecase.process(DATA_SOURCE, SOURCE_PATH)
+    print(data)
 
 
 asyncio.run(main())

@@ -1,4 +1,3 @@
 class LoadCostsRepository:
-    def __init__(self, source):
-        self.source=source 
-        
+    def __init__(self):
+        pass
