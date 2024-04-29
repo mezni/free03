@@ -10,3 +10,4 @@ tinydb
 sqlalchemy[asyncio]
 sqlalchemy_utils
 aiosqlite
+pandas
