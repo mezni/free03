@@ -1,5 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
+from src.input_reader_usecase import InputReaderUseCase
 
 
 class InputReader(ABC):
@@ -9,24 +10,19 @@ class InputReader(ABC):
 
 
 class CSVReader(InputReader):
+    def __init__(self):
+        pass
+
     def read_source(self, source_path):
         data = []
         return data
-
-
-class InputReaderUseCase:
-    def __init__(self, input_reader):
-        self.input_reader = input_reader
-
-    def execute(self, source_path):
-        return self.input_reader.read_source(source_path)
 
 
 async def main():
     source_type = "csv"
     source_path = ""
     if source_type == "csv":
-        input_reader = CSVReader("source_path")
+        input_reader = CSVReader()
 
     input_reader_usecase = InputReaderUseCase(input_reader)
     input_reader_usecase.execute(source_path)
