@@ -36,7 +36,7 @@ class CostRecord(BaseModel):
     cost: List[Cost]
 
 
-class CostRecordBatch(BaseModel):
+class Batch(BaseModel):
     batch_code: UUIDType
     batch_name: str
     batch_start_time: datetime
@@ -44,6 +44,10 @@ class CostRecordBatch(BaseModel):
     batch_status: str
     exit_status: str
     exit_message: str
+
+
+class CostRecordBatch(BaseModel):
+    batch_code: UUIDType
     cost_record_list: List[CostRecord]
     org_list: List[Dict]
     provider_list: List[Dict]
