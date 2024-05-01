@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import TypeVar, List, Dict
 from pydantic import BaseModel
 
@@ -37,6 +38,12 @@ class CostRecord(BaseModel):
 
 class CostRecordBatch(BaseModel):
     batch_code: UUIDType
+    batch_name: str
+    batch_start_time: datetime
+    batch_end_time: datetime
+    batch_status: str
+    exit_status: str
+    exit_message: str
     cost_record_list: List[CostRecord]
     org_list: List[Dict]
     provider_list: List[Dict]
