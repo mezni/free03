@@ -1,5 +1,5 @@
 import uuid
-from typing import TypeVar, List
+from typing import TypeVar, List, Dict
 from pydantic import BaseModel
 
 
@@ -33,3 +33,14 @@ class CostRecord(BaseModel):
     resource_name: str
     tags: List[Tag]
     cost: List[Cost]
+
+
+class CostRecordBatch(BaseModel):
+    batch_code: UUIDType
+    cost_record_list: List[CostRecord]
+    org_list: List[Dict]
+    provider_list: List[Dict]
+    period_list: List[Dict]
+    service_list: List[Dict]
+    resource_list: List[Dict]
+    region_list: List[Dict]
