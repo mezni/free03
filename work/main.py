@@ -1,6 +1,7 @@
 import asyncio
 from typing import List, Dict
 import pandas as pd
+import numpy as np
 
 
 class Reader:
@@ -26,6 +27,14 @@ class Validator:
         return costs
 
 
+class UseCase:
+    def execute(self, data: List[Dict]):
+        df = pd.DataFrame(data)
+        cols = ["org_name", "service_name"]
+        df_temp = df.groupby(cols).size().reset_index(name="Freq")[cols]
+        print(df_temp.to_dict("records"))
+
+
 async def main():
     aws_mapping = {
         "org_name": "Client",
@@ -43,8 +52,8 @@ async def main():
     data = reader.read_csv("tests/aws_data.csv")
     validator = Validator(aws_mapping)
     costs = validator.validate(data)
-    for c in costs:
-        print(c)
+    usecase = UseCase()
+    usecase.execute(costs)
 
 
 asyncio.run(main())
