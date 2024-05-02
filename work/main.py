@@ -1,90 +1,49 @@
 import asyncio
 from typing import List, Dict
+from abc import ABC, abstractmethod
 import pandas as pd
 import numpy as np
 
 
-class Reader:
-    def read_csv(self, file_path: str) -> List[Dict]:
-        df = pd.read_csv(file_path)
-        data = df.to_dict("records")
-        return data
+class ReaderRepository(ABC):
+    @abstractmethod
+    def read_data(self, file_path: str) -> List[Dict]:
+        pass
 
 
-class Validator:
-    def __init__(self, column_mapping):
-        self.column_mapping = column_mapping
+class LoaderRepository(ABC):
 
-    def validate(self, data: List[Dict]) -> List[Dict]:
+    @abstractmethod
+    def load_data(self, data: List[Dict]) -> None:
+        pass
 
-        costs = []
-        cost = {}
-        for record in data:
-            cost = {}
-            for attr, col in self.column_mapping.items():
-                cost[attr] = record[col]
-            costs.append(cost)
-        return costs
+
+class Reader(ReaderRepository):
+    def read_data(self, file_path: str) -> List[Dict]:
+        return []
+
+
+class Loader(LoaderRepository):
+    def load_data(self, data: List[Dict]) -> None:
+        pass
 
 
 class UseCase:
-    def __init__(self):
-        self.orgs = []
-        self.periods = []
-        self.accounts = []
-        self.services = []
-        self.regions = []
-        self.resources = []
+    def __init__(self, data_reader: ReaderRepository, data_loader: LoaderRepository):
+        self.data_reader = data_reader
+        self.data_loader = data_loader
 
-    def _get_distinct(self, df, cols):
-        df_temp = df.groupby(cols).size().reset_index(name="Freq")[cols]
-        return df_temp.to_dict("records")
-
-    def _load_structs(self, df):
-        self.orgs = self._get_distinct(df, ["org_name"])
-        self.periods = self._get_distinct(df, ["period_name"])
-        self.accounts = self._get_distinct(
-            df, ["org_name", "provider_name", "account_name"]
-        )
-        self.services = self._get_distinct(df, ["provider_name", "service_name"])
-        self.regions = self._get_distinct(df, ["provider_name", "region_name"])
-        self.resources = self._get_distinct(
-            df,
-            [
-                "org_name",
-                "provider_name",
-                "account_name",
-                "resource_name",
-                "resource_id",
-            ],
-        )
-
-    def execute(self, data: List[Dict]):
-        df = pd.DataFrame(data)
-        self._load_structs(df)
-        for org in self.orgs:
-            print(org)
+    def execute(self, file_path: str) -> None:
+        data = self.data_reader.read_data(file_path)
+        self.data_loader.load_data(data)
 
 
 async def main():
-    aws_mapping = {
-        "org_name": "Client",
-        "period_name": "Date",
-        "provider_name": "Provider",
-        "account_name": "SubscriptionName",
-        "service_name": "ServiceName",
-        "resource_name": "Resource",
-        "resource_id": "ResourceId",
-        "region_name": "ResourceLocation",
-        "cost": "CostUSD",
-        "currency": "Currency",
-    }
     reader = Reader()
-    data = reader.read_csv("tests/aws_data.csv")
-    validator = Validator(aws_mapping)
-    costs = validator.validate(data)
-    usecase = UseCase()
-    usecase.execute(costs)
+    loader = Loader()
+    usecase = UseCase(reader, loader)
+    file_path = "tests/aws_data.csv"
+    usecase.execute(file_path)
 
 
 asyncio.run(main())
