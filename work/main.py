@@ -1,49 +1,30 @@
 import asyncio
-from typing import List, Dict
-from abc import ABC, abstractmethod
-import pandas as pd
-import numpy as np
+import logging
+import sys
+
+import logging
 
 
-class ReaderRepository(ABC):
-    @abstractmethod
-    def read_data(self, file_path: str) -> List[Dict]:
-        pass
+class LoggerDefault:
+    def __init__(self) -> None:
+        self.logger = logging.getLogger(__name__)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(
+            logging.Formatter(
+                fmt='%(asctime)-s - %(levelname)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            ))
+        self.logger.addHandler(handler)
+        
+    def log_info(self, message:str) -> None:
+        self.logger.warning(message)
 
-
-class LoaderRepository(ABC):
-
-    @abstractmethod
-    def load_data(self, data: List[Dict]) -> None:
-        pass
-
-
-class Reader(ReaderRepository):
-    def read_data(self, file_path: str) -> List[Dict]:
-        return []
-
-
-class Loader(LoaderRepository):
-    def load_data(self, data: List[Dict]) -> None:
-        pass
-
-
-class UseCase:
-    def __init__(self, data_reader: ReaderRepository, data_loader: LoaderRepository):
-        self.data_reader = data_reader
-        self.data_loader = data_loader
-
-    def execute(self, file_path: str) -> None:
-        data = self.data_reader.read_data(file_path)
-        self.data_loader.load_data(data)
 
 
 async def main():
-    reader = Reader()
-    loader = Loader()
-    usecase = UseCase(reader, loader)
-    file_path = "tests/aws_data.csv"
-    usecase.execute(file_path)
+    logger = LoggerDefault()
+    logger.log_info("DD")
 
 
 asyncio.run(main())
