@@ -1,12 +1,22 @@
 * work
 
-create_period (str,Period)
-get_period_by_name (str,Period)
+app/csv_db_loader
+- controllers
+- presenters
+- interfaces
 
 
-create_periods_interval (List(str),List(Period))
-create_periods_by_interval (min, max,List(Period))
+infra/
+- models
+- loggers
+- repositories
 
-class PeriodName:
-    
-class PeriodNameList:
+
+interactor
+- dto
+- interfaces
+- usecases
+- validations
+- errors
+
+domain
