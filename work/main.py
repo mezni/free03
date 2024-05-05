@@ -2,7 +2,8 @@ import asyncio
 
 
 async def main():
-    pass
+    db_url = "sqlite+aiosqlite:///data.db"
+    
 
 
 asyncio.run(main())
