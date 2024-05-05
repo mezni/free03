@@ -1,6 +1,4 @@
 from sqlalchemy import UUID, Column, String, ForeignKey
-
-
 from src.infra.db_base import Base
 
 
