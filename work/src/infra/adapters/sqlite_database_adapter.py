@@ -1,10 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from src.interactor.interfaces.database import DatabaseInterface
 from src.infra.db_base import Base
 from src.infra import models
 
 
-class SQLiteDatabaseAdapter:
+class SQLiteDatabaseAdapter(DatabaseInterface):
     def __init__(self, db_url: str) -> None:
         self.engine = create_async_engine(db_url)
         self.async_session = sessionmaker(
