@@ -7,4 +7,3 @@ class Provider(BaseModel):
 
     provider_code: UUIDType
     provider_name: str
-    org_code: UUIDType
