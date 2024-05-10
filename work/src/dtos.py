@@ -18,17 +18,3 @@ class OrganisationInputDto(BaseModel):
 class OrganisationOutputDto(Organisation):
 
     pass
-
-
-class AccountInputDto(BaseModel):
-    account_code: UUIDType = None
-    account_name: str
-    org_code: UUIDType
-
-    def model_post_init(self, __context) -> None:
-        self.account_code = generate_uuid()
-
-
-class AccountOutputDto(Account):
-
-    pass
