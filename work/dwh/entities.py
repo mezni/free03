@@ -28,3 +28,9 @@ class Period(BaseModel):
     period_day_of_year: int
     period_week_of_year: int
     period_is_holiday: bool
+
+
+class Service(BaseModel):
+    service_code: UUIDType
+    service_name: str
+    provider_code: UUIDType
