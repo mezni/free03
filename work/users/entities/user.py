@@ -10,4 +10,4 @@ class User(BaseModel):
     user_code: UUIDType
     user_name: str
     user_email: str
-    user_passzord: str
+    user_password: str
