@@ -79,4 +79,6 @@ Tags              :
                     
                     
                     
-                    
+resource allocation
+- allocation rule 
+- priority / 
