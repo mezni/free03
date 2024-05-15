@@ -81,4 +81,4 @@ Tags              :
                     
 resource allocation
 - allocation rule 
-- priority / 
+- priority / owner 
