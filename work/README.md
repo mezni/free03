@@ -82,3 +82,22 @@ Tags              :
 resource allocation
 - allocation rule 
 - priority / owner 
+- 
+
+
+Application financialModule = new Application();
+
+financialModule.addRole(new Role("Manager"));
+financialModule.addRole(new Role("Customer"));
+financialModule.addRole(new Role("Other"));
+
+User arthur = new User(new Login("#####", "#####"));
+arthur.setFirstName("Arthur");
+arthur.setLastName("Ronald");
+arthur.setEnabled(true);
+
+UserApplication financialModuleUser = new UserApplication(new Period(new Date(), null));
+financialModuleUser.setUser(arthur);
+financialModuleUser.addRole(financialModule.getRoleByDescription("Manager"));
+
+financialModule.addUserApplication(financialModuleUser);
