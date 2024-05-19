@@ -28,3 +28,9 @@ class PortfolioInputDto(BaseModel):
 portfolio_input_dto = PortfolioInputDto(portfolio_name="default",portfolio_type="root")
 portfolio_data = portfolio_input_dto.model_dump()
 portfolio = Portfolio(**portfolio_data)
+print (portfolio_data["portfolio_code"])
+
+portfolio_input_dto1 = PortfolioInputDto(portfolio_name="default",portfolio_type="root",portfolio_parent=portfolio_data["portfolio_code"])
+portfolio_data1 = portfolio_input_dto1.model_dump()
+portfolio1 = Portfolio(**portfolio_data1)
+print (portfolio1.model_dump())
