@@ -19,6 +19,7 @@ class Portfolio(BaseModel):
     def model_post_init(self, __context) -> None:
         self.portfolio_code = generate_uuid()
 
+
 class CostAllocation(BaseModel):
     allocation_code: UUIDType = None
     total_cost: float = 0.0
@@ -28,7 +29,8 @@ class CostAllocation(BaseModel):
 
     def model_post_init(self, __context) -> None:
         self.portfolio_code = generate_uuid()
-        
+
+
 class AllocationRepository:
     def __init__(self):
         self.portfolios = []
@@ -52,9 +54,18 @@ class AllocationRepository:
     def get_all_allocation(self) -> List[CostAllocation]:
         return self.allocations
 
+
 class AllocationService:
     pass
-#add_portfolio(name,limit,portfolio_type,extend_parent_limit,parent,effective_date,expiry_date)
 
-portfolio_default = portfolio_usecase.create_portfolio(portfolio_name="default", portfolio_type="root")
-portfolio_it = portfolio_usecase.create_portfolio(portfolio_name="default", portfolio_type="root",portfolio_parent=portfolio_default.portfolio_code)
+
+# add_portfolio(name,limit,portfolio_type,extend_parent_limit,parent,effective_date,expiry_date)
+
+portfolio_default = portfolio_usecase.create_portfolio(
+    portfolio_name="default", portfolio_type="root"
+)
+portfolio_it = portfolio_usecase.create_portfolio(
+    portfolio_name="default",
+    portfolio_type="root",
+    portfolio_parent=portfolio_default.portfolio_code,
+)
