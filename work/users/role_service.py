@@ -9,8 +9,10 @@ class RoleService:
         self.role_repository = role_repository
 
     def create_role(self, name: str, description: str) -> Role:
-        role = Role(name=name, description=description)
-        self.role_repository.add_role(role)
+        role = self.role_repository.find_role_by_name(name)
+        if not role:
+            role = Role(name=name, description=description)
+            self.role_repository.add_role(role)
         return role
 
     def get_roles(self) -> List[Role]:

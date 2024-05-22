@@ -3,17 +3,18 @@ from role_entity import Role
 from uuid import UUID
 from tinydb import TinyDB, Query
 
-def serializer(item):
-    data=item
-    uuid = str(data['code'])
-    del data['code']
-    data['code']=uuid
+
+def serializer(data):
+    uuid = str(data["code"])
+    del data["code"]
+    data["code"] = uuid
     return data
+
 
 class RoleRepository:
     def __init__(self, db):
         self.db = db
-        self.table = self.db.table('roles')
+        self.table = self.db.table("roles")
 
     def add_role(self, role: Role):
         self.table.insert(serializer(role.dict()))
