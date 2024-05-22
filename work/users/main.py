@@ -18,8 +18,11 @@ def main():
     admin_role = role_use_case.create_role(
         name="Admin", description="Administrator role"
     )
+    org_manager_role = role_use_case.create_role(
+        name="Organisation Manager", description="Organisation Manager"
+    )
+    manager_role = role_use_case.create_role(name="Manager", description="Manager")
     user_role = role_use_case.create_role(name="User", description="Regular user role")
-
     roles = role_use_case.list_roles()
     for r in roles:
         print(r)
