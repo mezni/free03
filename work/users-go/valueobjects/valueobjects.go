@@ -5,7 +5,7 @@ import (
 )
 
 type Limit struct {
-	Amount    float64
+	Limit     float64
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/mezni/users-go/domain/aggregates"
+	"github.com/mezni/users-go/memrepo"
+	"github.com/mezni/users-go/services"
+	//	"time"
 )
 
 func main() {
 	fmt.Println("- start")
-	p, _ := aggregates.NewPortfolio("Test")
-	fmt.Println(p)
-	p.SetName("Test2")
-	p.SetLimit(12)
-	fmt.Println(p)
-	fmt.Println(p.Limit)
+	repo := memory_repo.NewInMemoryPortfolioRepository()
+	service := services.NewPortfolioService(repo)
+	fmt.Println(repo)
+	service.AddPortfolio("Test")
+	service.AddPortfolio("Test1")
+	fmt.Println(repo)
 	fmt.Println("- end")
 }
