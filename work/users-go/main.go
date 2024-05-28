@@ -58,64 +58,6 @@ func generate() []*Portfolio {
 	return portfolios
 }
 
-func test2(portfolios []*Portfolio) {
-	fmt.Println("- pass1")
-	uuids := make([]*uuid.UUID, 0)
-	children_uuids := make([]*uuid.UUID, 0)
-	for _, p := range portfolios {
-		if p.Parent == nil {
-			//			fmt.Println(p.ID, p.Name, p.PortfolioType, p.Limit, p.Parent)
-			children_uuids = append(children_uuids, &p.ID)
-		}
-	}
-	fmt.Println(children_uuids)
-	fmt.Println("- pass2")
-	uuids = children_uuids
-	children_uuids = []*uuid.UUID{}
-	for _, p := range portfolios {
-		for _, v := range uuids {
-			if p.Parent != nil {
-				if p.Parent.String() == v.String() {
-					//					fmt.Println(p.ID, p.Name, p.PortfolioType, p.Limit, p.Parent)
-					children_uuids = append(children_uuids, &p.ID)
-				}
-			}
-		}
-
-	}
-	fmt.Println(children_uuids)
-	fmt.Println("- pass3")
-	uuids = children_uuids
-	children_uuids = []*uuid.UUID{}
-	for _, p := range portfolios {
-		for _, v := range uuids {
-			if p.Parent != nil {
-				if p.Parent.String() == v.String() {
-					//					fmt.Println(p.ID, p.Name, p.PortfolioType, p.Limit, p.Parent)
-					children_uuids = append(children_uuids, &p.ID)
-				}
-			}
-		}
-
-	}
-	fmt.Println(children_uuids)
-	fmt.Println("- pass4")
-	uuids = children_uuids
-	children_uuids = []*uuid.UUID{}
-	for _, p := range portfolios {
-		for _, v := range uuids {
-			if p.Parent != nil {
-				if p.Parent.String() == v.String() {
-					//					fmt.Println(p.ID, p.Name, p.PortfolioType, p.Limit, p.Parent)
-					children_uuids = append(children_uuids, &p.ID)
-				}
-			}
-		}
-
-	}
-	fmt.Println(children_uuids)
-}
-
 func test3(portfolios []*Portfolio) {
 	uuids := make([]*uuid.UUID, 0)
 	children_uuids := make([]*uuid.UUID, 0)
@@ -143,9 +85,47 @@ func test3(portfolios []*Portfolio) {
 		}
 	}
 }
+
+func getChildren(portfolios []*Portfolio, uuids []*uuid.UUID) []*uuid.UUID {
+	children_uuids := make([]*uuid.UUID, 0)
+	if len(uuids) == 0 {
+		for _, p := range portfolios {
+			if p.Parent == nil {
+				children_uuids = append(children_uuids, &p.ID)
+			}
+		}
+	} else {
+		for _, p := range portfolios {
+			for _, v := range uuids {
+				if p.Parent != nil && p.Parent.String() == v.String() {
+					children_uuids = append(children_uuids, &p.ID)
+
+				}
+			}
+		}
+	}
+
+	return children_uuids
+}
+func processLevel(children_uuids []*uuid.UUID) {
+	fmt.Println(children_uuids)
+}
+
+func test4(portfolios []*Portfolio) {
+	uuids := make([]*uuid.UUID, 0)
+
+	children_uuids := getChildren(portfolios, uuids)
+	for len(children_uuids) > 0 {
+		processLevel(children_uuids)
+		uuids = children_uuids
+		children_uuids = getChildren(portfolios, uuids)
+	}
+
+}
+
 func main() {
 	fmt.Println("- start")
 	portfolios := generate()
-	test3(portfolios)
+	test4(portfolios)
 
 }
