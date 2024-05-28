@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/google/uuid"
 )
 
@@ -18,17 +17,57 @@ func NewPortfolio(name string, portfolioType string, limit float64, parent *uuid
 	return &Portfolio{ID: uuid.New(), Name: name, PortfolioType: portfolioType, Limit: limit, Parent: parent}, nil
 }
 
+type PortfolioInput struct {
+	Name          string
+	PortfolioType string
+	Limit         float64
+	Parent        string
+}
+
+func generate() []*Portfolio {
+	var portfolios []*Portfolio
+	portfolioInput := []PortfolioInput{
+		{"root", "default", 3000, ""},
+		{"IT", "department", 2000, "root"},
+		{"HR", "department", 500, "root"},
+		{"Sales", "department", 500, "root"},
+		{"team1", "team", 1000, "IT"},
+		{"team2", "team", 500, "IT"},
+		{"phonix1", "project", 500, "IT"},
+		{"phonix2", "project", 500, "IT"},
+		{"hr1", "project", 300, "IT"},
+	}
+	for _, v := range portfolioInput {
+		if v.Parent == "" {
+			p, _ := NewPortfolio(v.Name, v.PortfolioType, v.Limit, nil)
+			portfolios = append(portfolios, p)
+		} else {
+			for _, p := range portfolios {
+				if v.Parent == p.Name {
+					parentID := p.ID
+					p, _ := NewPortfolio(v.Name, v.PortfolioType, v.Limit, &parentID)
+					portfolios = append(portfolios, p)
+					break
+				}
+			}
+		}
+	}
+	return portfolios
+}
+
 func main() {
-	p_root, _ := NewPortfolio("root", "default", 2000, nil)
-	fmt.Println(p_root)
-	p_it, _ := NewPortfolio("IT", "departement", 1500, &p_root.ID)
-	fmt.Println(p_it)
-	p_hr, _ := NewPortfolio("HR", "departement", 500, &p_root.ID)
-	fmt.Println(p_hr)
-	p_phonix1, _ := NewPortfolio("Phonix1", "project", 500, &p_it.ID)
-	fmt.Println(p_phonix1)
-	p_phonix2, _ := NewPortfolio("Phonix2", "project", 400, &p_it.ID)
-	fmt.Println(p_phonix2)
-	p_hr1, _ := NewPortfolio("hr1", "project", 200, &p_hr.ID)
-	fmt.Println(p_hr1)
+	fmt.Println("- start")
+	portfolios := generate()
+
+	uuids := make([]*uuid.UUID, 0)
+	uuids = append(uuids, nil)
+	for _, p := range portfolios {
+		for _, v := range uuids {
+			if p.Parent == v {
+				fmt.Println(p.ID, p.Name, p.PortfolioType, p.Limit, p.Parent)
+				uuids = append(uuids, &p.ID)
+			}
+		}
+	}
+	fmt.Println(uuids)
 }
