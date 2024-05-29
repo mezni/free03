@@ -99,7 +99,6 @@ func getChildren(portfolios []*Portfolio, uuids []*uuid.UUID) []*uuid.UUID {
 			for _, v := range uuids {
 				if p.Parent != nil && p.Parent.String() == v.String() {
 					children_uuids = append(children_uuids, &p.ID)
-
 				}
 			}
 		}
