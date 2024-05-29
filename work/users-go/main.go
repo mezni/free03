@@ -17,69 +17,8 @@ func NewPortfolio(name string, portfolioType string, limit float64, parent *uuid
 	return &Portfolio{ID: uuid.New(), Name: name, PortfolioType: portfolioType, Limit: limit, Parent: parent}, nil
 }
 
-type PortfolioInput struct {
-	Name          string
-	PortfolioType string
-	Limit         float64
-	Parent        string
-}
-
-func generate() []*Portfolio {
-	var portfolios []*Portfolio
-	portfolioInput := []PortfolioInput{
-		{"root", "default", 3000, ""},
-		{"IT", "department", 2000, "root"},
-		{"HR", "department", 500, "root"},
-		{"Sales", "department", 500, "root"},
-		{"team1", "team", 1000, "IT"},
-		{"team2", "team", 500, "IT"},
-		{"phonix1", "project", 500, "team1"},
-		{"phonix2", "project", 500, "team1"},
-		{"phonix3", "project", 500, "team2"},
-		{"hr1", "project", 300, "HR"},
-	}
-	for _, v := range portfolioInput {
-		if v.Parent == "" {
-			p, _ := NewPortfolio(v.Name, v.PortfolioType, v.Limit, nil)
-			portfolios = append(portfolios, p)
-		} else {
-			for _, p := range portfolios {
-				if v.Parent == p.Name {
-					parentID := p.ID
-					p, _ := NewPortfolio(v.Name, v.PortfolioType, v.Limit, &parentID)
-					portfolios = append(portfolios, p)
-					break
-				}
-			}
-		}
-	}
-	//	for _, p := range portfolios {
-	//		fmt.Println(p.ID, p.Name, p.PortfolioType, p.Limit, p.Parent)
-	//	}
-	return portfolios
-}
-
-func getChildren(portfolios []*Portfolio, pList []*Portfolio) []*Portfolio {
-	pChildren := make([]*Portfolio, 0)
-	if len(pList) == 0 {
-		for _, p := range portfolios {
-			if p.Parent == nil {
-				pChildren = append(pChildren, p)
-			}
-		}
-	} else {
-		for _, p := range portfolios {
-			for _, v := range pList {
-				if p.Parent != nil && p.Parent.String() == v.ID.String() {
-					pChildren = append(pChildren, p)
-				}
-			}
-		}
-	}
-	return pChildren
-}
-
 type Node struct {
+	uuid      uuid.UUID
 	portfolio *Portfolio
 	children  []*Node
 }
@@ -88,38 +27,50 @@ type Tree struct {
 	root *Node
 }
 
-func (t *Tree) AddNode(p *Portfolio) {
-	if t.root == nil {
-		c := make([](*Node), 0)
-		t.root = &Node{portfolio: p, children: c}
-	} else {
-		uuid := &t.root.portfolio.ID
-		if uuid.String() == p.Parent.String() {
-			c := make([](*Node), 0)
-			node := &Node{portfolio: p, children: c}
-			t.root.children = append(t.root.children, node)
+func NewNode(portfolio *Portfolio) (*Node, error) {
+	children := make([]*Node, 0)
+	return &Node{uuid: portfolio.ID, portfolio: portfolio, children: children}, nil
+}
+
+func findAll(tree Tree) {
+	queue := make([]*Node, 0)
+	queue = append(queue, tree.root)
+	for len(queue) > 0 {
+		item := queue[0]
+		fmt.Println(item.uuid, item.portfolio.Name)
+		queue = queue[1:]
+		if len(item.children) > 0 {
+			for _, child := range item.children {
+				queue = append(queue, child)
+			}
 		}
 	}
 }
-
-func processChildren(t *Tree, pChildren []*Portfolio) {
-	for _, p := range pChildren {
-		//		fmt.Println(p)
-		t.AddNode(p)
-		//	fmt.Println(t.root)
-	}
-}
-
 func main() {
 	fmt.Println("- start")
-	portfolios := generate()
 	tree := Tree{}
-	fmt.Println(tree)
-	pChildren := make([]*Portfolio, 0)
-	pChildren = getChildren(portfolios, pChildren)
-	for len(pChildren) > 0 {
-		processChildren(&tree, pChildren)
-		pChildren = getChildren(portfolios, pChildren)
-	}
-	fmt.Println(tree.root)
+	p_root, _ := NewPortfolio("default", "root", 3000, nil)
+	n_root, _ := NewNode(p_root)
+	tree.root = n_root
+
+	p_hr, _ := NewPortfolio("hr", "department", 1000, nil)
+	n_hr, _ := NewNode(p_hr)
+
+	p_it, _ := NewPortfolio("it", "department", 2000, nil)
+	n_it, _ := NewNode(p_it)
+
+	n_root.children = append(n_root.children, n_hr)
+	n_root.children = append(n_root.children, n_it)
+
+	p_phonix1, _ := NewPortfolio("phonix1", "projet", 500, nil)
+	n_phonix1, _ := NewNode(p_phonix1)
+
+	p_phonix2, _ := NewPortfolio("phonix2", "projet", 500, nil)
+	n_phonix2, _ := NewNode(p_phonix2)
+
+	n_it.children = append(n_it.children, n_phonix1)
+	n_it.children = append(n_it.children, n_phonix2)
+
+	findAll(tree)
+
 }
