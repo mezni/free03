@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/mezni/expenses-go/internal/infrastructure/sqlite"
+	"log"
 )
 
 //momentum tech,2023-11-01,aws,367475994817,367475994817,Tax,,,,,,,,,,[],,54.41,USD
@@ -45,4 +47,22 @@ func main() {
 	}
 	fmt.Println(orgs)
 	fmt.Println(periods)
+
+	db, err := sqlite.NewSQLiteDB("_expenses.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	createTables := []string{
+		`CREATE TABLE IF NOT EXISTS orgs (
+            id TEXT PRIMARY KEY,
+            org_name TEXT NOT NULL
+        );`}
+	for _, query := range createTables {
+		_, err := db.Exec(query)
+		if err != nil {
+			log.Fatalf("Failed to create table: %v", err)
+		}
+	}
 }

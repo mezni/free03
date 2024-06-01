@@ -3,13 +3,12 @@ package sqlite
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
-	"log"
 )
 
-func NewSQLiteDB(dataSourceName string) *sql.DB {
+func NewSQLiteDB(dataSourceName string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", dataSourceName)
 	if err != nil {
-		log.Fatal(err)
+		return db, err
 	}
-	return db
+	return db, nil
 }
