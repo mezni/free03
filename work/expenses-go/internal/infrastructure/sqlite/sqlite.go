@@ -2,10 +2,15 @@ package sqlite
 
 import (
 	"database/sql"
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var tablesCreateStmt = []string{
+	`CREATE TABLE IF NOT EXISTS orgs (
+            id TEXT PRIMARY KEY,
+            org_name TEXT NOT NULL
+        );`,
 	`CREATE TABLE IF NOT EXISTS providers (
             id TEXT PRIMARY KEY,
             provider_name TEXT NOT NULL
@@ -44,5 +49,25 @@ func TablesCreateAll(db *sql.DB, tablesCreateStmt []string) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func Init(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec("INSERT INTO orgs (id, org_name) VALUES (?, ?)", uuid.New(), "momentum")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = tx.Exec("INSERT INTO providers (id, provider_name) VALUES (?, ?)", uuid.New(), "aws")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 )
 
 type ExpenseRecord struct {
+	OrgName      string
 	ProviderName string
 	ServiceName  string
 	Cost         float64
@@ -15,9 +16,9 @@ type ExpenseRecord struct {
 func main() {
 	fmt.Println("- start")
 	expenses := []*ExpenseRecord{
-		&ExpenseRecord{"aws", "ec2", 1.71},
-		&ExpenseRecord{"aws", "s3", 1.71},
-		&ExpenseRecord{"aws", "lambda", 1.71},
+		&ExpenseRecord{"momentum", "aws", "ec2", 1.71},
+		&ExpenseRecord{"momentum", "aws", "s3", 1.71},
+		&ExpenseRecord{"momentum", "aws", "lambda", 1.71},
 	}
 	fmt.Println(expenses[0])
 	db, err := sqlite.NewSQLiteDB("./_expenses.db")
@@ -25,4 +26,9 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	// err = sqlite.Init(db)
+	//
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
 }
