@@ -21,7 +21,7 @@ func (r *SQLiteExpenseRepository) SaveService(service *domain.Service) error {
 		return err
 	}
 
-	_, err = tx.Exec("INSERT INTO services (service_id, service_name) VALUES (?, ?)",
+	_, err = tx.Exec("INSERT INTO services ( service_name) VALUES (?)",
 		service.ID, service.Name)
 	if err != nil {
 		tx.Rollback()
