@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/mezni/expenses-go/internal/domain/entities"
 )
 
 func main() {
@@ -15,5 +17,11 @@ func main() {
 			"provider": "aws",
 			"service":  "s3"},
 	}
-	fmt.Println(services)
+
+	for _, v := range services {
+		providerID := uuid.New()
+		s := entities.NewService(v["service"], providerID)
+
+		fmt.Println(s)
+	}
 }
