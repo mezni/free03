@@ -49,7 +49,6 @@ func (repo *SQLiteExpenseRepository) Load(expenses []*csv.ExpenseRecord) error {
 	fmt.Println(providers)
 	fmt.Println(services)
 	for _, v := range orgs {
-		fmt.Println(v)
 		row := repo.DB.QueryRow("SELECT id, org_name FROM orgs WHERE org_name = ?", v)
 		org := &domain.Org{}
 		err := row.Scan(&org.ID, &org.Name)
