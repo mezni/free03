@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/mezni/expenses-go/internal/infrastructure/persistance/sqlite"
 	"github.com/mezni/expenses-go/internal/infrastructure/readers"
 	"log"
 )
@@ -16,6 +17,18 @@ func main() {
 	expenses, err := csv.ParseRecords(records)
 	if err != nil {
 		log.Fatalf("Failed to parse records: %v", err)
+	}
+
+	db, err := sqlite.NewSQLiteDB("./_expenses.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = sqlite.Init(db)
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	for _, v := range expenses {
