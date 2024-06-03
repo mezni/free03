@@ -58,7 +58,7 @@ func Init(db *sql.DB) error {
 		return err
 	}
 
-	_, err = tx.Exec("INSERT INTO orgs (id, org_name) VALUES (?, ?)", uuid.New(), "momentum")
+	_, err = tx.Exec("INSERT INTO orgs (id, org_name) VALUES (?, ?)", uuid.New(), "phonix")
 	if err != nil {
 		tx.Rollback()
 		return err
