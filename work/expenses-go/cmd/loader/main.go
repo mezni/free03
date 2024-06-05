@@ -25,7 +25,7 @@ func main() {
 	service :=services.NewExpenseService(repo)
 	fmt.Println(service)
 	
-	org, err:=service.FindByName("phonix")
+	err=service.Load()
 	fmt.Println(err)
-	fmt.Println(org)
+
 }
