@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	//	"github.com/mezni/expenses-go/internal/application/services"
-	"github.com/mezni/expenses-go/internal/infrastructure/persistance/sqlite"
 	"github.com/mezni/expenses-go/internal/application/services"
+	"github.com/mezni/expenses-go/internal/infrastructure/persistance/sqlite"
 	"log"
 )
 
@@ -20,12 +20,10 @@ func main() {
 		log.Fatal(err)
 	}
 	repo := sqlite.NewSQLiteOrgrRepository(db)
-	fmt.Println(repo)
-	
-	service :=services.NewExpenseService(repo)
-	fmt.Println(service)
-	
-	err=service.Load()
+
+	service := services.NewExpenseService(repo)
+
+	err = service.LoadExpense("./data/_data.csv")
 	fmt.Println(err)
 
 }
