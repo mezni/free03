@@ -1,10 +1,10 @@
 BINARY_NAME=reader.exe
 
 build:
-	go build -o ./reader/bin/${BINARY_NAME} ./reader/main.go
+	go build -o ./reader/bin/${BINARY_NAME} ./reader/cmd/main.go
 
 run: build
-	./${BINARY_NAME}
+	./reader/bin/${BINARY_NAME}
 	
 clean:
 	go clean
