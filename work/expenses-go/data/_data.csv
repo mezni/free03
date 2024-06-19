@@ -1,7 +1,0 @@
-Client,Date,Provider,ServiceName,Cost
-phonix,2024-05-20,aws,ec2,1.171
-phonix,2024-05-20,aws,s3,0.72
-phonix,2024-05-21,aws,ec2,1.12
-phonix,2024-05-21,aws,s3,0.76
-phonix,2024-05-22,aws,ec2,1.09
-phonix,2024-05-22,aws,s3,0.98
