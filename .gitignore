@@ -1,3 +1,6 @@
+# exe files
+*.exe
+
 # db files
 *.db
 
