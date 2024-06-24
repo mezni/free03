@@ -1,8 +1,0 @@
-mode: set
-github.com/mezni/users-go/internal/domain/entities/user.go:16.33,17.18 1 1
-github.com/mezni/users-go/internal/domain/entities/user.go:17.18,19.3 1 0
-github.com/mezni/users-go/internal/domain/entities/user.go:20.2,20.12 1 1
-github.com/mezni/users-go/internal/domain/entities/user.go:23.33,30.2 1 1
-github.com/mezni/users-go/internal/domain/entities/user.go:32.46,33.20 1 1
-github.com/mezni/users-go/internal/domain/entities/user.go:33.20,38.3 3 1
-github.com/mezni/users-go/internal/domain/entities/user.go:39.2,39.12 1 0
