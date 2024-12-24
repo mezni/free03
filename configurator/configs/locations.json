@@ -1,0 +1,15 @@
+{
+  "Country": "Tunisia",
+  "Latitude": [30.24, 37.54],
+  "Longitude": [7.52, 11.60],
+  "2G": {
+    "rows": 3,
+    "columns": 1,
+    "locationNames": ["nord", "centre", "centre"]
+  },
+  "3G": {
+    "rows": 3,
+    "columns": 1,
+    "locationNames": ["nord", "centre", "centre"]
+  }
+}

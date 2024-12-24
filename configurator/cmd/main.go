@@ -2,67 +2,44 @@ package main
 
 import (
 	"fmt"
-	"github.com/mezni/wovoka/configurator/domain/entities"
+	"github.com/mezni/wovoka/configurator/domain/services"
 	"github.com/mezni/wovoka/configurator/infrastructure/persistance/boltstore"
 	"log"
 )
 
 func main() {
-	// Define the path to your BoltDB file
-	dbFile := "locations.db"
+	dbPath := "mydb.db"
+	// Example: Use an InMemory repository
+	repo, _ := boltstore.NewBoltDBLocationRepository(dbPath)
 
-	// Initialize the BoltDB location repository
-	repo, err := boltstore.NewBoltDBLocationRepository(dbFile)
-	if err != nil {
-		log.Fatalf("Error initializing repository: %v", err)
-	}
-	defer repo.Close()
+	// Path to the configuration file (replace with your actual path)
+	configFilePath := "configurator/configs/locations.json" // Ensure this file exists and is properly formatted
 
-	// Create a new location
-	location, err := entities.NewLocation(101, entities.NetworkType4G, "Downtown", 40.7128, 40.9152, -74.0060, -73.7004)
+	// Initialize the LocationServiccd e with the config file and the repository
+	service, err := services.NewLocationService(configFilePath, repo)
 	if err != nil {
-		log.Fatalf("Error creating location: %v", err)
+		log.Fatalf("Error initializing location service: %v", err)
 	}
 
-	// Add location to the repository
-	err = repo.Create(location)
+	// Generate locations based on the configuration and save them to the repository
+	locations, err := service.GenerateLocations()
 	if err != nil {
-		log.Fatalf("Error adding location to repository: %v", err)
+		log.Fatalf("Error generating locations: %v", err)
 	}
 
-	// Get location by ID
-	retrievedLocation, err := repo.GetByID(101)
-	if err != nil {
-		log.Fatalf("Error retrieving location by ID: %v", err)
-	}
-	fmt.Printf("Retrieved Location: %+v\n", retrievedLocation)
-
-	// Update the location
-	location.LocationName = "Uptown"
-	err = repo.Update(location)
-	if err != nil {
-		log.Fatalf("Error updating location: %v", err)
+	// Print the generated locations
+	fmt.Println("Generated Locations:")
+	for _, location := range locations {
+		fmt.Printf("LocationID: %d, Name: %s, Latitude: %.2f-%.2f, Longitude: %.2f-%.2f\n",
+			location.LocationID, location.LocationName, location.LatMin, location.LatMax, location.LonMin, location.LonMax)
 	}
 
-	// Get all locations
-	allLocations, err := repo.GetAll()
+	// Optionally, retrieve a specific location by ID
+	locationID := 101
+	location, err := repo.GetByID(locationID)
 	if err != nil {
-		log.Fatalf("Error retrieving all locations: %v", err)
-	}
-	fmt.Println("All Locations:")
-	for _, loc := range allLocations {
-		fmt.Printf("%+v\n", loc)
-	}
-
-	// Delete the location
-	err = repo.Delete(101)
-	if err != nil {
-		log.Fatalf("Error deleting location: %v", err)
-	}
-
-	// Try to retrieve the deleted location
-	_, err = repo.GetByID(101)
-	if err != nil {
-		fmt.Printf("Expected error after deletion: %v\n", err)
+		log.Printf("Error retrieving location with ID %d: %v", locationID, err)
+	} else {
+		fmt.Printf("\nRetrieved Location by ID %d: %v\n", locationID, location)
 	}
 }
