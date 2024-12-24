@@ -1,29 +1,21 @@
 package boltstore
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/boltdb/bolt"
 	"github.com/mezni/wovoka/configurator/domain/entities"
+	"github.com/boltdb/bolt"
+	"errors"
+	"math/rand"
+	"time"
 )
 
-// BoltDBLocationRepository implements the LocationRepository interface using BoltDB.
+// BoltDBLocationRepository is a repository that stores locations in a BoltDB database.
 type BoltDBLocationRepository struct {
 	db *bolt.DB
 }
 
-// NewBoltDBLocationRepository creates a new BoltDB repository with the provided dbFile path.
+// NewBoltDBLocationRepository creates a new BoltDB-backed location repository.
 func NewBoltDBLocationRepository(dbFile string) (*BoltDBLocationRepository, error) {
 	db, err := bolt.Open(dbFile, 0600, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Initialize the "locations" bucket if it doesn't exist.
-	err = db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("locations"))
-		return err
-	})
 	if err != nil {
 		return nil, err
 	}
@@ -31,94 +23,140 @@ func NewBoltDBLocationRepository(dbFile string) (*BoltDBLocationRepository, erro
 	return &BoltDBLocationRepository{db: db}, nil
 }
 
-// Create a new location in the repository.
+// Create adds a new location to the repository.
 func (repo *BoltDBLocationRepository) Create(location *entities.Location) error {
 	return repo.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("locations"))
-		if bucket == nil {
-			return fmt.Errorf("bucket 'locations' does not exist")
-		}
-
-		data, err := json.Marshal(location)
+		bucket, err := tx.CreateBucketIfNotExists([]byte("locations"))
 		if err != nil {
 			return err
 		}
 
-		return bucket.Put([]byte(fmt.Sprintf("%d", location.LocationID)), data)
+		// Serialize location and save
+		data := serializeLocation(location)
+		return bucket.Put(itob(location.LocationID), data)
 	})
 }
 
-// Get a location by its ID.
+// GetByID retrieves a location by its ID.
 func (repo *BoltDBLocationRepository) GetByID(id int) (*entities.Location, error) {
 	var location *entities.Location
+
 	err := repo.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("locations"))
 		if bucket == nil {
-			return fmt.Errorf("bucket 'locations' does not exist")
+			return errors.New("bucket not found")
 		}
 
-		data := bucket.Get([]byte(fmt.Sprintf("%d", id)))
+		data := bucket.Get(itob(id))
 		if data == nil {
-			return fmt.Errorf("location not found")
+			return errors.New("location not found")
 		}
 
-		return json.Unmarshal(data, &location)
+		location = deserializeLocation(data)
+		return nil
 	})
-	return location, err
+
+	if err != nil {
+		return nil, err
+	}
+	return location, nil
 }
 
-// Update an existing location in the repository.
+// Update updates an existing location in the repository.
 func (repo *BoltDBLocationRepository) Update(location *entities.Location) error {
 	return repo.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("locations"))
 		if bucket == nil {
-			return fmt.Errorf("bucket 'locations' does not exist")
+			return errors.New("bucket not found")
 		}
 
-		data, err := json.Marshal(location)
-		if err != nil {
-			return err
-		}
-
-		return bucket.Put([]byte(fmt.Sprintf("%d", location.LocationID)), data)
+		// Serialize location and update
+		data := serializeLocation(location)
+		return bucket.Put(itob(location.LocationID), data)
 	})
 }
 
-// Delete a location by its ID.
+// Delete removes a location by its ID.
 func (repo *BoltDBLocationRepository) Delete(id int) error {
 	return repo.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("locations"))
 		if bucket == nil {
-			return fmt.Errorf("bucket 'locations' does not exist")
+			return errors.New("bucket not found")
 		}
 
-		return bucket.Delete([]byte(fmt.Sprintf("%d", id)))
+		return bucket.Delete(itob(id))
 	})
 }
 
-// Get all locations from the repository.
+// GetAll retrieves all locations from the repository.
 func (repo *BoltDBLocationRepository) GetAll() ([]*entities.Location, error) {
 	var locations []*entities.Location
+
 	err := repo.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("locations"))
 		if bucket == nil {
-			return fmt.Errorf("bucket 'locations' does not exist")
+			return errors.New("bucket not found")
 		}
 
-		return bucket.ForEach(func(k, v []byte) error {
-			var location *entities.Location
-			err := json.Unmarshal(v, &location)
-			if err != nil {
-				return err
-			}
+		cursor := bucket.Cursor()
+		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+			location := deserializeLocation(v)
 			locations = append(locations, location)
-			return nil
-		})
+		}
+		return nil
 	})
-	return locations, err
+
+	if err != nil {
+		return nil, err
+	}
+
+	return locations, nil
 }
 
-// Close the BoltDB connection.
-func (repo *BoltDBLocationRepository) Close() error {
-	return repo.db.Close()
+// GetRandomByNetworkType retrieves a random location by network type.
+func (repo *BoltDBLocationRepository) GetRandomByNetworkType(networkType entities.NetworkType) (*entities.Location, error) {
+	var filteredLocations []*entities.Location
+
+	err := repo.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("locations"))
+		if bucket == nil {
+			return errors.New("bucket not found")
+		}
+
+		cursor := bucket.Cursor()
+		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+			location := deserializeLocation(v)
+			if location.NetworkType == networkType {
+				filteredLocations = append(filteredLocations, location)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(filteredLocations) == 0 {
+		return nil, errors.New("no locations found for the given network type")
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	randomIndex := rand.Intn(len(filteredLocations))
+	return filteredLocations[randomIndex], nil
+}
+
+// Helper function to serialize a location
+func serializeLocation(location *entities.Location) []byte {
+	// Implement the serialization (could be JSON, Gob, etc.)
+}
+
+// Helper function to deserialize a location
+func deserializeLocation(data []byte) *entities.Location {
+	// Implement deserialization (could be JSON, Gob, etc.)
+}
+
+// Helper function to convert int to byte slice
+func itob(i int) []byte {
+	return []byte(string(i))
 }

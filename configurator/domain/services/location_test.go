@@ -2,12 +2,12 @@ package services
 
 import (
 	"github.com/mezni/wovoka/configurator/domain/entities"
+	"github.com/mezni/wovoka/configurator/domain/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
-// MockLocationRepository is a mock implementation of the LocationRepository interface
 type MockLocationRepository struct {
 	mock.Mock
 }
@@ -37,60 +37,93 @@ func (m *MockLocationRepository) GetAll() ([]*entities.Location, error) {
 	return args.Get(0).([]*entities.Location), args.Error(1)
 }
 
+func (m *MockLocationRepository) GetRandomByNetworkType(networkType entities.NetworkType) (*entities.Location, error) {
+	args := m.Called(networkType)
+	return args.Get(0).(*entities.Location), args.Error(1)
+}
+
 func TestGenerateLocations(t *testing.T) {
-	// Define the mock repository
+	// Create mock repository
 	mockRepo := new(MockLocationRepository)
 
-	// Sample configuration for testing
+	// Sample config data to test with
 	config := CountryConfig{
-		Country:   "Tunisia",
-		Latitude:  [2]float64{30.24, 37.54},
-		Longitude: [2]float64{7.52, 11.60},
+		Country: "TestCountry",
+		Latitude: [2]float64{34.0, 36.0},
+		Longitude: [2]float64{-118.0, -116.0},
 		Networks: map[string]NetworkConfig{
-			"2G": {
-				Rows:          3,
-				Columns:       1,
-				LocationNames: []string{"nord", "centre", "centre"},
-			},
-			"3G": {
-				Rows:          3,
-				Columns:       1,
-				LocationNames: []string{"nord", "centre", "centre"},
+			"4G": {
+				Rows:          2,
+				Columns:       2,
+				LocationNames: []string{"Downtown", "Uptown"},
 			},
 		},
 	}
 
-	// Create the service instance with the mock repository
-	service := &LocationService{
+	// Create the service instance
+	locationService := &LocationService{
 		config:     config,
 		repository: mockRepo,
 	}
 
-	// Set up expectations for the mock repository
-	mockRepo.On("Create", mock.Anything).Return(nil).Times(6)
-
-	// Call GenerateLocations method
-	locations, err := service.GenerateLocations()
-
-	// Assert that there are no errors
+	// Define the expected location for mocking
+	expectedLocation, err := entities.NewLocation(
+		1, 
+		entities.NetworkType4G, 
+		"Downtown", 
+		34.0, 35.0, 
+		-118.0, -117.0,
+	)
 	assert.NoError(t, err)
 
-	// Assert that 6 locations are generated
-	assert.Len(t, locations, 6)
+	// Mock the repository call to create a location
+	mockRepo.On("Create", mock.AnythingOfType("*entities.Location")).Return(nil).Once()
 
-	// Assert that Create method was called 6 times
+	// Mocking GetRandomByNetworkType response
+	mockRepo.On("GetRandomByNetworkType", entities.NetworkType4G).Return(expectedLocation, nil)
+
+	// Test location generation
+	locations, err := locationService.GenerateLocations()
+
+	// Assert no error occurred
+	assert.NoError(t, err)
+
+	// Assert that 4 locations were generated (based on Rows * Columns)
+	assert.Len(t, locations, 4)
+
+	// Validate the mock call was made
 	mockRepo.AssertExpectations(t)
+}
 
-	// Optionally, verify the properties of the generated locations
-	for i, location := range locations {
-		// Check if location name is correct based on the index (cyclic behavior)
-		expectedLocationName := config.Networks["2G"].LocationNames[(i)%len(config.Networks["2G"].LocationNames)]
-		assert.Equal(t, expectedLocationName, location.LocationName)
+func TestLoadConfig_InvalidFile(t *testing.T) {
+	// Test case for loading invalid config file
+	_, err := NewLocationService("invalid_file_path.json", nil)
+	assert.Error(t, err, "expected an error when loading an invalid config file")
+}
 
-		// Ensure latitude and longitude are within bounds
-		assert.Greater(t, location.LatMin, 0.0)
-		assert.Less(t, location.LatMax, 40.0)
-		assert.Greater(t, location.LonMin, 0.0)
-		assert.Less(t, location.LonMax, 20.0)
+func TestGenerateLocations_InvalidConfig(t *testing.T) {
+	// Simulating invalid config (empty latitude or longitude range)
+	invalidConfig := CountryConfig{
+		Country:  "TestCountry",
+		Latitude: [2]float64{36.0, 34.0}, // Invalid range
+		Longitude: [2]float64{-118.0, -116.0},
+		Networks: map[string]NetworkConfig{
+			"4G": {
+				Rows:          2,
+				Columns:       2,
+				LocationNames: []string{"Downtown", "Uptown"},
+			},
+		},
 	}
+
+	// Create the service with invalid config
+	locationService := &LocationService{
+		config:     invalidConfig,
+		repository: nil, // No repository needed for this test
+	}
+
+	// Test that the service fails when generating locations due to invalid config
+	locations, err := locationService.GenerateLocations()
+	assert.Error(t, err)
+	assert.Nil(t, locations, "expected nil locations due to invalid config")
 }

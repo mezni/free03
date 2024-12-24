@@ -112,3 +112,36 @@ func TestGetAllLocations(t *testing.T) {
 	assert.Equal(t, "Downtown", allLocations[0].LocationName)
 	assert.Equal(t, "Uptown", allLocations[1].LocationName)
 }
+
+func TestGetRandomByNetworkType(t *testing.T) {
+	repo := createTestRepository(t)
+
+	location1, err := entities.NewLocation(1, entities.NetworkType4G, "Downtown", 40.7128, 40.9152, -74.0060, -73.7004)
+	assert.NoError(t, err)
+	location2, err := entities.NewLocation(2, entities.NetworkType4G, "Uptown", 40.7308, 40.7552, -74.0000, -73.6800)
+	assert.NoError(t, err)
+	location3, err := entities.NewLocation(3, entities.NetworkType5G, "Midtown", 40.7480, 40.7550, -74.0020, -73.6900)
+	assert.NoError(t, err)
+
+	err = repo.Create(location1)
+	assert.NoError(t, err)
+	err = repo.Create(location2)
+	assert.NoError(t, err)
+	err = repo.Create(location3)
+	assert.NoError(t, err)
+
+	// Test GetRandomByNetworkType for 4G
+	randomLocation, err := repo.GetRandomByNetworkType(entities.NetworkType4G)
+	assert.NoError(t, err)
+	assert.True(t, randomLocation.NetworkType == entities.NetworkType4G)
+
+	// Test GetRandomByNetworkType for 5G
+	randomLocation, err = repo.GetRandomByNetworkType(entities.NetworkType5G)
+	assert.NoError(t, err)
+	assert.True(t, randomLocation.NetworkType == entities.NetworkType5G)
+
+	// Test GetRandomByNetworkType for an unavailable type
+	_, err = repo.GetRandomByNetworkType(entities.NetworkType2G)
+	assert.Error(t, err)
+	assert.Equal(t, "no locations found for the given network type", err.Error())
+}

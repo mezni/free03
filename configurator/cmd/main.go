@@ -2,44 +2,54 @@ package main
 
 import (
 	"fmt"
-	"github.com/mezni/wovoka/configurator/domain/services"
-	"github.com/mezni/wovoka/configurator/infrastructure/persistance/boltstore"
 	"log"
+	"os"
+
+	"github.com/mezni/wovoka/configurator/domain/entities"
+	"github.com/mezni/wovoka/configurator/domain/repositories"
+	"github.com/mezni/wovoka/configurator/inmemorystore"
+	"github.com/mezni/wovoka/configurator/services"
 )
 
 func main() {
-	dbPath := "mydb.db"
-	// Example: Use an InMemory repository
-	repo, _ := boltstore.NewBoltDBLocationRepository(dbPath)
+	// Get the path to the locations.json file
+	configFilePath := "locations.json"
 
-	// Path to the configuration file (replace with your actual path)
-	configFilePath := "configurator/configs/locations.json" // Ensure this file exists and is properly formatted
+	// Initialize the repository (you can replace this with BoltDB if needed)
+	repo := inmemorystore.NewInMemoryLocationRepository()
 
-	// Initialize the LocationServiccd e with the config file and the repository
-	service, err := services.NewLocationService(configFilePath, repo)
+	// Create the LocationService with the repository and config file
+	locationService, err := services.NewLocationService(configFilePath, repo)
 	if err != nil {
-		log.Fatalf("Error initializing location service: %v", err)
+		log.Fatalf("Error creating LocationService: %v", err)
 	}
 
-	// Generate locations based on the configuration and save them to the repository
-	locations, err := service.GenerateLocations()
+	// Generate locations based on the configuration in the JSON file
+	locations, err := locationService.GenerateLocations()
 	if err != nil {
 		log.Fatalf("Error generating locations: %v", err)
 	}
 
-	// Print the generated locations
+	// Print out the generated locations
 	fmt.Println("Generated Locations:")
 	for _, location := range locations {
-		fmt.Printf("LocationID: %d, Name: %s, Latitude: %.2f-%.2f, Longitude: %.2f-%.2f\n",
-			location.LocationID, location.LocationName, location.LatMin, location.LatMax, location.LonMin, location.LonMax)
+		fmt.Printf("ID: %d, Name: %s, Network: %s, Lat: %.4f-%.4f, Lon: %.4f-%.4f\n",
+			location.LocationID,
+			location.LocationName,
+			location.NetworkType,
+			location.LatMin,
+			location.LatMax,
+			location.LonMin,
+			location.LonMax,
+		)
 	}
 
-	// Optionally, retrieve a specific location by ID
-	locationID := 101
-	location, err := repo.GetByID(locationID)
+	// Example: Fetching a random location by network type
+	networkType := entities.NetworkType4G // or any other network type
+	randomLocation, err := repo.GetRandomByNetworkType(networkType)
 	if err != nil {
-		log.Printf("Error retrieving location with ID %d: %v", locationID, err)
-	} else {
-		fmt.Printf("\nRetrieved Location by ID %d: %v\n", locationID, location)
+		log.Fatalf("Error fetching random location: %v", err)
 	}
+
+	fmt.Printf("\nRandom Location for Network Type %s: %v\n", networkType, randomLocation)
 }

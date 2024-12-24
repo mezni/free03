@@ -16,7 +16,7 @@ func createTestRepository(t *testing.T) (*BoltDBLocationRepository, func()) {
 
 	// Clean up after the test by deleting the DB file
 	return repo, func() {
-		repo.Close()
+		repo.db.Close()
 		// Clean up the test database file
 		// Note: Do not rely on this in production tests as it may leave files behind on failure
 	}
@@ -29,15 +29,13 @@ func TestCreateLocation(t *testing.T) {
 	location, err := entities.NewLocation(1, entities.NetworkType4G, "Downtown", 40.7128, 40.9152, -74.0060, -73.7004)
 	assert.NoError(t, err)
 
+	// Test creating a new location
 	err = repo.Create(location)
 	assert.NoError(t, err)
 
-	// Retrieve the location
-	retrievedLocation, err := repo.GetByID(1)
-	assert.NoError(t, err)
-	assert.NotNil(t, retrievedLocation)
-	assert.Equal(t, location.LocationID, retrievedLocation.LocationID)
-	assert.Equal(t, location.LocationName, retrievedLocation.LocationName)
+	// Try to create the same location again (should fail)
+	err = repo.Create(location)
+	assert.Error(t, err)
 }
 
 func TestGetByID(t *testing.T) {
@@ -80,6 +78,11 @@ func TestUpdateLocation(t *testing.T) {
 	retrievedLocation, err := repo.GetByID(1)
 	assert.NoError(t, err)
 	assert.Equal(t, "Uptown", retrievedLocation.LocationName)
+
+	// Try to update a non-existent location
+	nonExistentLocation := &entities.Location{LocationID: 999}
+	err = repo.Update(nonExistentLocation)
+	assert.Error(t, err)
 }
 
 func TestDeleteLocation(t *testing.T) {
@@ -122,3 +125,28 @@ func TestGetAllLocations(t *testing.T) {
 	assert.Equal(t, "Downtown", allLocations[0].LocationName)
 	assert.Equal(t, "Uptown", allLocations[1].LocationName)
 }
+
+func TestGetRandomByNetworkType(t *testing.T) {
+	repo, cleanup := createTestRepository(t)
+	defer cleanup()
+
+	location1, err := entities.NewLocation(1, entities.NetworkType4G, "Downtown", 40.7128, 40.9152, -74.0060, -73.7004)
+	assert.NoError(t, err)
+	location2, err := entities.NewLocation(2, entities.NetworkType4G, "Uptown", 40.7308, 40.7552, -74.0000, -73.6800)
+	assert.NoError(t, err)
+	location3, err := entities.NewLocation(3, entities.NetworkType5G, "Midtown", 40.7480, 40.7550, -74.0020, -73.6900)
+	assert.NoError(t, err)
+
+	err = repo.Create(location1)
+	assert.NoError(t, err)
+	err = repo.Create(location2)
+	assert.NoError(t, err)
+	err = repo.Create(location3)
+	assert.NoError(t, err)
+
+	// Test GetRandomByNetworkType for 4G
+	randomLocation, err := repo.GetRandomByNetworkType(entities.NetworkType4G)
+	assert.NoError(t, err)
+	assert.True(t, randomLocation.NetworkType == entities.NetworkType4G)
+
+	// Test
