@@ -17,7 +17,8 @@ DATE=$(date +%Y-%m-%d)
 
 # Git operations
 git add .
-git commit -m "$MODULE $DATE (version=$VERSION)"
+#git commit -m "$MODULE $DATE (version=$VERSION)"
+git commit -m "$MODULE $DATE v=$(VERSION) $(MESSAGE)"
 git push origin main
 #git tag $VERSION
 #git push origin main $VERSION 
