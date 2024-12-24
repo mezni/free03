@@ -1,8 +1,8 @@
 package entities
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestServiceEntity(t *testing.T) {

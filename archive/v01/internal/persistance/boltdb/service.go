@@ -3,9 +3,9 @@ package persistence
 import (
 	"encoding/json"
 	"fmt"
-	"go.etcd.io/bbolt"
 	"github.com/mezni/wovoka/domain/entities"
 	"github.com/mezni/wovoka/domain/interfaces"
+	"go.etcd.io/bbolt"
 )
 
 // BoltServiceRepository implements the ServiceRepository interface using BoltDB as the storage backend.

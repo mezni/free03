@@ -3,39 +3,60 @@ GOBUILD       = $(GO) build
 GOCLEAN       = $(GO) clean
 GOTEST        = $(GO) test
 GOGET         = $(GO) get
-GOFMT         = $(GO)fmt
+GOFMT         = $(GO) fmt
 GOVET         = $(GO) vet
 
 BINARY        = wovoka
-#SRC           = $(shell find . -type f -name '*.go')
-SRC           = wovoka/cmd/main.go
+SRC           = configurator/cmd/main.go
 BIN           = bin
 
-all: build
+DEPENDENCIES  = github.com/boltdb/bolt github.com/stretchr/testify/assert
 
+# Default target
+all: install build
+
+# Install dependencies (Go modules)
+install:
+	@echo "Installing dependencies..."
+	@$(GO) mod tidy  # Ensure modules are tidy
+	@$(GO) get $(DEPENDENCIES)  # Install listed dependencies
+
+# Build the application
 build:
-	$(GOBUILD) -o $(BIN)/$(BINARY) $(SRC)
+	@echo "Building the application..."
+	@$(GOBUILD) -o $(BIN)/$(BINARY) $(SRC)
 
+# Clean up the binary and binary directory
 clean:
-	$(GOCLEAN)
+	@echo "Cleaning up..."
+	@$(GOCLEAN)
 	rm -f $(BIN)/$(BINARY)
 	rm -rf $(BIN)
 
+# Run the application
+run: build
+	@echo "Running the application..."
+	@$(GO) run $(SRC)
+
+# Test the application
 test:
-	$(GOTEST) -v ./...
+	@echo "Running tests..."
+	@$(GOTEST) -v ./...
 
+# Format the Go code
 format:
-	$(GOFMT) -w .
+	@echo "Formatting Go code..."
+	@go fmt ./...
 
+# Run Go vet to analyze code
 vet:
-	$(GOVET) ./...
+	@echo "Running Go vet..."
+	@$(GOVET) ./...
 
-install:
-	$(GOGET) ./...
-	$(GO) install ./...
-
-run:
-	$(GO) run $(SRC)
-
+# Build and run the Docker image
 docker:
+	@echo "Building Docker image..."
 	docker build -t $(BINARY) .
+
+# Install dependencies, build, and test the application
+install_and_test: install test
