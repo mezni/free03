@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"os"
 	"log"
+	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"github.com/mezni/wovoka/cdrgen/infrastructure/inmem"
+	"github.com/mezni/wovoka/cdrgen/infrastructure/bolt"
+	"github.com/mezni/wovoka/cdrgen/domain/services"
 )
 
 // Version will be set during build time using -ldflags
@@ -50,6 +54,37 @@ func main() {
 		log.Fatalf("Error: Config file '%s' does not exist.\n", *configFile)
 	}
 
-	// Proceed with application logic
-	fmt.Printf("Successfully verified the config file '%s' and opened the database '%s'.\n", *configFile, *databaseName)
+	var repo repositories.LocationRepository
+	useBolt := true // Change to false for in-memory
+
+	if useBolt {
+		// Using BoltDB repository
+		dbName := "locations.db"
+		repo, _ = boltstore.NewBoltDBLocationRepository(dbName)
+		defer repo.Close()
+	} else {
+		// Using in-memory repository
+		repo = inmemorystore.NewInMemoryLocationRepository()
+	}
+
+	// Load the location configuration file
+	configFilePath := "locations.json"
+	locationService, err := services.NewLocationService(configFilePath, repo)
+	if err != nil {
+		log.Fatalf("Error creating location service: %v", err)
+	}
+
+	// Generate locations based on the configuration
+	locations, err := locationService.GenerateLocations()
+	if err != nil {
+		log.Fatalf("Error generating locations: %v", err)
+	}
+
+	// Output the generated locations
+	fmt.Println("Generated Locations:")
+	for _, location := range locations {
+		fmt.Printf("ID: %d, Name: %s, NetworkType: %s, Lat: %.4f - %.4f, Lon: %.4f - %.4f\n",
+			location.LocationID, location.LocationName, location.NetworkType.String(),
+			location.LatMin, location.LatMax, location.LonMin, location.LonMax)
+	}
 }

@@ -1,0 +1,30 @@
+{
+  "Country": "Tunisia",
+  "Coordinates": {
+    "Latitude": [30.24, 37.54],
+    "Longitude": [7.52, 11.60]
+  },
+  "Networks": {
+    "2G": {
+      "Grid": {
+        "Rows": 3,
+        "Columns": 1
+      },
+      "LocationNames": ["nord", "centre", "centre"]
+    },
+    "3G": {
+      "Grid": {
+        "Rows": 3,
+        "Columns": 1
+      },
+      "LocationNames": ["nord", "centre", "centre"]
+    },
+    "4G": {
+      "Grid": {
+        "Rows": 3,
+        "Columns": 1
+      },
+      "LocationNames": ["nord", "centre", "centre"]
+    }
+  }
+}
