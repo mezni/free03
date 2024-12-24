@@ -3,6 +3,9 @@
 # Module name
 MODULE="wovoka"
 
+VERSION=$1
+MESSAGE=$2
+
 # Current date
 DATE=$(date +%Y-%m-%d)
 
