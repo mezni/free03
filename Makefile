@@ -14,7 +14,7 @@ CDRGEN        = $(BIN)/cdrgen
 SRC_CDRCFG    = cdrgen/cmd/cdrcfg/main.go
 SRC_CDRGEN    = cdrgen/cmd/cdrgen/main.go
 
-# Version (you can change this manually or set it dynamically for each build)
+# Version (default)
 VERSION       = 0.0.1
 
 # Dependencies
