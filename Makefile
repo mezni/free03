@@ -8,7 +8,7 @@ GOVET         = $(GO) vet
 
 BINARY        = wovoka
 #SRC           = $(shell find . -type f -name '*.go')
-SRC           = cmd/main.go
+SRC           = wovoka/cmd/main.go
 BIN           = bin
 
 all: build
