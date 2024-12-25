@@ -1,7 +1,9 @@
-package boltstore
+package bolt
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -31,13 +33,14 @@ func (repo *BoltDBLocationRepository) Create(location *entities.Location) error 
 			return err
 		}
 
-		data, err := location.MarshalBinary() // Assuming location has MarshalBinary implemented
+		// Serialize the Location into JSON
+		data, err := json.Marshal(location)
 		if err != nil {
 			return err
 		}
 
-		// Use the location's ID as the key
-		err = bucket.Put([]byte(string(location.LocationID)), data)
+		// Use the location's ID as the key (corrected conversion)
+		err = bucket.Put([]byte(fmt.Sprintf("%d", location.LocationID)), data)
 		if err != nil {
 			return err
 		}
@@ -55,13 +58,14 @@ func (repo *BoltDBLocationRepository) CreateMultiple(locations []*entities.Locat
 		}
 
 		for _, location := range locations {
-			data, err := location.MarshalBinary() // Assuming location has MarshalBinary implemented
+			// Serialize each Location into JSON
+			data, err := json.Marshal(location)
 			if err != nil {
 				return err
 			}
 
-			// Use the location's ID as the key
-			err = bucket.Put([]byte(string(location.LocationID)), data)
+			// Use the location's ID as the key (corrected conversion)
+			err = bucket.Put([]byte(fmt.Sprintf("%d", location.LocationID)), data)
 			if err != nil {
 				return err
 			}
@@ -84,7 +88,9 @@ func (repo *BoltDBLocationRepository) GetAll() ([]*entities.Location, error) {
 		cursor := bucket.Cursor()
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			var location entities.Location
-			err := location.UnmarshalBinary(v) // Assuming location has UnmarshalBinary implemented
+
+			// Deserialize the JSON data into a Location object
+			err := json.Unmarshal(v, &location)
 			if err != nil {
 				return err
 			}
@@ -113,11 +119,14 @@ func (repo *BoltDBLocationRepository) GetRandomByNetworkType(networkType entitie
 		cursor := bucket.Cursor()
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			var location entities.Location
-			err := location.UnmarshalBinary(v) // Assuming location has UnmarshalBinary implemented
+
+			// Deserialize the JSON data into a Location object
+			err := json.Unmarshal(v, &location)
 			if err != nil {
 				return err
 			}
 
+			// Filter by network type
 			if location.NetworkType == networkType {
 				locations = append(locations, &location)
 			}

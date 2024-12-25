@@ -1,4 +1,5 @@
 #!/bin/bash
+# VERSION=0.0.1
 # ./commit.sh $VERSION "Init"
 # Module name
 MODULE="wovoka"

@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"log"
-	"github.com/mezni/wovoka/cdrgen/domain/entities"
+
+
 	"github.com/mezni/wovoka/cdrgen/infrastructure/inmem"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/bolt"
 	"github.com/mezni/wovoka/cdrgen/domain/services"
+	"github.com/mezni/wovoka/cdrgen/domain/repositories" 
 )
 
-// Version will be set during build time using -ldflags
 var version = "development" // default version
 
 func main() {
@@ -59,17 +60,22 @@ func main() {
 
 	if useBolt {
 		// Using BoltDB repository
-		dbName := "locations.db"
-		repo, _ = boltstore.NewBoltDBLocationRepository(dbName)
-		defer repo.Close()
+		repo, _ = bolt.NewBoltDBLocationRepository(*databaseName)
+		// Defer Close only if the repo supports it
+		defer func() {
+			if closer, ok := repo.(interface{ Close() error }); ok {
+				if err := closer.Close(); err != nil {
+					log.Printf("Error closing the database: %v", err)
+				}
+			}
+		}()
 	} else {
 		// Using in-memory repository
-		repo = inmemorystore.NewInMemoryLocationRepository()
+		repo = inmem.NewInMemoryLocationRepository()
 	}
 
 	// Load the location configuration file
-	configFilePath := "locations.json"
-	locationService, err := services.NewLocationService(configFilePath, repo)
+	locationService, err := services.NewLocationService(*configFile, repo)
 	if err != nil {
 		log.Fatalf("Error creating location service: %v", err)
 	}

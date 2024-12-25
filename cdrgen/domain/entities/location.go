@@ -10,6 +10,8 @@ var (
 	ErrInvalidLatitude      = errors.New("invalid latitude: must be between -90 and 90")
 	ErrInvalidLongitude     = errors.New("invalid longitude: must be between -180 and 180")
 	ErrEmptyLocationName    = errors.New("LocationName cannot be empty")
+	ErrLatitudeOrder        = errors.New("latMin cannot be greater than latMax")
+	ErrLongitudeOrder       = errors.New("lonMin cannot be greater than lonMax")
 )
 
 // NetworkType is a type that represents different network types.
@@ -78,6 +80,16 @@ func NewLocation(
 	}
 	if !IsValidLongitude(lonMin) || !IsValidLongitude(lonMax) {
 		return nil, ErrInvalidLongitude
+	}
+
+	// Check if latMin is greater than latMax
+	if latMin > latMax {
+		return nil, ErrLatitudeOrder
+	}
+
+	// Check if lonMin is greater than lonMax
+	if lonMin > lonMax {
+		return nil, ErrLongitudeOrder
 	}
 
 	// Validate that LocationName is not empty

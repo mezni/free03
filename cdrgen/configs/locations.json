@@ -6,25 +6,19 @@
   },
   "Networks": {
     "2G": {
-      "Grid": {
-        "Rows": 3,
-        "Columns": 1
-      },
-      "LocationNames": ["nord", "centre", "centre"]
+      "Rows": 3,
+      "Columns": 1,
+      "LocationNames": ["nord", "centre", "sud"]
     },
     "3G": {
-      "Grid": {
-        "Rows": 3,
-        "Columns": 1
-      },
-      "LocationNames": ["nord", "centre", "centre"]
+      "Rows": 3,
+      "Columns": 1,
+      "LocationNames": ["nord", "centre", "sud"]
     },
     "4G": {
-      "Grid": {
-        "Rows": 3,
-        "Columns": 1
-      },
-      "LocationNames": ["nord", "centre", "centre"]
+      "Rows": 3,
+      "Columns": 2,
+      "LocationNames": ["nord-east", "nord-west", "centre-east", "centre-west", "sud-east", "sud-west"]
     }
   }
 }
