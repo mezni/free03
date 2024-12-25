@@ -1,3 +1,3 @@
-export VERSION=0.0.7
-export MESSAGE="Add context to Logger"
-./commit.sh $VERSION \"$MESSAGE\"
+export VERSION=0.0.8
+export MESSAGE=""
+./commit.sh $VERSION "\"$MESSAGE\""

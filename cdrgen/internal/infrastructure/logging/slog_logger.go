@@ -77,12 +77,13 @@ func (l *SimpleLogger) GetLevel() LogLevel {
 // formatLogMessage formats the log message with timestamp, level, and context
 func formatLogMessage(ctx context.Context, level LogLevel, msg string) string {
 	now := time.Now().Format(time.RFC3339Nano) // Timestamp in RFC3339Nano format
+//	now = now[:23]
 	levelStr := getLevelString(level)
 	module := getModule(ctx)      // Get the "module" value from context
 	contextStr := getContext(ctx) // Get other context values (optional)
 
 	// Build the log message
-	return fmt.Sprintf("%s %s %s %s %s", now, module, levelStr, msg, contextStr)
+	return fmt.Sprintf("[%s] [%s] [%s] %s - %s", now, module, levelStr, msg, contextStr)
 }
 
 // getLevelString converts a LogLevel to its corresponding string representation
