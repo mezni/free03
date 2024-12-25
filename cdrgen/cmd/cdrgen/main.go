@@ -1,10 +1,10 @@
 package main
 
 import (
-    "log"
+	"log"
 )
 
 func main() {
-    log.Println("Starting Configuration Loader")
-    log.Println("Configurations loaded successfully.")
+	log.Println("Starting Configuration Loader")
+	log.Println("Configurations loaded successfully.")
 }

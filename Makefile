@@ -18,7 +18,7 @@ SRC_CDRGEN    = cdrgen/cmd/cdrgen/main.go
 VERSION       = 0.0.1
 
 # Dependencies
-DEPENDENCIES  = github.com/boltdb/bolt github.com/stretchr/testify/assert
+DEPENDENCIES  = golang.org/x/exp/slog gopkg.in/yaml.v3 github.com/boltdb/bolt github.com/stretchr/testify/assert
 
 # Default target
 all: install build
