@@ -83,3 +83,6 @@ docker:
 
 # Install dependencies, build, and test the application
 install_and_test: install test build
+
+# run all 
+run: run-cdrcfg run-cdrgen
