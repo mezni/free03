@@ -3,7 +3,6 @@ locations:
     name: "New York"
   - id: 2
     name: "London"
-
 services:
   - id: 1
     name: "VoIP"
