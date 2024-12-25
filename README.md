@@ -1,3 +1,3 @@
-export VERSION=0.0.6
-export MESSAGE="Add Logging and Yaml parsing"
+export VERSION=0.0.7
+export MESSAGE="Add context to Logger"
 ./commit.sh $VERSION \"$MESSAGE\"

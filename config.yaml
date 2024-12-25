@@ -1,0 +1,11 @@
+locations:
+  - id: 1
+    name: "New York"
+  - id: 2
+    name: "London"
+
+services:
+  - id: 1
+    name: "VoIP"
+  - id: 2
+    name: "Internet"
