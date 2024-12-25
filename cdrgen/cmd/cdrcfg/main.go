@@ -3,14 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"log"
+	"os"
 
-
-	"github.com/mezni/wovoka/cdrgen/infrastructure/inmem"
-	"github.com/mezni/wovoka/cdrgen/infrastructure/bolt"
+	"github.com/mezni/wovoka/cdrgen/domain/repositories"
 	"github.com/mezni/wovoka/cdrgen/domain/services"
-	"github.com/mezni/wovoka/cdrgen/domain/repositories" 
+	"github.com/mezni/wovoka/cdrgen/infrastructure/bolt"
+	"github.com/mezni/wovoka/cdrgen/infrastructure/inmem"
 )
 
 var version = "development" // default version
@@ -89,8 +88,8 @@ func main() {
 	// Output the generated locations
 	fmt.Println("Generated Locations:")
 	for _, location := range locations {
-		fmt.Printf("ID: %d, Name: %s, NetworkType: %s, Lat: %.4f - %.4f, Lon: %.4f - %.4f\n",
+		fmt.Printf("ID: %d, Name: %s, NetworkType: %s, Lat: %.4f - %.4f, Lon: %.4f - %.4f  %d\n",
 			location.LocationID, location.LocationName, location.NetworkType.String(),
-			location.LatMin, location.LatMax, location.LonMin, location.LonMax)
+			location.LatMin, location.LatMax, location.LonMin, location.LonMax, location.AreaCode)
 	}
 }

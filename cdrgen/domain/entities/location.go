@@ -6,12 +6,13 @@ import (
 
 // Custom errors for validation
 var (
-	ErrInvalidNetworkType   = errors.New("invalid NetworkType: must be one of 2G, 3G, 4G, 5G")
-	ErrInvalidLatitude      = errors.New("invalid latitude: must be between -90 and 90")
-	ErrInvalidLongitude     = errors.New("invalid longitude: must be between -180 and 180")
-	ErrEmptyLocationName    = errors.New("LocationName cannot be empty")
-	ErrLatitudeOrder        = errors.New("latMin cannot be greater than latMax")
-	ErrLongitudeOrder       = errors.New("lonMin cannot be greater than lonMax")
+	ErrInvalidNetworkType = errors.New("invalid NetworkType: must be one of 2G, 3G, 4G, 5G")
+	ErrInvalidLatitude    = errors.New("invalid latitude: must be between -90 and 90")
+	ErrInvalidLongitude   = errors.New("invalid longitude: must be between -180 and 180")
+	ErrEmptyLocationName  = errors.New("LocationName cannot be empty")
+	ErrLatitudeOrder      = errors.New("latMin cannot be greater than latMax")
+	ErrLongitudeOrder     = errors.New("lonMin cannot be greater than lonMax")
+	ErrInvalidAreaCode    = errors.New("AreaCode must be a four-digit integer between 1000 and 9999")
 )
 
 // NetworkType is a type that represents different network types.
@@ -38,13 +39,14 @@ func (nt NetworkType) String() string {
 
 // Location struct represents a geographic location.
 type Location struct {
-	LocationID  int
-	NetworkType NetworkType
+	LocationID   int
+	NetworkType  NetworkType
 	LocationName string
-	LatMin      float64
-	LatMax      float64
-	LonMin      float64
-	LonMax      float64
+	LatMin       float64
+	LatMax       float64
+	LonMin       float64
+	LonMax       float64
+	AreaCode     int
 }
 
 // IsValidNetworkType checks if the given NetworkType is valid.
@@ -62,12 +64,18 @@ func IsValidLongitude(lon float64) bool {
 	return lon >= -180 && lon <= 180
 }
 
+// IsValidAreaCode checks if the AreaCode is valid.
+func IsValidAreaCode(areaCode int) bool {
+	return areaCode >= 1000 && areaCode <= 9999
+}
+
 // NewLocation is a factory function to create a new Location instance.
 func NewLocation(
 	locationID int,
 	networkType NetworkType,
 	locationName string,
 	latMin, latMax, lonMin, lonMax float64,
+	areaCode int,
 ) (*Location, error) {
 	// Validate network type
 	if !IsValidNetworkType(networkType) {
@@ -97,14 +105,20 @@ func NewLocation(
 		return nil, ErrEmptyLocationName
 	}
 
+	// Validate AreaCode
+	if !IsValidAreaCode(areaCode) {
+		return nil, ErrInvalidAreaCode
+	}
+
 	// Return the new Location instance
 	return &Location{
-		LocationID:  locationID,
-		NetworkType: networkType,
+		LocationID:   locationID,
+		NetworkType:  networkType,
 		LocationName: locationName,
-		LatMin:      latMin,
-		LatMax:      latMax,
-		LonMin:      lonMin,
-		LonMax:      lonMax,
+		LatMin:       latMin,
+		LatMax:       latMax,
+		LonMin:       lonMin,
+		LonMax:       lonMax,
+		AreaCode:     areaCode,
 	}, nil
 }

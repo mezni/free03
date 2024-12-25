@@ -33,13 +33,13 @@ func (repo *BoltDBLocationRepository) Create(location *entities.Location) error 
 			return err
 		}
 
-		// Serialize the Location into JSON
+		// Serialize the Location into JSON, including AreaCode
 		data, err := json.Marshal(location)
 		if err != nil {
 			return err
 		}
 
-		// Use the location's ID as the key (corrected conversion)
+		// Use the location's ID as the key
 		err = bucket.Put([]byte(fmt.Sprintf("%d", location.LocationID)), data)
 		if err != nil {
 			return err
@@ -58,13 +58,13 @@ func (repo *BoltDBLocationRepository) CreateMultiple(locations []*entities.Locat
 		}
 
 		for _, location := range locations {
-			// Serialize each Location into JSON
+			// Serialize each Location into JSON, including AreaCode
 			data, err := json.Marshal(location)
 			if err != nil {
 				return err
 			}
 
-			// Use the location's ID as the key (corrected conversion)
+			// Use the location's ID as the key
 			err = bucket.Put([]byte(fmt.Sprintf("%d", location.LocationID)), data)
 			if err != nil {
 				return err
@@ -89,7 +89,7 @@ func (repo *BoltDBLocationRepository) GetAll() ([]*entities.Location, error) {
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			var location entities.Location
 
-			// Deserialize the JSON data into a Location object
+			// Deserialize the JSON data into a Location object, including AreaCode
 			err := json.Unmarshal(v, &location)
 			if err != nil {
 				return err
@@ -120,7 +120,7 @@ func (repo *BoltDBLocationRepository) GetRandomByNetworkType(networkType entitie
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			var location entities.Location
 
-			// Deserialize the JSON data into a Location object
+			// Deserialize the JSON data into a Location object, including AreaCode
 			err := json.Unmarshal(v, &location)
 			if err != nil {
 				return err
