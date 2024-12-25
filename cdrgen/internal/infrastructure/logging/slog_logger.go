@@ -1,5 +1,3 @@
-// thread_safe_logger.go
-
 package logger
 
 import (
@@ -11,23 +9,23 @@ import (
 	"time"
 )
 
-// ThreadSafeLogger is a thread-safe implementation of the Logger interface
-type ThreadSafeLogger struct {
+// SimpleLogger is a thread-safe implementation of the Logger interface
+type SimpleLogger struct {
 	mu    sync.Mutex
 	out   *log.Logger
 	level LogLevel
 }
 
-// NewThreadSafeLogger returns a new ThreadSafeLogger instance
-func NewThreadSafeLogger(out io.Writer, level LogLevel) *ThreadSafeLogger {
-	return &ThreadSafeLogger{
+// NewSimpleLogger returns a new SimpleLogger instance
+func NewSimpleLogger(out io.Writer, level LogLevel) *SimpleLogger {
+	return &SimpleLogger{
 		out:   log.New(out, "", 0),
 		level: level,
 	}
 }
 
 // Debug logs a debug message
-func (l *ThreadSafeLogger) Debug(ctx context.Context, msg string) {
+func (l *SimpleLogger) Debug(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= DebugLevel {
@@ -36,7 +34,7 @@ func (l *ThreadSafeLogger) Debug(ctx context.Context, msg string) {
 }
 
 // Info logs an info message
-func (l *ThreadSafeLogger) Info(ctx context.Context, msg string) {
+func (l *SimpleLogger) Info(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= InfoLevel {
@@ -45,7 +43,7 @@ func (l *ThreadSafeLogger) Info(ctx context.Context, msg string) {
 }
 
 // Warn logs a warn message
-func (l *ThreadSafeLogger) Warn(ctx context.Context, msg string) {
+func (l *SimpleLogger) Warn(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= WarnLevel {
@@ -54,7 +52,7 @@ func (l *ThreadSafeLogger) Warn(ctx context.Context, msg string) {
 }
 
 // Error logs an error message
-func (l *ThreadSafeLogger) Error(ctx context.Context, msg string) {
+func (l *SimpleLogger) Error(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= ErrorLevel {
@@ -63,14 +61,14 @@ func (l *ThreadSafeLogger) Error(ctx context.Context, msg string) {
 }
 
 // SetLevel sets the logging level
-func (l *ThreadSafeLogger) SetLevel(level LogLevel) {
+func (l *SimpleLogger) SetLevel(level LogLevel) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.level = level
 }
 
 // GetLevel gets the current logging level
-func (l *ThreadSafeLogger) GetLevel() LogLevel {
+func (l *SimpleLogger) GetLevel() LogLevel {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return l.level

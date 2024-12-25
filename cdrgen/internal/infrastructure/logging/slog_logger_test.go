@@ -11,9 +11,9 @@ import (
 	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/logging"
 )
 
-func TestThreadSafeLogger(t *testing.T) {
+func TestSimpleLogger(t *testing.T) {
 	var buf bytes.Buffer
-	l := logger.NewThreadSafeLogger(&buf, logger.DebugLevel) // Use your actual logger package and method
+	l := logger.NewSimpleLogger(&buf, logger.DebugLevel) // Use the new SimpleLogger
 
 	ctx := context.WithValue(context.Background(), "module", "my_module")
 	ctx = context.WithValue(ctx, "context", "my_context")
@@ -42,10 +42,10 @@ func TestThreadSafeLogger(t *testing.T) {
 	}
 }
 
-// TestThreadSafeLoggerConcurrency tests logging in a concurrent environment.
-func TestThreadSafeLoggerConcurrency(t *testing.T) {
+// TestSimpleLoggerConcurrency tests logging in a concurrent environment.
+func TestSimpleLoggerConcurrency(t *testing.T) {
 	var buf bytes.Buffer
-	l := logger.NewThreadSafeLogger(&buf, logger.DebugLevel) // Use your actual logger package and method
+	l := logger.NewSimpleLogger(&buf, logger.DebugLevel) // Use the new SimpleLogger
 
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
@@ -69,10 +69,10 @@ func TestThreadSafeLoggerConcurrency(t *testing.T) {
 	}
 }
 
-// TestThreadSafeLoggerSetLevel tests changing log levels.
-func TestThreadSafeLoggerSetLevel(t *testing.T) {
+// TestSimpleLoggerSetLevel tests changing log levels.
+func TestSimpleLoggerSetLevel(t *testing.T) {
 	var buf bytes.Buffer
-	l := logger.NewThreadSafeLogger(&buf, logger.DebugLevel) // Use your actual logger package and method
+	l := logger.NewSimpleLogger(&buf, logger.DebugLevel) // Use the new SimpleLogger
 
 	// Change the level to InfoLevel
 	l.SetLevel(logger.InfoLevel)
@@ -81,10 +81,10 @@ func TestThreadSafeLoggerSetLevel(t *testing.T) {
 	}
 }
 
-// TestThreadSafeLoggerGetLevel tests getting the current log level.
-func TestThreadSafeLoggerGetLevel(t *testing.T) {
+// TestSimpleLoggerGetLevel tests getting the current log level.
+func TestSimpleLoggerGetLevel(t *testing.T) {
 	var buf bytes.Buffer
-	l := logger.NewThreadSafeLogger(&buf, logger.DebugLevel) // Use your actual logger package and method
+	l := logger.NewSimpleLogger(&buf, logger.DebugLevel) // Use the new SimpleLogger
 
 	// Check if the initial log level is DebugLevel
 	if l.GetLevel() != logger.DebugLevel {

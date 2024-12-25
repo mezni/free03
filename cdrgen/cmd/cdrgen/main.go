@@ -1,10 +1,16 @@
 package main
 
 import (
-	"log"
+	"context"
+
+	"os"
+	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/logging"
 )
 
 func main() {
-	log.Println("Starting Configuration Loader")
-	log.Println("Configurations loaded successfully.")
+	l := logger.NewSimpleLogger(os.Stdout, logger.DebugLevel)
+	ctx := context.WithValue(context.Background(), "module", "cdrgen")
+	ctx = context.WithValue(ctx, "context", "request_123")
+	l.Info(ctx, "Startup")
+	l.Info(ctx, "Shutdown")
 }
