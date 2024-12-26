@@ -9,18 +9,18 @@ import (
 // NetworkTechnologyInMemoryRepository is an in-memory implementation of NetworkTechnologyRepository
 type NetworkTechnologyInMemoryRepository struct {
 	mu                  sync.RWMutex
-	networkTechnologies map[string]domain.NetworkTechnology
+	networkTechnologies map[string]entities.NetworkTechnology
 }
 
 // NewNetworkTechnologyInMemoryRepository creates a new in-memory repository instance
 func NewNetworkTechnologyInMemoryRepository() *NetworkTechnologyInMemoryRepository {
 	return &NetworkTechnologyInMemoryRepository{
-		networkTechnologies: make(map[string]domain.NetworkTechnology),
+		networkTechnologies: make(map[string]entities.NetworkTechnology),
 	}
 }
 
 // Save saves a NetworkTechnology to the in-memory repository
-func (r *NetworkTechnologyInMemoryRepository) Save(networkTechnology domain.NetworkTechnology) error {
+func (r *NetworkTechnologyInMemoryRepository) Save(networkTechnology entities.NetworkTechnology) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.networkTechnologies[networkTechnology.ID] = networkTechnology
@@ -28,11 +28,11 @@ func (r *NetworkTechnologyInMemoryRepository) Save(networkTechnology domain.Netw
 }
 
 // FindAll retrieves all NetworkTechnologies from the in-memory repository
-func (r *NetworkTechnologyInMemoryRepository) FindAll() ([]domain.NetworkTechnology, error) {
+func (r *NetworkTechnologyInMemoryRepository) FindAll() ([]entities.NetworkTechnology, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var result []domain.NetworkTechnology
+	var result []entities.NetworkTechnology
 	for _, nt := range r.networkTechnologies {
 		result = append(result, nt)
 	}
@@ -40,13 +40,13 @@ func (r *NetworkTechnologyInMemoryRepository) FindAll() ([]domain.NetworkTechnol
 }
 
 // FindByID retrieves a NetworkTechnology by its ID
-func (r *NetworkTechnologyInMemoryRepository) FindByID(id string) (domain.NetworkTechnology, error) {
+func (r *NetworkTechnologyInMemoryRepository) FindByID(id string) (entities.NetworkTechnology, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	networkTechnology, exists := r.networkTechnologies[id]
 	if !exists {
-		return domain.NetworkTechnology{}, errors.New("NetworkTechnology not found")
+		return entities.NetworkTechnology{}, errors.New("NetworkTechnology not found")
 	}
 	return networkTechnology, nil
 }
