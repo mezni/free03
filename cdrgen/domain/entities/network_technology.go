@@ -1,19 +1,15 @@
 package entities
 
+// NetworkTechnology struct definition
 type NetworkTechnology struct {
 	ID          int
 	Name        string
 	Description string
 }
 
-func NetworkTechnologyFactory(id int, name, description string) *NetworkTechnology {
-	if id <= 0 {
-		return nil, errors.New("invalid id")
-	}
-	if name == "" {
-		return nil, errors.New("invalid name")
-	}
-	return &NetworkTechnology{
+// Factory function for NetworkTechnology
+func NewNetworkTechnology(id int, name string, description string) NetworkTechnology {
+	return NetworkTechnology{
 		ID:          id,
 		Name:        name,
 		Description: description,

@@ -1,18 +1,19 @@
 package entities
 
+// NetworkElementType struct definition
 type NetworkElementType struct {
-	ID                  int
-	Name                string
-	Description         string
-	NetworkTechnologyID string
+	ID                    int
+	Name                  string
+	Description           string
+	NetworkTechnologyName string
 }
 
-func NetworkElementTypeFactory(id int, name, description,networknechnologyid string) *NetworkElementType {
-    
-	return &NetworkElementType{
-		ID:          id,
-		Name:        name,
-		Description: description,
-		NetworkTechnologyID: networknechnologyid,
+// Factory function for NetworkElementType
+func NewNetworkElementType(id int, name string, description string, techName string) NetworkElementType {
+	return NetworkElementType{
+		ID:                    id,
+		Name:                  name,
+		Description:           description,
+		NetworkTechnologyName: techName,
 	}
 }
