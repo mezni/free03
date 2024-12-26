@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/logger"
 	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/yamlreader"
+	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/boltstore"
+	"github.com/mezni/wovoka/cdrgen/internal/domain/services"
 	"os"
 	"strings"
 )
@@ -24,6 +26,24 @@ func main() {
 	ctx := context.WithValue(context.Background(), "module", "cdrcfg")
 	ctx = context.WithValue(ctx, "context", requestID)
 
+
+	manager, err := boltstore.NewBoltDBManager("network_technologies.db", []string{"NetworkTechnologies"})
+	if err != nil {
+			l.Error(ctx, fmt.Sprintf("Failed to initialize BoltDBManager: %v", err))
+	}
+	defer func() {
+		if err := manager.Close(); err != nil {
+			l.Error(ctx, fmt.Sprintf("Error closing database: %v", err))
+		}
+	}()
+
+	// Initialize the repository with the manager's DB instance
+	repo,_ := boltstore.NewNetworkTechnologyBoltDBRepository(manager.GetDB(), "NetworkTechnologies")
+
+	// Initialize the service
+	ntService := service.(repo)
+
+
 	// Log the startup message
 	l.Info(ctx, "Startup")
 
@@ -31,7 +51,7 @@ func main() {
 	var data map[string]interface{}
 
 	// Read the YAML file into the `data` map
-	err := yamlreader.ReadYAML("config.yaml", &data)
+	err = yamlreader.ReadYAML("config.yaml", &data)
 	if err != nil {
 		// Log the error and exit if reading YAML fails
 		l.Error(ctx, fmt.Sprintf("Error reading YAML: %v", err))
