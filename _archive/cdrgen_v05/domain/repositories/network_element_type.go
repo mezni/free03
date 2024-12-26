@@ -18,7 +18,5 @@ type NetworkElementTypeRepository interface {
     
     // GetMaxID retrieves the maximum ID currently assigned to NetworkElementTypes.
     GetMaxID() int
-    
-    // Close closes the database connection/resource.
-    Close()
+   
 }
