@@ -4,22 +4,21 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 )
 
-// SimpleLogger is a thread-safe implementation of the Logger interface
+// SimpleLogger is a simple implementation of the Logger interface
 type SimpleLogger struct {
 	mu    sync.Mutex
-	out   *log.Logger
+	out   io.Writer
 	level LogLevel
 }
 
 // NewSimpleLogger returns a new SimpleLogger instance
 func NewSimpleLogger(out io.Writer, level LogLevel) *SimpleLogger {
 	return &SimpleLogger{
-		out:   log.New(out, "", 0),
+		out:   out,
 		level: level,
 	}
 }
@@ -29,7 +28,7 @@ func (l *SimpleLogger) Debug(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= DebugLevel {
-		l.out.Println(formatLogMessage(ctx, DebugLevel, msg))
+		l.log(ctx, DebugLevel, msg)
 	}
 }
 
@@ -38,7 +37,7 @@ func (l *SimpleLogger) Info(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= InfoLevel {
-		l.out.Println(formatLogMessage(ctx, InfoLevel, msg))
+		l.log(ctx, InfoLevel, msg)
 	}
 }
 
@@ -47,7 +46,7 @@ func (l *SimpleLogger) Warn(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= WarnLevel {
-		l.out.Println(formatLogMessage(ctx, WarnLevel, msg))
+		l.log(ctx, WarnLevel, msg)
 	}
 }
 
@@ -56,7 +55,7 @@ func (l *SimpleLogger) Error(ctx context.Context, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.level <= ErrorLevel {
-		l.out.Println(formatLogMessage(ctx, ErrorLevel, msg))
+		l.log(ctx, ErrorLevel, msg)
 	}
 }
 
@@ -74,16 +73,13 @@ func (l *SimpleLogger) GetLevel() LogLevel {
 	return l.level
 }
 
-// formatLogMessage formats the log message with timestamp, level, and context
-func formatLogMessage(ctx context.Context, level LogLevel, msg string) string {
-	now := time.Now().Format(time.RFC3339Nano) // Timestamp in RFC3339Nano format
-//	now = now[:23]
+func (l *SimpleLogger) log(ctx context.Context, level LogLevel, msg string) {
+	now := time.Now().Format(time.RFC3339Nano)
 	levelStr := getLevelString(level)
-	module := getModule(ctx)      // Get the "module" value from context
-	contextStr := getContext(ctx) // Get other context values (optional)
-
-	// Build the log message
-	return fmt.Sprintf("[%s] [%s] [%s] %s - %s", now, module, levelStr, msg, contextStr)
+	module := getModule(ctx)
+	contextStr := getContext(ctx)
+	logMsg := fmt.Sprintf("[%s] [%s] [%s] %s - %s", now, module, levelStr, msg, contextStr)
+	fmt.Fprintln(l.out, logMsg)
 }
 
 // getLevelString converts a LogLevel to its corresponding string representation

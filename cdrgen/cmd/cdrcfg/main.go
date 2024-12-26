@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/logger"
+	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/yamlreader"
 	"os"
 	"strings"
-	"github.com/google/uuid"
-	logger "github.com/mezni/wovoka/cdrgen/internal/infrastructure/logging" 
-	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/yamlreader"
 )
 
 func main() {

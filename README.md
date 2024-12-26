@@ -1,3 +1,3 @@
-export VERSION=0.0.10
-export MESSAGE="Fix go modules"
+export VERSION=0.0.11
+export MESSAGE="Fix logger"
 ./commit.sh $VERSION "$MESSAGE"

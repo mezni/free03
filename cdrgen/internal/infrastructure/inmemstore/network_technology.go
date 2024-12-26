@@ -8,7 +8,7 @@ import (
 
 // NetworkTechnologyInMemoryRepository is an in-memory implementation of NetworkTechnologyRepository
 type NetworkTechnologyInMemoryRepository struct {
-	mu                 sync.RWMutex
+	mu                  sync.RWMutex
 	networkTechnologies map[string]domain.NetworkTechnology
 }
 

@@ -1,7 +1,5 @@
 package repositories
 
-import "github.com/mezni/wovoka/cdrgen/internal/domain/repositories"
-
 // NetworkTechnologyRepository defines the methods that any repository for NetworkTechnology must implement.
 type NetworkTechnologyRepository interface {
 	// Save a NetworkTechnology entity

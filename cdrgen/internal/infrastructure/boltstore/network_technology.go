@@ -1,10 +1,9 @@
-
 package boltstore
 
 import (
 	"errors"
-	"github.com/mezni/wovoka/cdrgen/internal/domain/entities"
 	"github.com/boltdb/bolt"
+	"github.com/mezni/wovoka/cdrgen/internal/domain/entities"
 )
 
 // NetworkTechnologyBoltDBRepository is the BoltDB implementation of the repository

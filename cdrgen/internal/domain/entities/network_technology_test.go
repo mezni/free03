@@ -1,10 +1,10 @@
 package entities_test
 
 import (
-	"testing"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/mezni/wovoka/cdrgen/internal/domain/entities"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestNetworkTechnologyFactory_NewNetworkTechnology(t *testing.T) {

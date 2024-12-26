@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/logger"
 	"os"
-	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/logging"
 )
 
 func main() {
