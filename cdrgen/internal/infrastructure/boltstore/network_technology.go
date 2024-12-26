@@ -3,7 +3,7 @@ package boltstore
 
 import (
 	"errors"
-	"github.com/mezni/wovoka/cdrgen/internal/domain"
+	"github.com/mezni/wovoka/cdrgen/internal/domain/entities"
 	"github.com/boltdb/bolt"
 )
 
