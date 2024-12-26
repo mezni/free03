@@ -7,7 +7,7 @@ import (
 	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/logger"
 	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/yamlreader"
 	"github.com/mezni/wovoka/cdrgen/internal/infrastructure/boltstore"
-	"github.com/mezni/wovoka/cdrgen/internal/domain/services"
+//	"github.com/mezni/wovoka/cdrgen/internal/domain/services"
 	"os"
 	"strings"
 )
@@ -38,14 +38,14 @@ func main() {
 	}()
 
 	// Initialize the repository with the manager's DB instance
-	repo,_ := boltstore.NewNetworkTechnologyBoltDBRepository(manager.GetDB(), "NetworkTechnologies")
+//	repo,_ := boltstore.NewNetworkTechnologyBoltDBRepository(manager.GetDB(), "NetworkTechnologies")
 
 	// Initialize the service
-	ntService := service.(repo)
+//	ntService := service.(repo)
 
 
 	// Log the startup message
-	l.Info(ctx, "Startup")
+//	l.Info(ctx, "Startup")
 
 	// Declare a variable to store the YAML data
 	var data map[string]interface{}

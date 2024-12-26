@@ -1,3 +1,3 @@
-export VERSION=0.0.12
-export MESSAGE="Add network elements"
+export VERSION=0.0.13
+export MESSAGE="Stable version"
 ./commit.sh $VERSION "$MESSAGE"
