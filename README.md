@@ -1,3 +1,3 @@
-export VERSION=0.0.13
-export MESSAGE="Stable version"
+export VERSION=0.0.14
+export MESSAGE="Add db manager"
 ./commit.sh $VERSION "$MESSAGE"
