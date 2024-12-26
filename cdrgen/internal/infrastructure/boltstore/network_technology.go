@@ -19,7 +19,7 @@ func NewNetworkTechnologyBoltDBRepository(db *bolt.DB) *NetworkTechnologyBoltDBR
 }
 
 // Save saves a NetworkTechnology to BoltDB
-func (r *NetworkTechnologyBoltDBRepository) Save(networkTechnology domain.NetworkTechnology) error {
+func (r *NetworkTechnologyBoltDBRepository) Save(networkTechnology entities.NetworkTechnology) error {
 	return r.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("NetworkTechnologies"))
 		if bucket == nil {
@@ -30,8 +30,8 @@ func (r *NetworkTechnologyBoltDBRepository) Save(networkTechnology domain.Networ
 }
 
 // FindAll retrieves all NetworkTechnologies from BoltDB
-func (r *NetworkTechnologyBoltDBRepository) FindAll() ([]domain.NetworkTechnology, error) {
-	var technologies []domain.NetworkTechnology
+func (r *NetworkTechnologyBoltDBRepository) FindAll() ([]entities.NetworkTechnology, error) {
+	var technologies []entities.NetworkTechnology
 	err := r.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("NetworkTechnologies"))
 		if bucket == nil {
@@ -39,7 +39,7 @@ func (r *NetworkTechnologyBoltDBRepository) FindAll() ([]domain.NetworkTechnolog
 		}
 
 		return bucket.ForEach(func(k, v []byte) error {
-			technologies = append(technologies, domain.NetworkTechnology{
+			technologies = append(technologies, entities.NetworkTechnology{
 				ID:   string(k),
 				Name: string(v),
 			})
@@ -50,8 +50,8 @@ func (r *NetworkTechnologyBoltDBRepository) FindAll() ([]domain.NetworkTechnolog
 }
 
 // FindByID retrieves a NetworkTechnology by its ID from BoltDB
-func (r *NetworkTechnologyBoltDBRepository) FindByID(id string) (domain.NetworkTechnology, error) {
-	var networkTechnology domain.NetworkTechnology
+func (r *NetworkTechnologyBoltDBRepository) FindByID(id string) (entities.NetworkTechnology, error) {
+	var networkTechnology entities.NetworkTechnology
 	err := r.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("NetworkTechnologies"))
 		if bucket == nil {
@@ -61,7 +61,7 @@ func (r *NetworkTechnologyBoltDBRepository) FindByID(id string) (domain.NetworkT
 		if data == nil {
 			return errors.New("NetworkTechnology not found")
 		}
-		networkTechnology = domain.NetworkTechnology{
+		networkTechnology = entities.NetworkTechnology{
 			ID:   id,
 			Name: string(data),
 		}
