@@ -65,6 +65,7 @@ for FILE in "${FILES[@]}"; do
     create_file "$ENTITY_DIR/$FILE"
     create_file "$REPOSITORY_DIR/$FILE"
     create_file "$SERVICE_DIR/$FILE"
+    create_file "$BASE_DIR/application/dto/$FILE"
 done
 
 go mod init github.com/mezni/wovoka
