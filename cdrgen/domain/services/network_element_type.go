@@ -19,7 +19,7 @@ func NewNetworkElementTypeService(repo repositories.NetworkElementTypeRepository
 
 // Create inserts a new NetworkElementType into the repository.
 func (s *NetworkElementTypeService) Create(element entities.NetworkElementType) (entities.NetworkElementType, error) {
-	// Check if element already exists by name
+	// Check if element type already exists by name
 	existingElement, found, err := s.repo.FindByName(element.Name)
 	if err != nil {
 		return entities.NetworkElementType{}, fmt.Errorf("error checking if element exists: %w", err)
@@ -38,14 +38,14 @@ func (s *NetworkElementTypeService) CreateMany(elements []entities.NetworkElemen
 	for _, element := range elements {
 		createdElement, err := s.Create(element)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create element: %w", err)
+			return nil, fmt.Errorf("failed to create element type: %w", err)
 		}
 		createdElements = append(createdElements, createdElement)
 	}
 	return createdElements, nil
 }
 
-// FindByName retrieves a NetworkElementType by its name.
-func (s *NetworkElementTypeService) FindByName(name string) (entities.NetworkElementType, bool, error) {
-	return s.repo.FindByName(name)
+// FindAll retrieves all NetworkElementTypes from the repository.
+func (s *NetworkElementTypeService) FindAll() ([]entities.NetworkElementType, error) {
+	return s.repo.FindAll()
 }

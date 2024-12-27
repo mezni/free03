@@ -23,63 +23,84 @@ func NewNetworkElementTypeRepository(dbPath, bucketName string) (*NetworkElement
 	}, nil
 }
 
-// Create inserts a new NetworkElementType into the database.
-func (r *NetworkElementTypeRepository) Create(element entities.NetworkElementType) (entities.NetworkElementType, error) {
+// Create inserts a new NetworkElementType into the database, or returns the existing one if a technology with the same name exists.
+func (r *NetworkElementTypeRepository) Create(netElemType entities.NetworkElementType) (entities.NetworkElementType, error) {
 	// Check if a NetworkElementType with the same name already exists
-	existingElement, found, err := r.FindByName(element.Name)
+	existingElem, found, err := r.FindByName(netElemType.Name)
 	if err != nil {
-		return entities.NetworkElementType{}, fmt.Errorf("error checking if network element type exists: %w", err)
+		return entities.NetworkElementType{}, fmt.Errorf("failed to check if element type exists: %w", err)
 	}
 	if found {
-		return entities.NetworkElementType{}, fmt.Errorf("network element type with name '%s' already exists", existingElement.Name)
+		// If element type exists, return the existing one and no error
+		return existingElem, nil
 	}
 
-	// Insert the new NetworkElementType
-	itemID, err := r.BoltRepository.Create(element.ID, element)
+	// Insert the new element type
+	itemID, err := r.BoltRepository.Create(netElemType.ID, netElemType)
 	if err != nil {
-		return entities.NetworkElementType{}, fmt.Errorf("error creating network element type: %w", err)
+		return entities.NetworkElementType{}, fmt.Errorf("failed to create network element type: %w", err)
 	}
-	element.ID = itemID
-	return element, nil
+	netElemType.ID = itemID
+
+	return netElemType, nil
 }
 
 // FindByName retrieves a NetworkElementType by its name.
 func (r *NetworkElementTypeRepository) FindByName(name string) (entities.NetworkElementType, bool, error) {
-	var element entities.NetworkElementType
+	var netElemType entities.NetworkElementType
+	found := false
 	err := r.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(r.bucketName))
 		c := b.Cursor()
 
+		// Iterate through the entries in the bucket
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			err := r.Deserialize(v, &element)
+			err := r.Deserialize(v, &netElemType) // Deserialization error handling
 			if err != nil {
-				return err
+				// Ignore the error if deserialization fails (we can handle invalid data later)
+				continue
 			}
-			if element.Name == name {
+			// If the name matches, set found to true and return the element type
+			if netElemType.Name == name {
+				found = true
 				return nil
 			}
 		}
-		return fmt.Errorf("network element type not found")
+		return nil
 	})
 
+	// Handle the error from the View transaction block
 	if err != nil {
 		return entities.NetworkElementType{}, false, err
 	}
 
-	return element, true, nil
+	// If the name is found, return the element type and true
+	if found {
+		return netElemType, true, nil
+	}
+	// If the name is not found, return false
+	return entities.NetworkElementType{}, false, nil
 }
 
 // FindAll retrieves all NetworkElementTypes from the database.
 func (r *NetworkElementTypeRepository) FindAll() ([]entities.NetworkElementType, error) {
-	var elements []entities.NetworkElementType
+	var elementTypes []entities.NetworkElementType
 
+	// Start a read-only view transaction on the database
 	err := r.db.View(func(tx *bolt.Tx) error {
+		// Access the specific bucket within the database
 		b := tx.Bucket([]byte(r.bucketName))
+		if b == nil {
+			return fmt.Errorf("bucket %s not found", r.bucketName)
+		}
 
+		// Iterate through all the elements in the bucket
 		return b.ForEach(func(k, v []byte) error {
-			var element entities.NetworkElementType
-			if err := r.Deserialize(v, &element); err == nil {
-				elements = append(elements, element)
+			var netElemType entities.NetworkElementType
+			// Deserialize the value into the NetworkElementType struct
+			if err := r.Deserialize(v, &netElemType); err == nil {
+				// If deserialization is successful, append the element type to the slice
+				elementTypes = append(elementTypes, netElemType)
 			}
 			return nil
 		})
@@ -89,5 +110,5 @@ func (r *NetworkElementTypeRepository) FindAll() ([]entities.NetworkElementType,
 		return nil, err
 	}
 
-	return elements, nil
+	return elementTypes, nil
 }
