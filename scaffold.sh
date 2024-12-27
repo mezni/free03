@@ -45,7 +45,8 @@ create_directory "$SERVICE_DIR"
 
 # Application Layer
 create_directory "$BASE_DIR/application"
-create_directory "$BASE_DIR/application/use_cases"
+create_directory "$BASE_DIR/application/common"
+create_directory "$BASE_DIR/application/mapper"
 create_directory "$BASE_DIR/application/queries"
 create_directory "$BASE_DIR/application/commands"
 
