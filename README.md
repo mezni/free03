@@ -1,3 +1,3 @@
-export VERSION=0.0.25
-export MESSAGE="New scaffold"
+export VERSION=0.0.26
+export MESSAGE="Revamp"
 ./commit.sh $VERSION "$MESSAGE"
