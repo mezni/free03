@@ -45,8 +45,10 @@ create_directory "$SERVICE_DIR"
 
 # Application Layer
 create_directory "$BASE_DIR/application"
-create_directory "$BASE_DIR/application/common"
-create_directory "$BASE_DIR/application/mapper"
+create_directory "$BASE_DIR/application/dto"
+create_directory "$BASE_DIR/application/dto/request"
+create_directory "$BASE_DIR/application/dto/result"
+create_directory "$BASE_DIR/application/dto/mapper"
 create_directory "$BASE_DIR/application/queries"
 create_directory "$BASE_DIR/application/commands"
 
@@ -65,6 +67,9 @@ for FILE in "${FILES[@]}"; do
     create_file "$SERVICE_DIR/$FILE"
     create_file "$BOLTSTORE_DIR/$FILE"
     create_file "$INMEMSTORE_DIR/$FILE"
+    create_file "$BASE_DIR/application/dto/request/$FILE"
+    create_file "$BASE_DIR/application/dto/response/$FILE"
+    create_file "$BASE_DIR/application/dto/mapper/$FILE"
 done
 
 go mod init github.com/mezni/wovoka
