@@ -22,7 +22,7 @@ BASE_DIR="cdrgen"
 SUBCOMMANDS=("cdrgen" "cdrcfg")
 
 # List of files to add in specific directories
-FILES=("network_technology.go" "network_element_type.go")
+FILES=("network_technology.go" "network_element_type.go" "service_type.go")
 
 # Create the base project directory
 create_directory "$BASE_DIR"
@@ -46,9 +46,6 @@ create_directory "$SERVICE_DIR"
 # Application Layer
 create_directory "$BASE_DIR/application"
 create_directory "$BASE_DIR/application/dto"
-create_directory "$BASE_DIR/application/dto/request"
-create_directory "$BASE_DIR/application/dto/result"
-create_directory "$BASE_DIR/application/dto/mapper"
 create_directory "$BASE_DIR/application/queries"
 create_directory "$BASE_DIR/application/commands"
 
@@ -60,16 +57,14 @@ create_directory "$BASE_DIR/infrastructure/logger"
 create_directory "$BOLTSTORE_DIR"
 create_directory "$INMEMSTORE_DIR"
 
+# Configs 
+create_directory "$BASE_DIR/configs"
+
 # Add files to specific directories
 for FILE in "${FILES[@]}"; do
     create_file "$ENTITY_DIR/$FILE"
     create_file "$REPOSITORY_DIR/$FILE"
     create_file "$SERVICE_DIR/$FILE"
-    create_file "$BOLTSTORE_DIR/$FILE"
-    create_file "$INMEMSTORE_DIR/$FILE"
-    create_file "$BASE_DIR/application/dto/request/$FILE"
-    create_file "$BASE_DIR/application/dto/response/$FILE"
-    create_file "$BASE_DIR/application/dto/mapper/$FILE"
 done
 
 go mod init github.com/mezni/wovoka
