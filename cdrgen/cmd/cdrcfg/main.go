@@ -41,4 +41,16 @@ func main() {
 	}
 
 	fmt.Println("Data successfully loaded and saved to BoltDB.")
+
+	bucketName:="NetworkTechnologies"
+	fmt.Printf("\nBucket: %s\n", bucketName)
+	entries, err := dbService.ReadListFromDB(bucketName)
+	if err != nil {
+		log.Printf("Error reading from bucket '%s': %v", bucketName, err)
+		return
+	}
+
+	for key, value := range entries {
+		fmt.Printf("Key: %s, Value: %v\n", key, value)
+	}
 }
