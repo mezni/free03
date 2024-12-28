@@ -1,13 +1,14 @@
-package services 
+package services
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/boltdb/bolt"
+	"github.com/mezni/wovoka/cdrgen/application/dto"
+	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
 
 // BaselineLoaderService defines the service for loading baseline data
@@ -15,118 +16,126 @@ type BaselineLoaderService struct {
 	DB *bolt.DB // BoltDB instance to persist data (you can swap with another DB)
 }
 
-
+// LoadData loads baseline data from a JSON file and processes it
 func (b *BaselineLoaderService) LoadData(filename string) error {
+	// Open the JSON file
+	file, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("error opening file: %v", err)
+	}
+	defer file.Close()
 
+	// Read the file into a byte slice
+	byteValue, err := ioutil.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("error reading file: %v", err)
+	}
+
+	// Declare a variable to hold the unmarshaled JSON
+	var data dto.ConfigData
+
+	// Unmarshal the JSON data into the struct
+	err = json.Unmarshal(byteValue, &data)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling data: %v", err)
+	}
+
+	// Process each entity
+	if err := b.processNetworkTechnologies(data.NetworkTechnology); err != nil {
+		return fmt.Errorf("error processing network technologies: %v", err)
+	}
+
+	if err := b.processNetworkElementTypes(data.NetworkElementTypes); err != nil {
+		return fmt.Errorf("error processing network elements: %v", err)
+	}
+
+	if err := b.processServiceTypes(data.ServiceTypes); err != nil {
+		return fmt.Errorf("error processing service types: %v", err)
+	}
+
+	return nil
 }
 
+// Process Network Technologies
+func (b *BaselineLoaderService) processNetworkTechnologies(networkTechnologies []dto.NetworkTechnologyDTO) error {
+	idseq := 1
+	for _, nt := range networkTechnologies {
+		// Create domain model
+		ntInstance := entities.NetworkTechnology{
+			ID:          idseq,
+			Name:        nt.Name,
+			Description: nt.Description,
+		}
 
-
-
-
-
-
-
-
-
-package main
-
-import (
-    "fmt"
-    "log"
-    "os"
-
-   
-    "your_project_name/src/domain"
-    "your_project_name/src/repository"
-    "your_project_name/src/service"
-    "your_project_name/src/utils"
-)
-
-// Function to save to the BoltDB
-func saveToBoltDB(db *bolt.DB, bucketName string, key int, data interface{}) error {
-    return db.Update(func(tx *bolt.Tx) error {
-        bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
-        if err != nil {
-            return err
-        }
-        jsonData, err := json.Marshal(data)
-        if err != nil {
-            return err
-        }
-        return bucket.Put([]byte(fmt.Sprintf("%d", key)), jsonData)
-    })
+		// Save to DB
+		if err := b.saveToDB("NetworkTechnologies", ntInstance.ID, ntInstance); err != nil {
+			return fmt.Errorf("error saving network technology: %v", err)
+		}
+		idseq++
+	}
+	return nil
 }
 
-func main() {
-    // Open the BoltDB file
-    db, err := bolt.Open("network_data.db", 0600, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer db.Close()
+// Process Network Elements
+func (b *BaselineLoaderService) processNetworkElementTypes(NetworkElementTypes []dto.NetworkElementTypeDTO) error {
+	idseq := 1
+	for _, ne := range NetworkElementTypes {
+		// Create domain model
+		neInstance := entities.NetworkElementType{
+			ID:                idseq,
+			Name:              ne.Name,
+			Description:       ne.Description,
+			NetworkTechnology: ne.NetworkTechnology,
+		}
 
-    // Read the JSON file into a ConfigData struct
-    var data struct {
-        NetworkTechnology []domain.NetworkTechnologyDTO `json:"network_technology"`
-        NetworkElements   []domain.NetworkElementDTO    `json:"network_elements"`
-        ServiceTypes      []domain.ServiceTypeDTO       `json:"service_types"`
-    }
+		// Save to DB
+		if err := b.saveToDB("NetworkElementTypes", neInstance.ID, neInstance); err != nil {
+			return fmt.Errorf("error saving network element: %v", err)
+		}
+		idseq++
+	}
+	return nil
+}
 
-    if err := utils.ReadJSONFile("data.json", &data); err != nil {
-        log.Fatal(err)
-    }
+// Process Service Types
+func (b *BaselineLoaderService) processServiceTypes(serviceTypes []dto.ServiceTypeDTO) error {
+	idseq := 1
+	for _, st := range serviceTypes {
+		// Create domain model
+		stInstance := entities.ServiceType{
+			ID:                idseq,
+			Name:              st.Name,
+			Description:       st.Description,
+			NetworkTechnology: st.NetworkTechnology,
+		}
 
-    // Initialize repositories
-    ntRepo := &repository.InMemoryNetworkTechnologyRepository{}
-    neRepo := &repository.InMemoryNetworkElementRepository{}
-    stRepo := &repository.InMemoryServiceTypeRepository{}
+		// Save to DB
+		if err := b.saveToDB("ServiceTypes", stInstance.ID, stInstance); err != nil {
+			return fmt.Errorf("error saving service type: %v", err)
+		}
+		idseq++
+	}
+	return nil
+}
 
-    // Initialize services
-    ntService := service.NewNetworkTechnologyService(ntRepo)
-    neService := service.NewNetworkElementService(neRepo)
-    stService := service.NewServiceTypeService(stRepo)
+// Save the entity data to the DB (using BoltDB as an example)
+func (b *BaselineLoaderService) saveToDB(bucketName string, key int, data interface{}) error {
+	err := b.DB.Update(func(tx *bolt.Tx) error {
+		// Create or get the bucket
+		bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		if err != nil {
+			return err
+		}
 
-    // Assign IDs and save Network Technologies
-    idseq := 1
-    for _, ntDTO := range data.NetworkTechnology {
-        nt := domain.NetworkTechnology{ID: idseq, Name: ntDTO.Name, Description: ntDTO.Description}
-        if err := ntService.CreateNetworkTechnology(nt.Name, nt.Description); err != nil {
-            log.Fatal(err)
-        }
-        if err := saveToBoltDB(db, "NetworkTechnologies", nt.ID, nt); err != nil {
-            log.Fatal(err)
-        }
-        idseq++
-    }
+		// Marshal the struct into JSON
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
 
-    // Reset ID sequence
-    idseq = 1
-    // Assign IDs and save Network Elements
-    for _, neDTO := range data.NetworkElements {
-        ne := domain.NetworkElement{ID: idseq, Name: neDTO.Name, Description: neDTO.Description, NetworkTechnology: neDTO.NetworkTechnology}
-        if err := neService.CreateNetworkElement(ne.Name, ne.Description, ne.NetworkTechnology); err != nil {
-            log.Fatal(err)
-        }
-        if err := saveToBoltDB(db, "NetworkElements", ne.ID, ne); err != nil {
-            log.Fatal(err)
-        }
-        idseq++
-    }
-
-    // Reset ID sequence
-    idseq = 1
-    // Assign IDs and save Service Types
-    for _, stDTO := range data.ServiceTypes {
-        st := domain.ServiceType{ID: idseq, Name: stDTO.Name, Description: stDTO.Description, NetworkTechnology: stDTO.NetworkTechnology}
-        if err := stService.CreateServiceType(st.Name, st.Description, st.NetworkTechnology); err != nil {
-            log.Fatal(err)
-        }
-        if err := saveToBoltDB(db, "ServiceTypes", st.ID, st); err != nil {
-            log.Fatal(err)
-        }
-        idseq++
-    }
-
-    fmt.Println("Data successfully loaded and saved.")
+		// Save the data in the bucket
+		err = bucket.Put([]byte(fmt.Sprintf("%d", key)), jsonData)
+		return err
+	})
+	return err
 }
