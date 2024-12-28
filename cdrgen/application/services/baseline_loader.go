@@ -16,7 +16,7 @@ type BaselineLoaderService struct {
 	DB *bolt.DB // BoltDB instance to persist data (you can swap with another DB)
 }
 
-// LoadData loads baseline data from a JSON file and processes it
+// LoadData loads baseline data from a JSON file, processes it, and saves it to the database
 func (b *BaselineLoaderService) LoadData(filename string) error {
 	// Open the JSON file
 	file, err := os.Open(filename)
@@ -40,86 +40,97 @@ func (b *BaselineLoaderService) LoadData(filename string) error {
 		return fmt.Errorf("error unmarshaling data: %v", err)
 	}
 
-	// Process each entity
-	if err := b.processNetworkTechnologies(data.NetworkTechnology); err != nil {
+	// Process and save Network Technologies
+	networkTechnologyList, err := b.processNetworkTechnologies(data.NetworkTechnology)
+	if err != nil {
 		return fmt.Errorf("error processing network technologies: %v", err)
 	}
-
-	if err := b.processNetworkElementTypes(data.NetworkElementTypes); err != nil {
-		return fmt.Errorf("error processing network elements: %v", err)
+	if err := b.saveListToDB("NetworkTechnologies", networkTechnologyList); err != nil {
+		return fmt.Errorf("error saving network technology list: %v", err)
 	}
 
-	if err := b.processServiceTypes(data.ServiceTypes); err != nil {
+	// Process and save Network Element Types
+	networkElementTypeList, err := b.processNetworkElementTypes(data.NetworkElementTypes)
+	if err != nil {
+		return fmt.Errorf("error processing network element types: %v", err)
+	}
+	if err := b.saveListToDB("NetworkElementTypes", networkElementTypeList); err != nil {
+		return fmt.Errorf("error saving network element type list: %v", err)
+	}
+
+	// Process and save Service Types
+	serviceTypeList, err := b.processServiceTypes(data.ServiceTypes)
+	if err != nil {
 		return fmt.Errorf("error processing service types: %v", err)
+	}
+	if err := b.saveListToDB("ServiceTypes", serviceTypeList); err != nil {
+		return fmt.Errorf("error saving service type list: %v", err)
 	}
 
 	return nil
 }
 
-// Process Network Technologies
-func (b *BaselineLoaderService) processNetworkTechnologies(networkTechnologies []dto.NetworkTechnologyDTO) error {
+// Process Network Technologies and return the list
+func (b *BaselineLoaderService) processNetworkTechnologies(networkTechnologies []dto.NetworkTechnologyDTO) ([]entities.NetworkTechnology, error) {
+	var networkTechnologyList []entities.NetworkTechnology
 	idseq := 1
+
+	// Loop through and create domain models
 	for _, nt := range networkTechnologies {
-		// Create domain model
 		ntInstance := entities.NetworkTechnology{
 			ID:          idseq,
 			Name:        nt.Name,
 			Description: nt.Description,
 		}
-
-		// Save to DB
-		if err := b.saveToDB("NetworkTechnologies", ntInstance.ID, ntInstance); err != nil {
-			return fmt.Errorf("error saving network technology: %v", err)
-		}
+		networkTechnologyList = append(networkTechnologyList, ntInstance)
 		idseq++
 	}
-	return nil
+
+	return networkTechnologyList, nil
 }
 
-// Process Network Elements
-func (b *BaselineLoaderService) processNetworkElementTypes(NetworkElementTypes []dto.NetworkElementTypeDTO) error {
+// Process Network Element Types and return the list
+func (b *BaselineLoaderService) processNetworkElementTypes(networkElementTypes []dto.NetworkElementTypeDTO) ([]entities.NetworkElementType, error) {
+	var networkElementTypeList []entities.NetworkElementType
 	idseq := 1
-	for _, ne := range NetworkElementTypes {
-		// Create domain model
+
+	// Loop through and create domain models
+	for _, ne := range networkElementTypes {
 		neInstance := entities.NetworkElementType{
 			ID:                idseq,
 			Name:              ne.Name,
 			Description:       ne.Description,
 			NetworkTechnology: ne.NetworkTechnology,
 		}
-
-		// Save to DB
-		if err := b.saveToDB("NetworkElementTypes", neInstance.ID, neInstance); err != nil {
-			return fmt.Errorf("error saving network element: %v", err)
-		}
+		networkElementTypeList = append(networkElementTypeList, neInstance)
 		idseq++
 	}
-	return nil
+
+	return networkElementTypeList, nil
 }
 
-// Process Service Types
-func (b *BaselineLoaderService) processServiceTypes(serviceTypes []dto.ServiceTypeDTO) error {
+// Process Service Types and return the list
+func (b *BaselineLoaderService) processServiceTypes(serviceTypes []dto.ServiceTypeDTO) ([]entities.ServiceType, error) {
+	var serviceTypeList []entities.ServiceType
 	idseq := 1
+
+	// Loop through and create domain models
 	for _, st := range serviceTypes {
-		// Create domain model
 		stInstance := entities.ServiceType{
 			ID:                idseq,
 			Name:              st.Name,
 			Description:       st.Description,
 			NetworkTechnology: st.NetworkTechnology,
 		}
-
-		// Save to DB
-		if err := b.saveToDB("ServiceTypes", stInstance.ID, stInstance); err != nil {
-			return fmt.Errorf("error saving service type: %v", err)
-		}
+		serviceTypeList = append(serviceTypeList, stInstance)
 		idseq++
 	}
-	return nil
+
+	return serviceTypeList, nil
 }
 
-// Save the entity data to the DB (using BoltDB as an example)
-func (b *BaselineLoaderService) saveToDB(bucketName string, key int, data interface{}) error {
+// Save a list of entities to the DB (using BoltDB as an example)
+func (b *BaselineLoaderService) saveListToDB(bucketName string, dataList interface{}) error {
 	err := b.DB.Update(func(tx *bolt.Tx) error {
 		// Create or get the bucket
 		bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
@@ -127,14 +138,14 @@ func (b *BaselineLoaderService) saveToDB(bucketName string, key int, data interf
 			return err
 		}
 
-		// Marshal the struct into JSON
-		jsonData, err := json.Marshal(data)
+		// Marshal the list into JSON
+		jsonData, err := json.Marshal(dataList)
 		if err != nil {
 			return err
 		}
 
 		// Save the data in the bucket
-		err = bucket.Put([]byte(fmt.Sprintf("%d", key)), jsonData)
+		err = bucket.Put([]byte("all"), jsonData) // Use a fixed key "all" to store the entire list
 		return err
 	})
 	return err
