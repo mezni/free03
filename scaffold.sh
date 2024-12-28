@@ -36,35 +36,28 @@ for SUBCMD in "${SUBCOMMANDS[@]}"; do
 done
 
 # Domain Layer
-ENTITY_DIR="$BASE_DIR/domain/entities"
-REPOSITORY_DIR="$BASE_DIR/domain/repositories"
-SERVICE_DIR="$BASE_DIR/domain/services"
-create_directory "$ENTITY_DIR"
-create_directory "$REPOSITORY_DIR"
-create_directory "$SERVICE_DIR"
+create_directory "$BASE_DIR/domain/entities"
+create_directory "$BASE_DIR/domain/repositories"
+create_directory "$BASE_DIR/domain/services"
 
 # Application Layer
 create_directory "$BASE_DIR/application"
-create_directory "$BASE_DIR/application/dto"
-create_directory "$BASE_DIR/application/queries"
-create_directory "$BASE_DIR/application/commands"
+
+
 
 # Infrastructure Layer
-BOLTSTORE_DIR="$BASE_DIR/infrastructure/boltstore"
-INMEMSTORE_DIR="$BASE_DIR/infrastructure/inmemstore"
 create_directory "$BASE_DIR/infrastructure"
-create_directory "$BASE_DIR/infrastructure/logger"
-create_directory "$BOLTSTORE_DIR"
-create_directory "$INMEMSTORE_DIR"
+create_directory "$BASE_DIR/infrastructure/inmemstore"
+
 
 # Configs 
 create_directory "$BASE_DIR/configs"
 
 # Add files to specific directories
 for FILE in "${FILES[@]}"; do
-    create_file "$ENTITY_DIR/$FILE"
-    create_file "$REPOSITORY_DIR/$FILE"
-    create_file "$SERVICE_DIR/$FILE"
+    create_file "$BASE_DIR/domain/entities/$FILE"
+    create_file "$BASE_DIR/domain/repositories/$FILE"
+    create_file "$BASE_DIR/domain/services/$FILE"
     create_file "$BASE_DIR/application/dto/$FILE"
 done
 
