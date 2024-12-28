@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-	"github.com/mezni/wovoka/cdrgen/application/services"
 	"github.com/boltdb/bolt"
+	"github.com/mezni/wovoka/cdrgen/application/services"
+	"log"
 )
-
 
 func main() {
 	// Open BoltDB file

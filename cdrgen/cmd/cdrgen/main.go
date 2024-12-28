@@ -17,21 +17,19 @@ func main() {
 
     // Read data using a read-only transaction
     err = db.View(func(tx *bbolt.Tx) error {
-        // Access the bucket
-        bucket := tx.Bucket([]byte("NetworkTechnologies"))
-        if bucket == nil {
-            return fmt.Errorf("Bucket not found")
-        }
+        // Iterate over all buckets
+        return tx.ForEach(func(name []byte, b *bbolt.Bucket) error {
+            fmt.Printf("Bucket: %s\n", name)
 
-        // Use a cursor to iterate through all key-value pairs
-        cursor := bucket.Cursor()
+            // Use a cursor to iterate through all key-value pairs in the current bucket
+            cursor := b.Cursor()
+            for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+                // Print the key and value for each entry
+                fmt.Printf("  Key: %s, Value: %s\n", k, v)
+            }
 
-        for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-            // Print the key and value (assuming the value is a string)
-            fmt.Printf("Key: %s, Value: %s\n", k, v)
-        }
-
-        return nil
+            return nil // continue to the next bucket
+        })
     })
 
     if err != nil {

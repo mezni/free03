@@ -41,7 +41,7 @@ func (b *BaselineLoaderService) LoadData(filename string) error {
 	}
 
 	// Process and save Network Technologies
-	networkTechnologyList, err := b.processNetworkTechnologies(data.NetworkTechnology)
+	networkTechnologyList, err := b.processNetworkTechnologies(data.NetworkTechnologies)
 	if err != nil {
 		return fmt.Errorf("error processing network technologies: %v", err)
 	}

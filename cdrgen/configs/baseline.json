@@ -1,11 +1,11 @@
 {
-    "network_technology": [
+    "network_technologies": [
         {"Name": "2G", "Description": "2G"},
         {"Name": "3G", "Description": "3G"},
         {"Name": "4G", "Description": "4G"},
         {"Name": "5G", "Description": "5G"}
     ],
-    "network_elements": [
+    "network_element_types": [
         {"Name": "BTS", "Description": "Base Transceiver Station: A base station responsible for radio communication with the mobile station.", "NetworkTechnology": "2G"},
         {"Name": "BSC", "Description": "Base Station Controller: Manages multiple BTS units, responsible for call setup and handovers.", "NetworkTechnology": "2G"},
         {"Name": "MSC", "Description": "Mobile Switching Center: Routes calls and manages connections in the mobile network.", "NetworkTechnology": "2G"},
