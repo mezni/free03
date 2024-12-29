@@ -1,4 +1,4 @@
-package repositories
+package boltstore
 
 import (
 	"encoding/json"
@@ -6,20 +6,25 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// BoltDBLocationRepository is a BoltDB implementation of the LocationRepository interface.
+// BoltPersistenceService is a service for managing BoltDB operations.
 type BoltPersistenceService struct {
 	DB *bbolt.DB
 }
 
-// NewBoltDBLocationRepository creates a new instance of BoltDBLocationRepository.
+// NewBoltPersistenceService creates a new instance of BoltPersistenceService.
 func NewBoltPersistenceService(db *bbolt.DB) *BoltPersistenceService {
 	return &BoltPersistenceService{
 		DB: db,
 	}
+}
 
-
-// OpenDB opens the BoltDB database file.
+// OpenDB opens the BoltDB database file at the provided file path.
 func (b *BoltPersistenceService) OpenDB(filePath string) error {
+	if b.DB != nil {
+		// Check if the DB is already open
+		return fmt.Errorf("database is already open")
+	}
+
 	var err error
 	b.DB, err = bbolt.Open(filePath, 0600, nil)
 	if err != nil {
@@ -28,19 +33,21 @@ func (b *BoltPersistenceService) OpenDB(filePath string) error {
 	return nil
 }
 
-// CloseDB closes the BoltDB database.
+// CloseDB closes the BoltDB database if it is open.
 func (b *BoltPersistenceService) CloseDB() error {
 	if b.DB != nil {
 		return b.DB.Close()
 	}
-	return nil
+	return fmt.Errorf("database is not open")
 }
 
 // SaveListToDB saves a list of entities to the database under the specified bucket and key.
 func (b *BoltPersistenceService) SaveListToDB(bucketName string, dataList interface{}, key string) error {
-	// Check if dataList is empty
 	if dataList == nil {
 		return fmt.Errorf("dataList cannot be nil")
+	}
+	if bucketName == "" || key == "" {
+		return fmt.Errorf("bucketName and key must not be empty")
 	}
 
 	err := b.DB.Update(func(tx *bbolt.Tx) error {
@@ -56,7 +63,7 @@ func (b *BoltPersistenceService) SaveListToDB(bucketName string, dataList interf
 			return fmt.Errorf("could not marshal data to JSON: %v", err)
 		}
 
-		// Save the data using the provided key
+		// Save the data under the provided key
 		if err := bucket.Put([]byte(key), jsonData); err != nil {
 			return fmt.Errorf("could not save data under key '%s': %v", key, err)
 		}
@@ -67,11 +74,12 @@ func (b *BoltPersistenceService) SaveListToDB(bucketName string, dataList interf
 	return err
 }
 
-// ReadListFromDB lists all key-value pairs in the specified bucket.
+// ReadListFromDB retrieves all key-value pairs in the specified bucket and returns them as a map.
 func (b *BoltPersistenceService) ReadListFromDB(bucketName string) (map[string]interface{}, error) {
 	entries := make(map[string]interface{})
 
 	err := b.DB.View(func(tx *bbolt.Tx) error {
+		// Get the bucket
 		bucket := tx.Bucket([]byte(bucketName))
 		if bucket == nil {
 			return fmt.Errorf("bucket '%s' does not exist", bucketName)

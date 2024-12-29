@@ -1,33 +1,28 @@
-Country: Tunisia
-Coordinates:
-  Latitude:
-    - 30.24
-    - 37.54
-  Longitude:
-    - 7.52
-    - 11.60
-Networks:
-  2G:
-    Rows: 3
-    Columns: 1
-    LocationNames:
-      - nord
-      - centre
-      - sud
-  3G:
-    Rows: 3
-    Columns: 1
-    LocationNames:
-      - nord
-      - centre
-      - sud
-  4G:
-    Rows: 3
-    Columns: 2
-    LocationNames:
-      - nord-east
-      - nord-west
-      - centre-east
-      - centre-west
-      - sud-east
-      - sud-west
+Locations:
+  Latitude: [30.24, 37.54]
+  Longitude: [7.52, 11.60]
+  LocationSplit:
+    - NetworkTechnology: 2G
+      SplitRows: 3
+      SplitColumns: 1
+      LocationNames:
+        - nord
+        - centre
+        - sud
+    - NetworkTechnology: 3G
+      SplitRows: 3
+      SplitColumns: 1
+      LocationNames:
+        - nord
+        - centre
+        - sud
+    - NetworkTechnology: 4G
+      SplitRows: 3
+      SplitColumns: 2
+      LocationNames:
+        - nord-east
+        - nord-west
+        - centre-east
+        - centre-west
+        - sud-east
+        - sud-west
