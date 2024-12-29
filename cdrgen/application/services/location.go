@@ -11,8 +11,30 @@ import (
     "github.com/mezni/wovoka/cdrgen/application/dtos"
 )
 
+// Define a constant slice for valid network technologies
+var validNetworkTechnologies = []string{"2G", "3G", "4G", "5G"}
+
+// IsValidNetworkTechnology checks if the given network technology is valid.
+func IsValidNetworkTechnology(networkTechnology string) bool {
+    for _, validTech := range validNetworkTechnologies {
+        if networkTechnology == validTech {
+            return true
+        }
+    }
+    return false
+}
+
 // LocationService handles logic for generating and managing locations.
-type LocationService struct{}
+type LocationService struct {
+    db *bbolt.DB // BoltDB database instance
+}
+
+// NewLocationService initializes a LocationService with a provided BoltDB instance.
+func NewLocationService(db *bbolt.DB) *LocationService {
+    return &LocationService{
+        db: db,
+    }
+}
 
 // GenerateLatitudeRanges generates latitude ranges for each row.
 func (s *LocationService) generateLatitudeRanges(minLat, maxLat float64, rows int) [][2]float64 {
@@ -65,114 +87,74 @@ func getNetworkTechnologyPrefix(networkTechnology string) int {
 
 // GenerateLocations processes the entire CfgData struct and generates locations.
 func (s *LocationService) GenerateLocations(cfgData dtos.CfgData) ([]entities.Location, error) {
-	// Seed the random number generator
-	rand.Seed(time.Now().UnixNano())
+    // Seed the random number generator
+    rand.Seed(time.Now().UnixNano())
 
-	var locations []entities.Location
-	locationID := 1
-
-	// Process the data from the cfgData struct
-	minLat, maxLat := cfgData.Locations.Latitude[0], cfgData.Locations.Latitude[1]
-	minLong, maxLong := cfgData.Locations.Longitude[0], cfgData.Locations.Longitude[1]
-
-	// Iterate through the LocationSplits
-	for _, locationSplit := range cfgData.Locations.LocationSplit {
-		// Validate NetworkTechnology
-		validNetworkTechnologies := map[string]bool{"2G": true, "3G": true, "4G": true, "5G": true}
-		if !validNetworkTechnologies[locationSplit.NetworkTechnology] {
-			return nil, fmt.Errorf("invalid NetworkTechnology: %s, must be one of: 2G, 3G, 4G, 5G", locationSplit.NetworkTechnology)
-		}
-
-		fmt.Println("Processing NetworkTechnology:", locationSplit.NetworkTechnology)
-
-		latitudeRanges := s.generateLatitudeRanges(minLat, maxLat, locationSplit.SplitRows)
-		longitudeRanges := s.generateLongitudeRanges(minLong, maxLong, locationSplit.SplitColumns)
-
-		// Get the prefix based on the network technology
-		prefix := getNetworkTechnologyPrefix(locationSplit.NetworkTechnology)
-
-		// Combine rows and columns to generate Location entries
-		for i, latRange := range latitudeRanges {
-			for j, longRange := range longitudeRanges {
-				// Determine the name based on LocationNames and grid position
-				var name string
-				if i*locationSplit.SplitColumns+j < len(locationSplit.LocationNames) {
-					name = locationSplit.LocationNames[i*locationSplit.SplitColumns+j]
-				} else {
-					name = fmt.Sprintf("Unnamed-%d", locationID)
-				}
-
-				// Generate AreaCode
-				areaCode := s.generateAreaCode(prefix)
-
-				// Use NewLocation to create a Location entry
-				location, err := entities.NewLocation(locationID, locationSplit.NetworkTechnology, name, latRange[0], latRange[1], longRange[0], longRange[1], areaCode)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create location: %v", err)
-				}
-
-				// Append to the locations slice
-				locations = append(locations, *location)
-
-				// Increment LocationID
-				locationID++
-			}
-		}
-	}
-
-	return locations, nil
-}
-
-// Validate the network technology.
-func (s *LocationService) validateNetworkTechnology(networkTechnology string) error {
-    validTechnologies := map[string]bool{"2G": true, "3G": true, "4G": true, "5G": true}
-    if !validTechnologies[networkTechnology] {
-        return fmt.Errorf("invalid NetworkTechnology: %s, must be one of: 2G, 3G, 4G, 5G", networkTechnology)
-    }
-    return nil
-}
-
-// CreateLocations encapsulates the logic for creating Location entities.
-func (s *LocationService) createLocations(locationID int, prefix int, locationSplit dtos.LocationSplit, latitudeRanges [][2]float64, longitudeRanges [][2]float64) ([]entities.Location, error) {
     var locations []entities.Location
-    for i, latRange := range latitudeRanges {
-        for j, longRange := range longitudeRanges {
-            // Determine the name based on LocationNames and grid position
-            name := s.getLocationName(locationSplit.LocationNames, i, j, locationID)
+    locationID := 1
 
-            // Generate AreaCode
-            areaCode := s.generateAreaCode(prefix)
+    // Process the data from the cfgData struct
+    minLat, maxLat := cfgData.Locations.Latitude[0], cfgData.Locations.Latitude[1]
+    minLong, maxLong := cfgData.Locations.Longitude[0], cfgData.Locations.Longitude[1]
 
-            // Create a Location entity
-            location, err := entities.NewLocation(locationID, locationSplit.NetworkTechnology, name, latRange[0], latRange[1], longRange[0], longRange[1], areaCode)
-            if err != nil {
-                return nil, fmt.Errorf("failed to create location: %v", err)
+    // Iterate through the LocationSplits
+    for _, locationSplit := range cfgData.Locations.LocationSplit {
+        // Validate NetworkTechnology using IsValidNetworkTechnology function
+        if !IsValidNetworkTechnology(locationSplit.NetworkTechnology) {
+            return nil, fmt.Errorf("invalid NetworkTechnology: %s, must be one of: %v", locationSplit.NetworkTechnology, validNetworkTechnologies)
+        }
+
+        fmt.Println("Processing NetworkTechnology:", locationSplit.NetworkTechnology)
+
+        latitudeRanges := s.generateLatitudeRanges(minLat, maxLat, locationSplit.SplitRows)
+        longitudeRanges := s.generateLongitudeRanges(minLong, maxLong, locationSplit.SplitColumns)
+
+        // Get the prefix based on the network technology
+        prefix := getNetworkTechnologyPrefix(locationSplit.NetworkTechnology)
+
+        // Combine rows and columns to generate Location entries
+        for i, latRange := range latitudeRanges {
+            for j, longRange := range longitudeRanges {
+                // Determine the name based on LocationNames and grid position
+                var name string
+                if i*locationSplit.SplitColumns+j < len(locationSplit.LocationNames) {
+                    name = locationSplit.LocationNames[i*locationSplit.SplitColumns+j]
+                } else {
+                    name = fmt.Sprintf("Unnamed-%d", locationID)
+                }
+
+                // Generate AreaCode
+                areaCode := s.generateAreaCode(prefix)
+
+                // Use NewLocation to create a Location entry with original latitudes and longitudes
+                location, err := entities.NewLocation(locationID, locationSplit.NetworkTechnology, name, latRange[0], latRange[1], longRange[0], longRange[1], areaCode)
+                if err != nil {
+                    return nil, fmt.Errorf("failed to create location: %v", err)
+                }
+
+                // Append to the locations slice
+                locations = append(locations, *location)
+
+                // Increment LocationID
+                locationID++
             }
-            locations = append(locations, *location)
         }
     }
+
     return locations, nil
 }
 
-// GetLocationName determines the name of the Location based on input data and grid position.
-func (s *LocationService) getLocationName(locationNames []string, row, col, locationID int) string {
-    if row*len(locationNames)+col < len(locationNames) {
-        return locationNames[row*len(locationNames)+col]
-    }
-    return fmt.Sprintf("Unnamed-%d", locationID)
+// WithBoltDB allows actions to be performed with the BoltDB instance in a transaction.
+func (s *LocationService) WithBoltDB(action func(tx *bbolt.Tx) error) error {
+    // Start a write transaction for BoltDB
+    return s.db.Update(func(tx *bbolt.Tx) error {
+        return action(tx)
+    })
 }
 
-// SaveToBoltDB saves the generated locations to BoltDB.
+// SaveToBoltDB saves the generated locations to BoltDB using a transaction.
 func (s *LocationService) SaveToBoltDB(dbName, bucketName string, locations []entities.Location) error {
-    // Open the BoltDB database file (create if not exists)
-    db, err := bbolt.Open(dbName, 0600, nil)
-    if err != nil {
-        return fmt.Errorf("failed to open BoltDB: %v", err)
-    }
-    defer db.Close()
-
-    // Start a write transaction
-    err = db.Update(func(tx *bbolt.Tx) error {
+    return s.WithBoltDB(func(tx *bbolt.Tx) error {
         // Create a bucket for storing locations (if it doesn't exist)
         bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
         if err != nil {
@@ -193,26 +175,15 @@ func (s *LocationService) SaveToBoltDB(dbName, bucketName string, locations []en
                 return fmt.Errorf("failed to save location to bucket: %v", err)
             }
         }
-
         return nil
     })
-
-    return err
 }
 
 // ReadFromBoltDB reads locations from the specified BoltDB database and bucket.
-func (s *LocationService) ReadFromBoltDB(dbName, bucketName string) ([]entities.Location, error) {
-    // Open the BoltDB database file (read-only)
-    db, err := bbolt.Open(dbName, 0600, nil)
-    if err != nil {
-        return nil, fmt.Errorf("failed to open BoltDB: %v", err)
-    }
-    defer db.Close()
-
+func (s *LocationService) ReadFromBoltDB(bucketName string) ([]entities.Location, error) {
     var locations []entities.Location
 
-    // Start a read-only transaction
-    err = db.View(func(tx *bbolt.Tx) error {
+    err := s.WithBoltDB(func(tx *bbolt.Tx) error {
         // Access the bucket where locations are stored
         bucket := tx.Bucket([]byte(bucketName))
         if bucket == nil {
