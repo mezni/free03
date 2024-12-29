@@ -3,53 +3,39 @@ package main
 import (
 	"fmt"
 	"log"
-	"github.com/mezni/wovoka/cdrgen/infrastructure/config"
-	"github.com/mezni/wovoka/cdrgen/application/mappers"
-	"github.com/mezni/wovoka/cdrgen/infrastructure/boltstore"
+
+	"github.com/mezni/wovoka/cdrgen/application/services"
 )
 
-const configFile = "config.yaml"
+const (
+	configFile = "config.yaml"
+	dbName     = "locations.db"
+)
 
 func main() {
 	fmt.Println("Starting application...")
 
-	// Load configuration
-	cfg, err := config.LoadConfig(configFile)
+	// Initialize the LoaderService with the config file and database name
+	loaderService := services.NewLoaderService(configFile, dbName)
+
+	// Call LoadLocations to load and save locations (no need to pass dbName)
+	err := loaderService.LoadLocations()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		log.Println("Error loading locations:", err)
+	} else {
+		fmt.Println("Locations loaded and saved successfully.")
 	}
 
-	// Initialize LocationService
-	locationService := mappers.NewLocationService()
-
-	// Generate locations
-	locations, err := locationService.GenerateLocations(cfg)
+	// Call DumpLocations to read and return locations
+	locations, err := loaderService.DumpLocations()
 	if err != nil {
-		log.Fatalf("Error generating locations: %v", err)
+		log.Fatalf("Error dumping locations: %v", err)
 	}
 
-	// Output generated locations
-	fmt.Printf("Generated %d locations:\n", len(locations))
+	// Output the retrieved locations
+	fmt.Printf("Dumped %d locations:\n", len(locations))
 	for _, loc := range locations {
 		fmt.Printf("Location: %+v\n", loc)
 	}
 
-	// Save generated locations to BoltDB
-	err = boltstore.SaveToBoltDB("locations.db", "locations", []interface{}{locations})
-	if err != nil {
-		fmt.Println("Error saving to DB:", err)
-		return
-	}
-
-	// Read the data back from the database
-	data, err := boltstore.ReadFromBoltDB("locations.db", "locations")
-	if err != nil {
-		fmt.Println("Error reading from DB:", err)
-		return
-	}
-
-	// Print the data read from the database
-	for _, item := range data {
-		fmt.Println(item)
-	}
 }

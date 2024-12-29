@@ -23,8 +23,8 @@ func (m *LocationMapper) GenerateLatitudeRanges(minLat, maxLat float64, rows int
 	latitudeRanges := make([][2]float64, rows)
 
 	for i := 0; i < rows; i++ {
-		latitudeRanges[i][0] = minLat + float64(i)*step     // minLatitude for the row
-		latitudeRanges[i][1] = minLat + float64(i+1)*step   // maxLatitude for the row
+		latitudeRanges[i][0] = minLat + float64(i)*step   // minLatitude for the row
+		latitudeRanges[i][1] = minLat + float64(i+1)*step // maxLatitude for the row
 	}
 
 	return latitudeRanges
@@ -36,8 +36,8 @@ func (m *LocationMapper) GenerateLongitudeRanges(minLong, maxLong float64, cols 
 	longitudeRanges := make([][2]float64, cols)
 
 	for i := 0; i < cols; i++ {
-		longitudeRanges[i][0] = minLong + float64(i)*step     // minLongitude for the column
-		longitudeRanges[i][1] = minLong + float64(i+1)*step   // maxLongitude for the column
+		longitudeRanges[i][0] = minLong + float64(i)*step   // minLongitude for the column
+		longitudeRanges[i][1] = minLong + float64(i+1)*step // maxLongitude for the column
 	}
 
 	return longitudeRanges
@@ -103,7 +103,6 @@ func (s *LocationService) GenerateLocations(cfgData dtos.CfgData) ([]entities.Lo
 		if !s.IsValidNetworkTechnology(locationSplit.NetworkTechnology) {
 			return nil, fmt.Errorf("invalid NetworkTechnology: %s, must be one of: %v", locationSplit.NetworkTechnology, []string{"2G", "3G", "4G", "5G"})
 		}
-
 
 		latitudeRanges := s.mapper.GenerateLatitudeRanges(minLat, maxLat, locationSplit.SplitRows)
 		longitudeRanges := s.mapper.GenerateLongitudeRanges(minLong, maxLong, locationSplit.SplitColumns)
