@@ -9,7 +9,7 @@ import (
 
 const (
 	configFile = "config.yaml"
-	dbName     = "locations.db"
+	dbName     = "cdrcfg.db"
 )
 
 func main() {
