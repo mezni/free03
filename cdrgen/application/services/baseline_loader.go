@@ -12,6 +12,8 @@ import (
 
 const (
 	networkTechnologiesBucket = "network_technologies"
+	networkElementTypesBucket = "network_element_types"
+	serviceTypesBucket        = "service_types"
 )
 
 type BaselineLoaderService struct {
@@ -54,26 +56,59 @@ func (ls *BaselineLoaderService) LoadBaseline() error {
 	// Step 2: Create a BaselineMapper instance
 	mapper := &mappers.BaselineMapper{}
 
-	// Step 3: Map DTOs to domain entities
+	// Step 3: Map DTOs to domain entities for network technologies
 	networkTechnologies, err := mapper.ToNetworkTechnologies(config.NetworkTechnologies)
 	if err != nil {
 		return fmt.Errorf("error mapping network technologies: %w", err)
 	}
 
-	// Step 4: Convert []entities.Location to []interface{} for saving in BoltDB
+	// Step 4: Convert networkTechnologies to []interface{} for saving in BoltDB
 	networkTechnologiesAsInterfaces := make([]interface{}, len(networkTechnologies))
 	for i, loc := range networkTechnologies {
 		networkTechnologiesAsInterfaces[i] = loc
 	}
 
-	// Step 5: Save the data to BoltDB
+	// Step 5: Save network technologies to BoltDB
 	err = boltstore.SaveToBoltDB(ls.dbFile, networkTechnologiesBucket, networkTechnologiesAsInterfaces)
 	if err != nil {
 		return fmt.Errorf("error saving network technologies to DB: %w", err)
 	}
 
-	// Step 6: Print results for demonstration
-	fmt.Printf("Mapped Network Technologies: %+v\n", networkTechnologies)
-	fmt.Println("Baseline loaded successfully")
+	// Step 6: Map DTOs to domain entities for network element types
+	networkElementTypes, err := mapper.ToNetworkElementTypes(config.NetworkElementTypes)
+	if err != nil {
+		return fmt.Errorf("error mapping network element types: %w", err)
+	}
+
+	// Step 7: Convert networkElementTypes to []interface{} for saving in BoltDB
+	networkElementTypesAsInterfaces := make([]interface{}, len(networkElementTypes))
+	for i, loc := range networkElementTypes {
+		networkElementTypesAsInterfaces[i] = loc
+	}
+
+	// Step 8: Save network element types to BoltDB
+	err = boltstore.SaveToBoltDB(ls.dbFile, networkElementTypesBucket, networkElementTypesAsInterfaces)
+	if err != nil {
+		return fmt.Errorf("error saving network element types to DB: %w", err)
+	}
+
+	// Step 9: Map DTOs to domain entities for service types
+	serviceTypes, err := mapper.ToServiceTypes(config.ServiceTypes)
+	if err != nil {
+		return fmt.Errorf("error mapping service types: %w", err)
+	}
+
+	// Step 10: Convert serviceTypes to []interface{} for saving in BoltDB
+	serviceTypesAsInterfaces := make([]interface{}, len(serviceTypes))
+	for i, loc := range serviceTypes {
+		serviceTypesAsInterfaces[i] = loc
+	}
+
+	// Step 11: Save service types to BoltDB
+	err = boltstore.SaveToBoltDB(ls.dbFile, serviceTypesBucket, serviceTypesAsInterfaces)
+	if err != nil {
+		return fmt.Errorf("error saving service types to DB: %w", err)
+	}
+
 	return nil
 }
