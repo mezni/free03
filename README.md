@@ -1,3 +1,3 @@
-export VERSION=0.0.51
+export VERSION=0.0.52
 export MESSAGE="Revamp"
 ./commit.sh $VERSION "$MESSAGE"
