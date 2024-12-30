@@ -22,7 +22,7 @@ BASE_DIR="cdrgen"
 SUBCOMMANDS=("cdrgen" "cdrcfg")
 
 # List of files to add in specific directories
-FILES=("location.go")
+FILES=("network_technology.go")
 
 # Create the base project directory
 create_directory "$BASE_DIR"
@@ -38,6 +38,7 @@ done
 # Domain Layer
 create_directory "$BASE_DIR/domain/entities"
 create_directory "$BASE_DIR/domain/repositories"
+create_directory "$BASE_DIR/domain/factories"
 
 # Application Layer
 create_directory "$BASE_DIR/application"
@@ -57,6 +58,7 @@ create_directory "$BASE_DIR/configs"
 for FILE in "${FILES[@]}"; do
     create_file "$BASE_DIR/domain/entities/$FILE"
     create_file "$BASE_DIR/domain/repositories/$FILE"
+    create_file "$BASE_DIR/domain/factories/$FILE"
     create_file "$BASE_DIR/application/dtos/$FILE"
     create_file "$BASE_DIR/application/mappers/$FILE"
     create_file "$BASE_DIR/application/services/$FILE"
