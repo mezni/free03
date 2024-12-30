@@ -6,7 +6,10 @@ import (
 
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/boltstore"
+	"github.com/mezni/wovoka/cdrgen/application/mappers"
 )
+
+
 
 func main() {
 	// Step 1: Define the BoltDB configuration
@@ -22,13 +25,13 @@ func main() {
 		{ID: 3, Name: "LTE", Description: "4G mobile network technology"},
 	}
 
-	// Convert NetworkTechnology structs to maps
-	var data []map[string]interface{}
-	for _, nt := range networkTechnologies {
-		data = append(data, nt.ToMap())
-	}
+	// Initialize the NetworkTechnologyMapper
+	ntMapper := &mappers.NetworkTechnologyMapper{}
 
-	// Step 3: Save data to BoltDB
+	// Step 3: Convert NetworkTechnology structs to maps using ToListMap
+	data := ntMapper.ToListMap(networkTechnologies)
+
+	// Step 4: Save data to BoltDB
 	fmt.Println("Saving data to BoltDB...")
 	err := boltstore.SaveToBoltDB(config, data)
 	if err != nil {
@@ -36,5 +39,5 @@ func main() {
 	} else {
 		fmt.Println("Data saved successfully.")
 	}
-
 }
+
