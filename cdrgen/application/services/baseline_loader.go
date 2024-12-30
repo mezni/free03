@@ -10,12 +10,6 @@ import (
 	"github.com/mezni/wovoka/cdrgen/infrastructure/boltstore"
 )
 
-const (
-	networkTechnologiesBucket = "network_technologies"
-	networkElementTypesBucket = "network_element_types"
-	serviceTypesBucket        = "service_types"
-)
-
 type BaselineLoaderService struct {
 	configFile string
 	dbFile     string
