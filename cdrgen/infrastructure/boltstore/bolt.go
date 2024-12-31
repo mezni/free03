@@ -1,10 +1,10 @@
 package boltstore
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"go.etcd.io/bbolt"
-	"os"
-	"path/filepath"
 )
 
 // BoltDBConfig holds the configuration for BoltDB operations.
@@ -19,48 +19,22 @@ func NewBoltDBConfig() *BoltDBConfig {
 
 // Open opens the database file with the given path.
 func (cfg *BoltDBConfig) Open(dbPath string) error {
-	// Extract the base name of the file (without the directory part)
-	baseName := filepath.Base(dbPath)
-
-	// Check if the database file exists
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		return errors.New("database file '" + baseName + "' does not exist")
-	}
-
 	// Open the database file with read-write permissions
 	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		return errors.New("error opening database '" + baseName + "': " + err.Error())
+		return fmt.Errorf("error opening database: %w", err)
 	}
-
 	cfg.db = db
 	return nil
 }
 
 // Create creates the database file if it does not exist and opens it.
 func (cfg *BoltDBConfig) Create(dbPath string) error {
-	// Extract the base name of the file (without the directory part)
-	baseName := filepath.Base(dbPath)
-
-	// Extract the directory part of dbPath
-	dir := filepath.Dir(dbPath)
-
-	// Ensure the directory exists before creating the database file
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return errors.New("error creating directory for database: " + err.Error())
-	}
-
 	// Check if the database file already exists
-	if _, err := os.Stat(dbPath); err == nil {
-		return errors.New("database file '" + baseName + "' already exists")
-	}
-
-	// Create and open the database file with read-write permissions
 	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		return errors.New("error creating/opening database '" + baseName + "': " + err.Error())
+		return fmt.Errorf("error creating/opening database: %w", err)
 	}
-
 	cfg.db = db
 	return nil
 }
@@ -74,9 +48,66 @@ func (cfg *BoltDBConfig) Close() error {
 
 	// Close the database connection
 	if err := cfg.db.Close(); err != nil {
-		return errors.New("error closing database: " + err.Error())
+		return fmt.Errorf("error closing database: %w", err)
 	}
 
 	cfg.db = nil
+	return nil
+}
+
+// SaveToBoltDB saves the provided data to the specified bucket in the database.
+func (cfg *BoltDBConfig) SaveToBoltDB(bucketName string, dataAsMaps []map[string]interface{}) error {
+	if cfg.db == nil {
+		return errors.New("database not open")
+	}
+
+	// Start a write transaction
+	return cfg.db.Update(func(tx *bbolt.Tx) error {
+		// Create or retrieve the bucket
+		bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		if err != nil {
+			return fmt.Errorf("error creating/retrieving bucket: %w", err)
+		}
+
+		// Iterate over the data and save each item
+		for _, item := range dataAsMaps {
+			id, err := extractID(item)
+			if err != nil {
+				return fmt.Errorf("error extracting ID: %w", err)
+			}
+
+			// Save the item to the bucket
+			if err := saveItemToBucket(bucket, id, item); err != nil {
+				return fmt.Errorf("error saving item to bucket: %w", err)
+			}
+		}
+
+		return nil
+	})
+}
+
+// extractID is a utility function to extract the ID from a map.
+func extractID(item map[string]interface{}) (string, error) {
+	// Assuming the item has an "ID" key.
+	id, ok := item["ID"].(string)
+	if !ok {
+		return "", errors.New("ID field missing or invalid")
+	}
+	return id, nil
+}
+
+// saveItemToBucket saves a single item to the bucket.
+func saveItemToBucket(bucket *bbolt.Bucket, id string, item map[string]interface{}) error {
+	// Assuming you're saving the data as JSON or some other format
+	data, err := json.Marshal(item)
+	if err != nil {
+		return fmt.Errorf("error marshalling item: %w", err)
+	}
+
+	// Save the item under its ID
+	if err := bucket.Put([]byte(id), data); err != nil {
+		return fmt.Errorf("error saving data to bucket: %w", err)
+	}
+
 	return nil
 }

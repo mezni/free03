@@ -1,10 +1,8 @@
-
-
 package main
 
 import (
-	"log"
 	"github.com/mezni/wovoka/cdrgen/application/services"
+	"log"
 )
 
 func main() {
