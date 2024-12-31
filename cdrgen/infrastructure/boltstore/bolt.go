@@ -1,10 +1,10 @@
 package boltstore
 
 import (
-	"os"
 	"encoding/json"
 	"errors"
 	"go.etcd.io/bbolt"
+	"os"
 	"path/filepath"
 )
 

@@ -9,7 +9,6 @@ import (
 	"os"
 )
 
-
 // InitDBService structure to hold service state
 type InitDBService struct {
 	configFile string
@@ -26,7 +25,7 @@ func NewInitDBService(configFile string) (*InitDBService, error) {
 	// Initialize BoltDBConfig and create the database file using the Create method
 	boltDBConfig := boltstore.NewBoltDBConfig()
 	if err := boltDBConfig.Create(dbPath); err != nil {
-		return nil, errors.New("failed to create the database file")
+		return nil, err
 	}
 
 	// Return the service instance with the database and configFile
