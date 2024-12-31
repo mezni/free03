@@ -9,13 +9,6 @@ import (
 	"os"
 )
 
-// Constants for database path and bucket names
-const dbPath = "./db/mydb.db"
-const (
-	networkTechnologiesBucketName = "network_technologies"
-	networkElementTypesBucketName = "network_element_types"
-	serviceTypesBucketName        = "service_types"
-)
 
 // InitDBService structure to hold service state
 type InitDBService struct {

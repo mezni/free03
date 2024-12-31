@@ -1,9 +1,11 @@
 package boltstore
 
 import (
+	"os"
 	"encoding/json"
 	"errors"
 	"go.etcd.io/bbolt"
+	"path/filepath"
 )
 
 // BoltDBConfig holds the configuration for BoltDB operations.
@@ -29,7 +31,16 @@ func (cfg *BoltDBConfig) Open(dbPath string) error {
 
 // Create creates the database file if it does not exist and opens it.
 func (cfg *BoltDBConfig) Create(dbPath string) error {
-	// Check if the database file already exists
+	// Ensure the directory for the database file exists
+	dir := filepath.Dir(dbPath)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		// Create the directory if it doesn't exist
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return errors.New("error creating directory for database")
+		}
+	}
+
+	// Open the database file
 	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		return errors.New("error creating or opening database")
