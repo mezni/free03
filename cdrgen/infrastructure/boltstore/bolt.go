@@ -3,6 +3,7 @@ package boltstore
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
@@ -120,4 +121,36 @@ func saveItemToBucket(bucket *bbolt.Bucket, id string, item map[string]interface
 	}
 
 	return nil
+}
+
+// ReadFromBoltDB reads all data from the specified bucket.
+func (cfg *BoltDBConfig) ReadFromBoltDB(bucketName string) ([]map[string]interface{}, error) {
+	if cfg.db == nil {
+		return nil, errors.New("database not open")
+	}
+
+	var data []map[string]interface{}
+
+	// Start a read transaction
+	err := cfg.db.View(func(tx *bbolt.Tx) error {
+		// Retrieve the bucket
+		bucket := tx.Bucket([]byte(bucketName))
+		if bucket == nil {
+			return fmt.Errorf("bucket %s not found", bucketName)
+		}
+
+		// Iterate over items in the bucket
+		err := bucket.ForEach(func(k, v []byte) error {
+			var item map[string]interface{}
+			if err := json.Unmarshal(v, &item); err != nil {
+				return fmt.Errorf("failed to unmarshal item with key %s: %v", k, err)
+			}
+			data = append(data, item)
+			return nil
+		})
+
+		return err
+	})
+
+	return data, err
 }
