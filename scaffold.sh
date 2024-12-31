@@ -50,6 +50,7 @@ create_directory "$BASE_DIR/application/services"
 create_directory "$BASE_DIR/infrastructure"
 create_directory "$BASE_DIR/infrastructure/inmemstore"
 create_directory "$BASE_DIR/infrastructure/boltstore"
+create_directory "$BASE_DIR/infrastructure/filestore"
 
 # Configs 
 create_directory "$BASE_DIR/configs"
