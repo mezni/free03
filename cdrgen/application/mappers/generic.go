@@ -3,6 +3,7 @@ package mappers
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 // ConvertSliceToMaps converts a slice of structs to a slice of maps with sequential IDs.
@@ -24,7 +25,7 @@ func ConvertSliceToMaps[T any](slice []T) ([]map[string]interface{}, error) {
 		}
 
 		// Add the sequential ID (starting from 1)
-		itemMap["ID"] = i + 1
+		itemMap["ID"] = strconv.Itoa(i + 1)
 
 		// Append the map to the result slice
 		result = append(result, itemMap)
