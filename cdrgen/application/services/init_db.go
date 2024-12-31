@@ -84,12 +84,6 @@ func processAndSaveData[T any](dbFile, bucketName string, dataSlice []T) error {
 		return ErrDataConversion
 	}
 
-	// Debug: Print the list of maps
-	fmt.Printf("Converted %s:\n", bucketName)
-	for _, dataMap := range dataAsMaps {
-		fmt.Printf("  %+v\n", dataMap)
-	}
-
 	// Save to BoltDB using the helper function
 	err = saveToBoltDB(dbFile, bucketName, dataAsMaps)
 	if err != nil {
