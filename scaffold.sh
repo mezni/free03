@@ -22,7 +22,7 @@ BASE_DIR="cdrgen"
 SUBCOMMANDS=("cdrgen" "cdrcfg")
 
 # List of files to add in specific directories
-FILES=("network_technology.go")
+FILES=("baseline.go")
 
 # Create the base project directory
 create_directory "$BASE_DIR"
