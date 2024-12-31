@@ -66,23 +66,24 @@ func (service *InitDBService) InitDB() error {
 		return errors.New("error decoding JSON into struct: " + err.Error())
 	}
 
-	// Process and save network technologies data
-	if err := processAndSaveData(baselineConfig.NetworkTechnologies, networkTechnologiesBucketName, service.db); err != nil {
-		return fmt.Errorf("error processing network technologies: %w", err)
-	}
+if err := processAndSaveData[dtos.NetworkTechnologyDTO](baselineConfig.NetworkTechnologies, networkTechnologiesBucketName, service.db); err != nil {
+    return fmt.Errorf("error processing network technologies: %w", err)
+}
+
+
 
 	return nil
 }
 
-func processAndSaveData(data interface{}, bucketName string, db *boltstore.BoltDBConfig) error {
-	// Type assertion to []dtos.NetworkTechnologyDTO
-	networkTechnologies, ok := data.([]dtos.NetworkTechnologyDTO)
+func processAndSaveData[T any](data interface{}, bucketName string, db *boltstore.BoltDBConfig) error {
+	// Type assertion to []T (generic type)
+	slice, ok := data.([]T)
 	if !ok {
-		return errors.New("data is not of type []dtos.NetworkTechnologyDTO")
+		return fmt.Errorf("data is not of type []%T", *new(T))
 	}
 
 	// Convert the slice to a slice of maps
-	dataAsMaps, err := mappers.ConvertSliceToMaps[dtos.NetworkTechnologyDTO](networkTechnologies)
+	dataAsMaps, err := mappers.ConvertSliceToMaps[T](slice)
 	if err != nil {
 		return fmt.Errorf("error converting slice to maps: %w", err)
 	}
