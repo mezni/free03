@@ -3,7 +3,6 @@ package boltstore
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"go.etcd.io/bbolt"
 )
 
@@ -22,7 +21,7 @@ func (cfg *BoltDBConfig) Open(dbPath string) error {
 	// Open the database file with read-write permissions
 	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		return fmt.Errorf("error opening database: %w", err)
+		return errors.New("error opening database")
 	}
 	cfg.db = db
 	return nil
@@ -33,7 +32,7 @@ func (cfg *BoltDBConfig) Create(dbPath string) error {
 	// Check if the database file already exists
 	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		return fmt.Errorf("error creating/opening database: %w", err)
+		return errors.New("error creating or opening database")
 	}
 	cfg.db = db
 	return nil
@@ -48,7 +47,7 @@ func (cfg *BoltDBConfig) Close() error {
 
 	// Close the database connection
 	if err := cfg.db.Close(); err != nil {
-		return fmt.Errorf("error closing database: %w", err)
+		return errors.New("error closing database")
 	}
 
 	cfg.db = nil
@@ -66,19 +65,19 @@ func (cfg *BoltDBConfig) SaveToBoltDB(bucketName string, dataAsMaps []map[string
 		// Create or retrieve the bucket
 		bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 		if err != nil {
-			return fmt.Errorf("error creating/retrieving bucket: %w", err)
+			return errors.New("error creating or retrieving bucket")
 		}
 
 		// Iterate over the data and save each item
 		for _, item := range dataAsMaps {
 			id, err := extractID(item)
 			if err != nil {
-				return fmt.Errorf("error extracting ID: %w", err)
+				return errors.New("error extracting ID")
 			}
 
 			// Save the item to the bucket
 			if err := saveItemToBucket(bucket, id, item); err != nil {
-				return fmt.Errorf("error saving item to bucket: %w", err)
+				return errors.New("error saving item to bucket")
 			}
 		}
 
@@ -101,12 +100,12 @@ func saveItemToBucket(bucket *bbolt.Bucket, id string, item map[string]interface
 	// Assuming you're saving the data as JSON or some other format
 	data, err := json.Marshal(item)
 	if err != nil {
-		return fmt.Errorf("error marshalling item: %w", err)
+		return errors.New("error marshalling item")
 	}
 
 	// Save the item under its ID
 	if err := bucket.Put([]byte(id), data); err != nil {
-		return fmt.Errorf("error saving data to bucket: %w", err)
+		return errors.New("error saving data to bucket")
 	}
 
 	return nil

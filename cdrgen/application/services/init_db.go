@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 	"github.com/mezni/wovoka/cdrgen/application/dtos"
 	"github.com/mezni/wovoka/cdrgen/application/mappers"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/boltstore"
@@ -25,7 +24,6 @@ type InitDBService struct {
 }
 
 // NewInitDBService constructor for InitDBService
-// The constructor accepts the configFile as an argument
 func NewInitDBService(configFile string) (*InitDBService, error) {
 	// Check if the config file exists and the database file doesn't exist
 	if err := checkFileExistence(configFile, dbPath); err != nil {
@@ -35,7 +33,7 @@ func NewInitDBService(configFile string) (*InitDBService, error) {
 	// Initialize BoltDBConfig and create the database file using the Create method
 	boltDBConfig := boltstore.NewBoltDBConfig()
 	if err := boltDBConfig.Create(dbPath); err != nil {
-		return nil, err
+		return nil, errors.New("failed to create the database file")
 	}
 
 	// Return the service instance with the database and configFile
@@ -49,12 +47,12 @@ func NewInitDBService(configFile string) (*InitDBService, error) {
 func checkFileExistence(configFile, dbPath string) error {
 	// Check if the config file exists
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		return errors.New("config file '" + configFile + "' does not exist")
+		return errors.New("config file does not exist")
 	}
 
 	// Check if the database file already exists
 	if _, err := os.Stat(dbPath); err == nil {
-		return errors.New("database file '" + dbPath + "' already exists")
+		return errors.New("database file already exists")
 	}
 
 	return nil
@@ -65,26 +63,26 @@ func (service *InitDBService) InitDB() error {
 	// Read the config file in JSON format
 	data, err := filestore.ReadJSONFromFile(service.configFile)
 	if err != nil {
-		return fmt.Errorf("error reading JSON file: %w", err)
+		return errors.New("error reading JSON file")
 	}
 
 	// Decode the JSON data into the BaselineConfig struct
 	var baselineConfig dtos.BaselineConfig
 	if err := mappers.MapToStruct(data, &baselineConfig); err != nil {
-		return fmt.Errorf("error decoding JSON into struct: %w", err)
+		return errors.New("error decoding JSON into struct")
 	}
 
 	// Process and save different data types into their respective buckets
 	if err := processAndSaveData[dtos.NetworkTechnologyDTO](baselineConfig.NetworkTechnologies, networkTechnologiesBucketName, service.db); err != nil {
-		return fmt.Errorf("error processing network technologies: %w", err)
+		return errors.New("error processing network technologies")
 	}
 
 	if err := processAndSaveData[dtos.NetworkElementTypeDTO](baselineConfig.NetworkElementTypes, networkElementTypesBucketName, service.db); err != nil {
-		return fmt.Errorf("error processing network element types: %w", err)
+		return errors.New("error processing network element types")
 	}
 
 	if err := processAndSaveData[dtos.ServiceTypeDTO](baselineConfig.ServiceTypes, serviceTypesBucketName, service.db); err != nil {
-		return fmt.Errorf("error processing service types: %w", err)
+		return errors.New("error processing service types")
 	}
 
 	return nil
@@ -95,18 +93,18 @@ func processAndSaveData[T any](data interface{}, bucketName string, db *boltstor
 	// Type assertion to []T (generic type)
 	slice, ok := data.([]T)
 	if !ok {
-		return fmt.Errorf("data is not of type []%T", *new(T))
+		return errors.New("data is not of the expected type")
 	}
 
 	// Convert the slice to a slice of maps
 	dataAsMaps, err := mappers.ConvertSliceToMaps[T](slice)
 	if err != nil {
-		return fmt.Errorf("error converting slice to maps: %w", err)
+		return errors.New("error converting slice to maps")
 	}
 
 	// Save the processed data to the database
 	if err := db.SaveToBoltDB(bucketName, dataAsMaps); err != nil {
-		return fmt.Errorf("error saving data to database: %w", err)
+		return errors.New("error saving data to database")
 	}
 
 	return nil
