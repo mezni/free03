@@ -1,8 +1,8 @@
 package main
 
 import (
-	"domain/repositories"
-	"domain/services"
+	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
+	"github.com/mezni/wovoka/cdrgen/application/services"
 	"database/sql"
 	"fmt"
 	"log"
@@ -18,7 +18,7 @@ func main() {
 	defer db.Close()
 
 	// Initialize repositories
-	networkTechnologyRepo := repositories.NewSQLiteRepository(db)
+	networkTechnologyRepo := sqlitestore.NewNetworkTechnologyRepository(db)
 
 	// Create necessary tables in the database
 	if err := networkTechnologyRepo.CreateTables(); err != nil {

@@ -1,4 +1,4 @@
-package repositories
+package sqlitestore
 
 import (
 	"database/sql"
@@ -7,13 +7,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// SQLiteRepository implements the NetworkTechnologyRepository interface using SQLite.
-type SQLiteRepository struct {
+// NetworkTechnologyRepository implements the NetworkTechnologyRepository interface using SQLite.
+type NetworkTechnologyRepository struct {
 	DB *sql.DB
 }
 
-// NewSQLiteRepository creates a new SQLiteRepository with the given database file path.
-func NewSQLiteRepository(dbFilePath string) (*SQLiteRepository, error) {
+// NewNetworkTechnologyRepository creates a new NetworkTechnologyRepository with the given database file path.
+func NewNetworkTechnologyRepository(dbFilePath string) (*NetworkTechnologyRepository, error) {
 	db, err := sql.Open("sqlite3", dbFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not open database: %v", err)
@@ -30,11 +30,11 @@ func NewSQLiteRepository(dbFilePath string) (*SQLiteRepository, error) {
 		return nil, fmt.Errorf("could not initialize schema: %v", err)
 	}
 
-	return &SQLiteRepository{DB: db}, nil
+	return &NetworkTechnologyRepository{DB: db}, nil
 }
 
 // Save saves a NetworkTechnology to the database (insert or update).
-func (repo *SQLiteRepository) Save(technology entities.NetworkTechnology) error {
+func (repo *NetworkTechnologyRepository) Save(technology entities.NetworkTechnology) error {
 	if technology.ID == 0 {
 		// Insert a new technology
 		_, err := repo.DB.Exec("INSERT INTO network_technologies (name, description) VALUES (?, ?)", technology.Name, technology.Description)
@@ -46,7 +46,7 @@ func (repo *SQLiteRepository) Save(technology entities.NetworkTechnology) error 
 }
 
 // GetAll retrieves all network technologies from the database.
-func (repo *SQLiteRepository) GetAll() ([]entities.NetworkTechnology, error) {
+func (repo *NetworkTechnologyRepository) GetAll() ([]entities.NetworkTechnology, error) {
 	rows, err := repo.DB.Query("SELECT id, name, description FROM network_technologies")
 	if err != nil {
 		return nil, err

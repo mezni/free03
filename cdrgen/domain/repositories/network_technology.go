@@ -6,8 +6,8 @@ import (
 
 
 type NetworkTechnologyRepository interface {
-	Save(technology models.NetworkTechnology) error
-	GetAll() ([]models.NetworkTechnology, error)
+	Save(technology entities.NetworkTechnology) error
+	GetAll() ([]entities.NetworkTechnology, error)
 }
 
 

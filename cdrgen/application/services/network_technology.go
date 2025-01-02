@@ -2,7 +2,7 @@ package services
 
 import (
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
-	"github.com/mezni/wovoka/cdrgen/application/sqlitestore"
+	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
