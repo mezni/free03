@@ -18,15 +18,13 @@ func main() {
 	defer db.Close()
 
 	// Initialize repositories
-	networkTechnologyRepo := sqlitestore.NewNetworkTechnologyRepository(db)
-
-	// Create necessary tables in the database
-	if err := networkTechnologyRepo.CreateTables(); err != nil {
-		log.Fatalf("Error creating tables: %v", err)
+	networkTechnologyRepo, err := sqlitestore.NewNetworkTechnologyRepository("./config.db")
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Initialize ApplicationService
-	configLoaderService := services.NewConfigLoaderService(networkTechnologyRepo)
+	configLoaderService := services.NewConfigLoaderService(*networkTechnologyRepo)
 
 	// Load data from JSON and save to database
 	if err := configLoaderService.LoadAndSaveData("data/baseline.json"); err != nil {

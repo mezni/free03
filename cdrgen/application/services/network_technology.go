@@ -23,6 +23,7 @@ func NewConfigLoaderService(networkTechnologyRepo sqlitestore.NetworkTechnologyR
 // LoadAndSaveData loads data from a JSON file and saves it to the database.
 func (app *ConfigLoaderService) LoadAndSaveData(filename string) error {
 	// Read the file content
+
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("could not read file: %v", err)
@@ -31,6 +32,8 @@ func (app *ConfigLoaderService) LoadAndSaveData(filename string) error {
 	// Unmarshal JSON data
 	var jsonData struct {
 		NetworkTechnologies []entities.NetworkTechnology `json:"network_technologies"`
+		NetworkElements     []entities.NetworkElementType    `json:"network_element_types"`
+		ServiceTypes        []entities.ServiceType        `json:"service_types"`
 	}
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return fmt.Errorf("could not unmarshal json: %v", err)
@@ -38,6 +41,7 @@ func (app *ConfigLoaderService) LoadAndSaveData(filename string) error {
 
 	// Save network technologies to the database
 	for _, nt := range jsonData.NetworkTechnologies {
+		fmt.Println(nt)
 		if err := app.NetworkTechnologyRepo.Save(nt); err != nil {
 			return fmt.Errorf("error saving network technology: %v", err)
 		}
