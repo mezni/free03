@@ -1,76 +1,66 @@
-package application
+package service
 
 import (
 	"errors"
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
 
+// CDRRepository defines the interface for interacting with the CDR storage.
+type CDRRepository interface {
+	Save(cdr entities.CDR) error
+	FindByID(id string) (entities.CDR, error)
+	FindAll() ([]entities.CDR, error)
+}
+
+// CDRService provides business logic for managing CDRs.
 type CDRService struct {
-	cdrRepositories       []domain.CDRRepository
-	customerRepository    domain.CustomerRepository
-	networkElementRepo    domain.NetworkElementRepository
+	sequence  int64 // A counter for creating sequential IDs, initialized with UnixNano timestamp
+	repository CDRRepository
+	mu         sync.Mutex
 }
 
-func NewCDRService(
-	cdrRepositories []domain.CDRRepository,
-	customerRepo domain.CustomerRepository,
-	networkElementRepo domain.NetworkElementRepository,
-) *CDRService {
+// NewCDRService creates a new instance of CDRService.
+func NewCDRService(repository CDRRepository) *CDRService {
+	// Initialize sequence with the current timestamp in nanoseconds
 	return &CDRService{
-		cdrRepositories:    cdrRepositories,
-		customerRepository: customerRepo,
-		networkElementRepo: networkElementRepo,
+		repository: repository,
+		sequence:   time.Now().UnixNano(), // Set the initial sequence to Unix timestamp in nanoseconds
 	}
 }
 
-func (s *CDRService) GenerateRandomCDR(callType string, duration int) (domain.CDR, error) {
-	if duration <= 0 {
-		return domain.CDR{}, errors.New("invalid call duration")
+// generateUniqueID generates a unique ID based on the sequence (Unix timestamp).
+func (s *CDRService) generateUniqueID() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Increment the sequence
+	s.sequence++
+
+	// Return a unique ID combining the sequence (Unix timestamp)
+	return fmt.Sprintf("CDR-%d", s.sequence)
+}
+
+// CreateCDR generates a new CDR with the provided data.
+func (s *CDRService) CreateCDR(cdrID string) (entities.CDR, error) {
+	if cdrID == "" {
+		return entities.CDR{}, errors.New("cdrID cannot be empty")
 	}
 
-	caller, err := s.customerRepository.FindRandom()
-	if err != nil {
-		return domain.CDR{}, errors.New("failed to find caller: " + err.Error())
-	}
-
-	callee, err := s.customerRepository.FindRandom()
-	if err != nil {
-		return domain.CDR{}, errors.New("failed to find callee: " + err.Error())
-	}
-
-	for caller.MSISDN == callee.MSISDN {
-		callee, err = s.customerRepository.FindRandom()
-		if err != nil {
-			return domain.CDR{}, errors.New("failed to find unique callee: " + err.Error())
-		}
-	}
-
-	networkElement, err := s.networkElementRepo.FindRandom()
-	if err != nil {
-		return domain.CDR{}, errors.New("failed to find network element: " + err.Error())
-	}
-
-	cdr := domain.CDR{
-		ID:        generateUniqueID(),
-		Caller:    caller.MSISDN,
-		Callee:    callee.MSISDN,
-		Duration:  duration,
+	cdr := entities.CDR{
+		ID:        s.generateUniqueID(),
+		CdrID:     cdrID,
 		Timestamp: time.Now(),
-		CallType:  callType + " via " + networkElement.Name,
 	}
 
-	for _, repo := range s.cdrRepositories {
-		if err := repo.Save(cdr); err != nil {
-			return domain.CDR{}, err
-		}
+	// Save the CDR to the repository
+	err := s.repository.Save(cdr)
+	if err != nil {
+		return entities.CDR{}, err
 	}
 
 	return cdr, nil
-}
-
-// Mock implementation for unique ID generation
-func generateUniqueID() string {
-	return fmt.Sprintf("CDR-%d", time.Now().UnixNano())
 }
