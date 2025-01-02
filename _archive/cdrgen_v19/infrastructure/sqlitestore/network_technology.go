@@ -3,8 +3,8 @@ package sqlitestore
 import (
 	"database/sql"
 	"fmt"
-	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
 
 // NetworkTechnologyRepository implements the NetworkTechnologyRepository interface using SQLite.

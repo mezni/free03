@@ -1,9 +1,8 @@
 package entities
 
-
 type NetworkElementType struct {
-	ID              int
-	Name            string
-	Description     string
+	ID                int
+	Name              string
+	Description       string
 	NetworkTechnology string
 }

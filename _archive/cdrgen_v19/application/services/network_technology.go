@@ -1,3 +1,13 @@
+package services
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
+	"io/ioutil"
+)
+
 // ConfigLoaderService handles the loading and saving of data.
 type ConfigLoaderService struct {
 	NetworkTechnologyRepo sqlitestore.NetworkTechnologyRepository
@@ -30,7 +40,7 @@ func (app *ConfigLoaderService) LoadAndSaveData(filename string) error {
 	var jsonData struct {
 		NetworkTechnologies []entities.NetworkTechnology `json:"network_technologies"`
 		NetworkElements     []entities.NetworkElement    `json:"network_element_types"`
-		ServiceTypes        []entities.ServiceType        `json:"service_types"`
+		ServiceTypes        []entities.ServiceType       `json:"service_types"`
 	}
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return fmt.Errorf("could not unmarshal json: %v", err)
