@@ -22,7 +22,7 @@ BASE_DIR="cdrgen"
 SUBCOMMANDS=("cdrgen" "cdrcfg")
 
 # List of files to add in specific directories
-FILES=("cdr.go")
+FILES=("network_technology.go" "network_element_type.go" "service_type.go")
 
 # Create the base project directory
 create_directory "$BASE_DIR"
@@ -42,15 +42,16 @@ create_directory "$BASE_DIR/domain/factories"
 
 # Application Layer
 create_directory "$BASE_DIR/application"
-create_directory "$BASE_DIR/application/dtos"
-create_directory "$BASE_DIR/application/mappers"
+#create_directory "$BASE_DIR/application/dtos"
+#create_directory "$BASE_DIR/application/mappers"
 create_directory "$BASE_DIR/application/services"
 
 # Infrastructure Layer
 create_directory "$BASE_DIR/infrastructure"
 create_directory "$BASE_DIR/infrastructure/inmemstore"
-create_directory "$BASE_DIR/infrastructure/boltstore"
+#create_directory "$BASE_DIR/infrastructure/boltstore"
 create_directory "$BASE_DIR/infrastructure/filestore"
+create_directory "$BASE_DIR/infrastructure/sqlitestore"
 
 # Configs 
 create_directory "$BASE_DIR/configs"
@@ -59,10 +60,11 @@ create_directory "$BASE_DIR/configs"
 for FILE in "${FILES[@]}"; do
     create_file "$BASE_DIR/domain/entities/$FILE"
     create_file "$BASE_DIR/domain/repositories/$FILE"
-    create_file "$BASE_DIR/domain/factories/$FILE"
-    create_file "$BASE_DIR/application/dtos/$FILE"
-    create_file "$BASE_DIR/application/mappers/$FILE"
+#    create_file "$BASE_DIR/domain/factories/$FILE"
+#    create_file "$BASE_DIR/application/dtos/$FILE"
+#    create_file "$BASE_DIR/application/mappers/$FILE"
     create_file "$BASE_DIR/application/services/$FILE"
+    create_file "$BASE_DIR/infrastructure/sqlitestore/$FILE"
 done
 
 go mod init github.com/mezni/wovoka
