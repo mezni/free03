@@ -1,11 +1,7 @@
 Country: Tunisia
 Coordinates:
-  Latitude:
-    - 30.24
-    - 37.54
-  Longitude:
-    - 7.52
-    - 11.60
+  latitude: [30.24, 37.54]
+  longitude: [7.52, 11.60]
 Networks:
   2G:
     Rows: 3

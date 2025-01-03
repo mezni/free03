@@ -2,6 +2,8 @@ package factories
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 	"github.com/mezni/wovoka/cdrgen/application/mappers"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
@@ -10,6 +12,9 @@ import (
 func GenerateLocations(config *mappers.Config) ([]*entities.Location, error) {
 	var locations []*entities.Location
 	locationID := 1
+
+	// Seed the random number generator
+	rand.Seed(time.Now().UnixNano())
 
 	for networkType, networkData := range config.Networks {
 		latRange := config.Coordinates.Latitude[1] - config.Coordinates.Latitude[0]
@@ -33,7 +38,20 @@ func GenerateLocations(config *mappers.Config) ([]*entities.Location, error) {
 				locationName := networkData.LocationNames[index]
 				index++
 
-				// Create the location entity with the locationID and formatted AreaCode
+				// Generate area code based on network type
+				var areaCode string
+				switch networkType {
+				case "2G":
+					areaCode = fmt.Sprintf("2%03d", rand.Intn(1000)) // Concatenate "2" with 3 random digits
+				case "3G":
+					areaCode = fmt.Sprintf("3%03d", rand.Intn(1000)) // Concatenate "3" with 3 random digits
+				case "4G":
+					areaCode = fmt.Sprintf("4%03d", rand.Intn(1000)) // Concatenate "4" with 3 random digits
+				default:
+					areaCode = fmt.Sprintf("%d%03d", locationID, rand.Intn(1000)) // For other network types, use default
+				}
+
+				// Create the location entity with the locationID and dynamically generated AreaCode
 				location := &entities.Location{
 					ID:                locationID,
 					NetworkTechnology: networkType,
@@ -42,7 +60,7 @@ func GenerateLocations(config *mappers.Config) ([]*entities.Location, error) {
 					LatitudeMax:       latMax,
 					LongitudeMin:      lonMin,
 					LongitudeMax:      lonMax,
-					AreaCode:          fmt.Sprintf("%04d", locationID), // Formatting locationID as a 4-digit string
+					AreaCode:          areaCode, // Using the generated area code
 				}
 
 				locations = append(locations, location)

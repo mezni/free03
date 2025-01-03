@@ -1,6 +1,7 @@
 package sqlitestore
 
 import (
+		"log"
 	"database/sql"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
@@ -27,14 +28,34 @@ func (r *NetworkTechnologyRepository) CreateTable() error {
 	return err
 }
 
-// Insert inserts a new network technology into the database.
+// Insert inserts a new network technology into the database, but does not insert if it already exists.
 func (r *NetworkTechnologyRepository) Insert(networkTechnology entities.NetworkTechnology) error {
-	query := `
+	// First, check if the network technology with the same name already exists.
+	var existingID int
+	query := `SELECT id FROM network_technologies WHERE Name = ?`
+	err := r.db.QueryRow(query, networkTechnology.Name).Scan(&existingID)
+	if err == nil {
+		// If no error, it means a record with the same name already exists. Skip the insert.
+		// No error is returned, just log the action if needed
+		log.Printf("Network technology with name %s already exists, skipping insert.\n", networkTechnology.Name)
+		return nil // Simply return nil without inserting or throwing an error
+	}
+
+	// If the error is not nil (which is expected when no row is found), proceed to insert.
+	if err != sql.ErrNoRows {
+		// Return any other unexpected error
+		return err
+	}
+
+	// Insert the new network technology if it doesn't already exist.
+	insertQuery := `
 		INSERT INTO network_technologies (Name, Description) 
 		VALUES (?, ?)`
-	_, err := r.db.Exec(query, networkTechnology.Name, networkTechnology.Description)
+	_, err = r.db.Exec(insertQuery, networkTechnology.Name, networkTechnology.Description)
 	return err
 }
+
+
 
 // GetAll retrieves all network technologies from the database.
 func (r *NetworkTechnologyRepository) GetAll() ([]entities.NetworkTechnology, error) {
