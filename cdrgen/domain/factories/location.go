@@ -2,10 +2,10 @@ package factories
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
 	"github.com/mezni/wovoka/cdrgen/application/mappers"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"math/rand"
+	"time"
 )
 
 // GenerateLocations generates locations based on the provided configuration.

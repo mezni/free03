@@ -1,9 +1,9 @@
 package sqlitestore
 
 import (
-		"log"
 	"database/sql"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"log"
 )
 
 // NetworkElementTypeRepository handles database operations for network element types.
@@ -55,8 +55,6 @@ func (r *NetworkElementTypeRepository) Insert(networkElementType entities.Networ
 	_, err = r.db.Exec(insertQuery, networkElementType.Name, networkElementType.Description, networkElementType.NetworkTechnology)
 	return err
 }
-
-
 
 // GetAll retrieves all network element types from the database.
 func (r *NetworkElementTypeRepository) GetAll() ([]entities.NetworkElementType, error) {

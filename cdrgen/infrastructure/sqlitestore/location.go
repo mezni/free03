@@ -1,9 +1,9 @@
 package sqlitestore
 
 import (
-	"log"
 	"database/sql"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"log"
 )
 
 type LocationRepository struct {
@@ -62,7 +62,6 @@ func (r *LocationRepository) Insert(location entities.Location) error {
 	)
 	return err
 }
-
 
 // GetAll retrieves all locations from the database.
 func (r *LocationRepository) GetAll() ([]entities.Location, error) {

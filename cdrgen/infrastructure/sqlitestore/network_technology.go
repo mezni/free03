@@ -1,9 +1,9 @@
 package sqlitestore
 
 import (
-		"log"
 	"database/sql"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"log"
 )
 
 // NetworkTechnologyRepository handles database operations for network technologies.
@@ -54,8 +54,6 @@ func (r *NetworkTechnologyRepository) Insert(networkTechnology entities.NetworkT
 	_, err = r.db.Exec(insertQuery, networkTechnology.Name, networkTechnology.Description)
 	return err
 }
-
-
 
 // GetAll retrieves all network technologies from the database.
 func (r *NetworkTechnologyRepository) GetAll() ([]entities.NetworkTechnology, error) {

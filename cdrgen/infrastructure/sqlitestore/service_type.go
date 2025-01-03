@@ -1,9 +1,9 @@
 package sqlitestore
 
 import (
-		"log"
 	"database/sql"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"log"
 )
 
 // ServiceTypeRepository handles database operations for service types.
@@ -55,8 +55,6 @@ func (r *ServiceTypeRepository) Insert(serviceType entities.ServiceType) error {
 	_, err = r.db.Exec(insertQuery, serviceType.Name, serviceType.Description, serviceType.NetworkTechnology)
 	return err
 }
-
-
 
 // GetAll retrieves all service types from the database.
 func (r *ServiceTypeRepository) GetAll() ([]entities.ServiceType, error) {

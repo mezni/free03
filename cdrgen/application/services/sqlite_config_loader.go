@@ -109,7 +109,6 @@ func (l *LoaderService) LoadAndSaveBusiness(yamlFilename string) error {
 		return fmt.Errorf("could not read YAML file: %v", err)
 	}
 
-
 	// Unmarshal YAML data into the mappers.Config struct
 	var config mappers.Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
