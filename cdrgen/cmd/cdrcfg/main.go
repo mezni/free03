@@ -2,43 +2,34 @@ package main
 
 import (
 	"log"
-//	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
-//	"github.com/mezni/wovoka/cdrgen/repositories"
+	//	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
+	//	"github.com/mezni/wovoka/cdrgen/repositories"
 	"github.com/mezni/wovoka/cdrgen/application/services"
-	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	// "github.com/mezni/wovoka/cdrgen/domain/entities"
+)
+
+const (
+	dbFile       = "baseline.db"
+	jsonFilename = "data/baseline.json"
 )
 
 func main() {
-    log.Printf("Startup")
-
-	// Initialize Loader Service
-	loader, err := services.NewLoaderService("example.db")
+	log.Printf("Startup")
+	// Initialize the LoaderService
+	loader, err := services.NewLoaderService(dbFile)
 	if err != nil {
-		log.Fatalf("Failed to initialize LoaderService: %v", err)
+		log.Fatalf("Failed to initialize loader service: %v", err)
 	}
-	defer loader.Close()
+	defer func() {
+		if err := loader.Close(); err != nil {
+			log.Printf("Error closing loader service: %v", err)
+		}
+	}()
 
-	// Setup the database (create tables)
-	if err := loader.SetupDatabase(); err != nil {
-		log.Fatalf("Failed to setup database: %v", err)
-	}
-
-	// Example usage: Insert and retrieve data using repositories
-	networkTech := entities.NetworkTechnology{
-		Name:        "4G LTE",
-		Description: "Fourth generation mobile communication technology",
+	// Load and save data from the JSON file
+	if err := loader.LoadAndSaveBaseline(jsonFilename); err != nil {
+		log.Fatalf("Error loading and saving data: %v", err)
 	}
 
-	if err := loader.NetworkTechRepo.Insert(networkTech); err != nil {
-		log.Fatalf("Failed to insert NetworkTechnology: %v", err)
-	}
-
-	networkTechnologies, err := loader.NetworkTechRepo.GetAll()
-	if err != nil {
-		log.Fatalf("Failed to retrieve NetworkTechnologies: %v", err)
-	}
-
-	log.Printf("Retrieved NetworkTechnologies: %+v\n", networkTechnologies)
-
-	// Similarly, use NetworkElementTypeRepo and ServiceTypeRepo
+	log.Println("Application completed successfully.")
 }
