@@ -19,4 +19,3 @@ const (
 	SelectAllNetworkTechnologies = `
 		SELECT id, name, description FROM network_technologies;`
 )
-

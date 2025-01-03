@@ -1,41 +1,31 @@
 package main
 
 import (
-	"fmt"
-	"github.com/mezni/wovoka/cdrgen/application/interfaces"
 	"log"
+
+	"github.com/mezni/wovoka/cdrgen/application/services"
 )
 
 func main() {
-	// JSON data
+	// Define the path to the SQLite database file
+	dbFile := "./cdrgen.db"
 
-	// Initialize a variable to store the unmarshalled data
-	var config interfaces.Config
-
-	config, err := interfaces.ReadConfig()
-
+	// Create a new LoaderService instance
+	loaderService, err := services.NewLoaderService(dbFile)
 	if err != nil {
-		log.Fatalf("Error unmarshalling JSON: %v", err)
+		log.Fatalf("Error initializing loader service: %v", err)
+	}
+	defer func() {
+		// Ensure the database connection is closed when done
+		if err := loaderService.Close(); err != nil {
+			log.Printf("Error closing loader service: %v", err)
+		}
+	}()
+
+	// Load data into the database
+	if err := loaderService.Load(); err != nil {
+		log.Fatalf("Error loading data: %v", err)
 	}
 
-	// Print the unmarshalled configuration
-	fmt.Println("Network Technologies:")
-	for _, nt := range config.NetworkTechnologies {
-		fmt.Printf("- %s: %s\n", nt.Name, nt.Description)
-	}
-
-	fmt.Println("\nNetwork Element Types:")
-	for _, netType := range config.NetworkElementTypes {
-		fmt.Printf("- %s: %s (Technology: %s)\n", netType.Name, netType.Description, netType.NetworkTechnology)
-	}
-
-	fmt.Println("\nService Types:")
-	for _, service := range config.ServiceTypes {
-		fmt.Printf("- %s: %s (Technology: %s)\n", service.Name, service.Description, service.NetworkTechnology)
-	}
-
-	fmt.Println("\nService Nodes:")
-	for _, node := range config.ServiceNodes {
-		fmt.Printf("- %s (Technology: %s)\n", node.Name, node.NetworkTechnology)
-	}
+	log.Println("Data loading process completed successfully.")
 }

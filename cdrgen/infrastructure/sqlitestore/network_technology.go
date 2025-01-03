@@ -3,6 +3,7 @@ package sqlitestore
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	"log"
 )
