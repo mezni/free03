@@ -1,38 +1,41 @@
 package main
 
 import (
+	"fmt"
+	"github.com/mezni/wovoka/cdrgen/application/interfaces"
 	"log"
-
-	"github.com/mezni/wovoka/cdrgen/application/services"
-)
-
-const (
-	dbFile       = "baseline.db"
-	jsonFilename = "data/baseline.json"
-	yamlFilename = "config.yaml"
 )
 
 func main() {
-	log.Printf("Startup")
-	loader, err := services.NewLoaderService(dbFile)
+	// JSON data
+
+	// Initialize a variable to store the unmarshalled data
+	var config interfaces.Config
+
+	config, err := interfaces.ReadConfig()
+
 	if err != nil {
-		log.Fatalf("Failed to initialize loader service: %v", err)
-	}
-	defer func() {
-		if err := loader.Close(); err != nil {
-			log.Printf("Error closing loader service: %v", err)
-		}
-	}()
-
-	// Load and save baseline data
-	if err := loader.LoadAndSaveBaseline(jsonFilename); err != nil {
-		log.Fatalf("Error loading and saving baseline data: %v", err)
+		log.Fatalf("Error unmarshalling JSON: %v", err)
 	}
 
-	// Load and save business data
-	if err := loader.LoadAndSaveBusiness(yamlFilename); err != nil {
-		log.Fatalf("Error loading and saving business data: %v", err)
+	// Print the unmarshalled configuration
+	fmt.Println("Network Technologies:")
+	for _, nt := range config.NetworkTechnologies {
+		fmt.Printf("- %s: %s\n", nt.Name, nt.Description)
 	}
 
-	log.Println("Application completed successfully.")
+	fmt.Println("\nNetwork Element Types:")
+	for _, netType := range config.NetworkElementTypes {
+		fmt.Printf("- %s: %s (Technology: %s)\n", netType.Name, netType.Description, netType.NetworkTechnology)
+	}
+
+	fmt.Println("\nService Types:")
+	for _, service := range config.ServiceTypes {
+		fmt.Printf("- %s: %s (Technology: %s)\n", service.Name, service.Description, service.NetworkTechnology)
+	}
+
+	fmt.Println("\nService Nodes:")
+	for _, node := range config.ServiceNodes {
+		fmt.Printf("- %s (Technology: %s)\n", node.Name, node.NetworkTechnology)
+	}
 }

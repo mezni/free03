@@ -45,12 +45,13 @@ create_directory "$BASE_DIR/application"
 #create_directory "$BASE_DIR/application/dtos"
 #create_directory "$BASE_DIR/application/mappers"
 create_directory "$BASE_DIR/application/services"
+create_directory "$BASE_DIR/application/interfaces"
 
 # Infrastructure Layer
 create_directory "$BASE_DIR/infrastructure"
 create_directory "$BASE_DIR/infrastructure/inmemstore"
 #create_directory "$BASE_DIR/infrastructure/boltstore"
-create_directory "$BASE_DIR/infrastructure/filestore"
+#create_directory "$BASE_DIR/infrastructure/filestore"
 create_directory "$BASE_DIR/infrastructure/sqlitestore"
 
 # Configs 
