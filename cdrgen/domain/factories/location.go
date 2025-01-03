@@ -2,12 +2,13 @@ package factories
 
 import (
 	"fmt"
-	"github.com/mezni/wovoka/cdrgen/domain/mappers"
+	"github.com/mezni/wovoka/cdrgen/application/mappers"
+	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
 
 // GenerateLocations generates locations based on the provided configuration.
-func GenerateLocations(config *mappers.Config) ([]*mappers.Location, error) {
-	var locations []*mappers.Location
+func GenerateLocations(config *mappers.Config) ([]*entities.Location, error) {
+	var locations []*entities.Location
 	locationID := 1
 
 	for networkType, networkData := range config.Networks {
@@ -32,17 +33,16 @@ func GenerateLocations(config *mappers.Config) ([]*mappers.Location, error) {
 				locationName := networkData.LocationNames[index]
 				index++
 
-				// Create a new Location instance
-				location, err := entities.NewLocation(
-					locationID,
-					networkType,
-					locationName,
-					latMin, latMax,
-					lonMin, lonMax,
-					fmt.Sprintf("%04d", locationID), // Area code as a 4-digit string
-				)
-				if err != nil {
-					return nil, fmt.Errorf("error creating location %d for network %s: %v", locationID, networkType, err)
+				// Create the location entity with the locationID and formatted AreaCode
+				location := &entities.Location{
+					ID:                locationID,
+					NetworkTechnology: networkType,
+					Name:              locationName,
+					LatitudeMin:       latMin,
+					LatitudeMax:       latMax,
+					LongitudeMin:      lonMin,
+					LongitudeMax:      lonMax,
+					AreaCode:          fmt.Sprintf("%04d", locationID), // Formatting locationID as a 4-digit string
 				}
 
 				locations = append(locations, location)

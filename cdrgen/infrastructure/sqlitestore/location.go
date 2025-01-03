@@ -24,7 +24,7 @@ func (r *LocationRepository) CreateTable() error {
 		latitude_max REAL NOT NULL,
 		longitude_min REAL NOT NULL,
 		longitude_max REAL NOT NULL,
-		area_code INTEGER NOT NULL,
+		area_code TEXT NOT NULL,
 		network_technology TEXT NOT NULL
 	);`
 	_, err := r.db.Exec(query)

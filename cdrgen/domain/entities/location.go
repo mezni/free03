@@ -8,6 +8,6 @@ type Location struct {
 	LatitudeMax       float64
 	LongitudeMin      float64
 	LongitudeMax      float64
-	AreaCode          int
+	AreaCode          string
 	NetworkTechnology string
 }

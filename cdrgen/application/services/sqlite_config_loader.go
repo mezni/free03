@@ -9,23 +9,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/mezni/wovoka/cdrgen/application/mappers"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	"github.com/mezni/wovoka/cdrgen/domain/factories"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 )
-
-type Config struct {
-	Country     string `yaml:"country"`
-	Coordinates struct {
-		Latitude  [2]float64 `yaml:"latitude"`
-		Longitude [2]float64 `yaml:"longitude"`
-	} `yaml:"coordinates"`
-	Networks map[string]struct {
-		Rows          int      `yaml:"rows"`
-		Columns       int      `yaml:"columns"`
-		LocationNames []string `yaml:"location_names"`
-	} `yaml:"networks"`
-}
 
 type LoaderService struct {
 	DB                     *sql.DB
@@ -121,8 +109,8 @@ func (l *LoaderService) LoadAndSaveBusiness(yamlFilename string) error {
 		return fmt.Errorf("could not read YAML file: %v", err)
 	}
 
-	// Unmarshal YAML data into the Config struct
-	var config Config
+	// Unmarshal YAML data into the mappers.Config struct
+	var config mappers.Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return fmt.Errorf("could not unmarshal YAML: %v", err)
 	}
@@ -135,11 +123,10 @@ func (l *LoaderService) LoadAndSaveBusiness(yamlFilename string) error {
 
 	// Insert the generated locations into the database
 	for _, lc := range locations {
-		if err := l.LocationRepo.Insert(lc); err != nil {
+		if err := l.LocationRepo.Insert(*lc); err != nil { // Dereference lc here
 			return fmt.Errorf("error saving location: %v", err)
 		}
 	}
-
 	log.Println("Business data (locations) loaded and saved successfully.")
 	return nil
 }

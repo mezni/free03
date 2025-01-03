@@ -1,5 +1,3 @@
-
-
 package main
 
 import (
@@ -15,7 +13,7 @@ const (
 )
 
 func main() {
-		log.Printf("Startup")
+	log.Printf("Startup")
 	loader, err := services.NewLoaderService(dbFile)
 	if err != nil {
 		log.Fatalf("Failed to initialize loader service: %v", err)
