@@ -23,7 +23,7 @@ func (r *NetworkElementTypeRepository) CreateTable() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL,
-			networktechnology TEXT NOT NULL
+			network_technology TEXT NOT NULL
 		)`
 	_, err := r.db.Exec(query)
 	return err
@@ -33,7 +33,7 @@ func (r *NetworkElementTypeRepository) CreateTable() error {
 func (r *NetworkElementTypeRepository) Insert(networkElementType entities.NetworkElementType) error {
 	// First, check if the network element type with the same name and network technology already exists.
 	var existingID int
-	query := `SELECT id FROM network_element_types WHERE name = ? AND networktechnology = ?`
+	query := `SELECT id FROM network_element_types WHERE name = ? AND network_technology = ?`
 	err := r.db.QueryRow(query, networkElementType.Name, networkElementType.NetworkTechnology).Scan(&existingID)
 	if err == nil {
 		// If no error, it means a record with the same name and network technology already exists. Skip the insert.
@@ -50,7 +50,7 @@ func (r *NetworkElementTypeRepository) Insert(networkElementType entities.Networ
 
 	// Insert the new network element type if it doesn't already exist.
 	insertQuery := `
-		INSERT INTO network_element_types (name, description, networktechnology) 
+		INSERT INTO network_element_types (name, description, network_technology) 
 		VALUES (?, ?, ?)`
 	_, err = r.db.Exec(insertQuery, networkElementType.Name, networkElementType.Description, networkElementType.NetworkTechnology)
 	return err
@@ -59,7 +59,7 @@ func (r *NetworkElementTypeRepository) Insert(networkElementType entities.Networ
 // GetAll retrieves all network element types from the database.
 func (r *NetworkElementTypeRepository) GetAll() ([]entities.NetworkElementType, error) {
 	rows, err := r.db.Query(`
-		SELECT id, name, description, networktechnology FROM network_element_types`)
+		SELECT id, name, description, network_technology FROM network_element_types`)
 	if err != nil {
 		return nil, err
 	}
