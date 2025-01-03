@@ -1,32 +1,45 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/mezni/wovoka/cdrgen/application/services"
-	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 	"log"
+	"github.com/mezni/wovoka/cdrgen/sqlitestore"
+	"github.com/mezni/wovoka/cdrgen/repositories"
+	"github.com/mezni/wovoka/cdrgen/services"
 )
 
 func main() {
-
-	db, err := sql.Open("sqlite3", "./config.db")
+	// Initialize SQLite repository
+	sqliteRepo := sqlitestore.NewBaselineSQLiteRepository()
+	err := sqliteRepo.Open("baseline.db")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer sqliteRepo.Close()
 
-	networkTechnologyRepo, err := sqlitestore.NewNetworkTechnologyRepository("./config.db")
+	// Create tables if not exist
+	err = sqliteRepo.CreateTables()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to create tables: %v", err)
 	}
 
-	configLoaderService := services.NewConfigLoaderService(*networkTechnologyRepo)
+	// Create service
+	service := services.NewBaselineService(
+		sqliteRepo, // Inject the repository into the service
+		sqliteRepo,
+		sqliteRepo,
+	)
 
-	if err := configLoaderService.LoadAndSaveData("data/baseline.json"); err != nil {
-		log.Fatalf("Error processing data: %v", err)
+	// Example: Insert a network technology
+	err = service.InsertNetworkTechnology("5G", "Fifth generation mobile network technology")
+	if err != nil {
+		log.Printf("Failed to insert network technology: %v", err)
 	}
 
-	fmt.Println("Data loaded and saved successfully!")
+	// Example: Get all network technologies
+	technologies, err := service.GetAllNetworkTechnologies()
+	if err != nil {
+		log.Printf("Failed to retrieve network technologies: %v", err)
+	} else {
+		log.Printf("Network Technologies: %+v", technologies)
+	}
 }
