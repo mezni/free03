@@ -48,6 +48,37 @@ func main() {
 		fmt.Printf("Network Technology ID: %d, Name: %s, Description: %s\n", nt.ID, nt.Name, nt.Description)
 	}
 
+	// Fetch and print the network element types
+	networkElementRows, err := db.Query("SELECT id, name, description, network_technology FROM network_element_types")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer networkElementRows.Close()
+
+	// Initialize a slice to hold the network element types
+	var networkElementTypes []entities.NetworkElementType
+
+	// Iterate through the network element type rows and scan the results into the slice
+	for networkElementRows.Next() {
+		var netElement entities.NetworkElementType
+		// Scan the columns into the NetworkElementType struct
+		if err := networkElementRows.Scan(&netElement.ID, &netElement.Name, &netElement.Description, &netElement.NetworkTechnology); err != nil {
+			log.Fatal(err)
+		}
+		// Append the scanned network element type to the slice
+		networkElementTypes = append(networkElementTypes, netElement)
+	}
+
+	// Check for any error that might have occurred while iterating over rows
+	if err := networkElementRows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Output the network element types
+	for _, netElement := range networkElementTypes {
+		fmt.Printf("Network Element Type ID: %d, Name: %s, Description: %s, Network Technology: %s\n", netElement.ID, netElement.Name, netElement.Description, netElement.NetworkTechnology)
+	}
+
 	// Now fetch and print the locations
 	locationRows, err := db.Query("SELECT id, network_technology, name, latitude_min, latitude_max, longitude_min, longitude_max, area_code FROM locations")
 	if err != nil {

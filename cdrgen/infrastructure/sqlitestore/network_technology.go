@@ -16,13 +16,13 @@ func NewNetworkTechnologyRepository(db *sql.DB) *NetworkTechnologyRepository {
 	return &NetworkTechnologyRepository{db: db}
 }
 
-// CreateTable creates the network_technologies table.
+// CreateTable creates the network_technologies table with lowercase column names.
 func (r *NetworkTechnologyRepository) CreateTable() error {
 	query := `
 		CREATE TABLE IF NOT EXISTS network_technologies (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			Name TEXT NOT NULL,
-			Description TEXT NOT NULL
+			name TEXT NOT NULL,
+			description TEXT NOT NULL
 		)`
 	_, err := r.db.Exec(query)
 	return err
@@ -32,7 +32,7 @@ func (r *NetworkTechnologyRepository) CreateTable() error {
 func (r *NetworkTechnologyRepository) Insert(networkTechnology entities.NetworkTechnology) error {
 	// First, check if the network technology with the same name already exists.
 	var existingID int
-	query := `SELECT id FROM network_technologies WHERE Name = ?`
+	query := `SELECT id FROM network_technologies WHERE name = ?`
 	err := r.db.QueryRow(query, networkTechnology.Name).Scan(&existingID)
 	if err == nil {
 		// If no error, it means a record with the same name already exists. Skip the insert.
@@ -49,7 +49,7 @@ func (r *NetworkTechnologyRepository) Insert(networkTechnology entities.NetworkT
 
 	// Insert the new network technology if it doesn't already exist.
 	insertQuery := `
-		INSERT INTO network_technologies (Name, Description) 
+		INSERT INTO network_technologies (name, description) 
 		VALUES (?, ?)`
 	_, err = r.db.Exec(insertQuery, networkTechnology.Name, networkTechnology.Description)
 	return err
@@ -58,7 +58,7 @@ func (r *NetworkTechnologyRepository) Insert(networkTechnology entities.NetworkT
 // GetAll retrieves all network technologies from the database.
 func (r *NetworkTechnologyRepository) GetAll() ([]entities.NetworkTechnology, error) {
 	rows, err := r.db.Query(`
-		SELECT id, Name, Description FROM network_technologies`)
+		SELECT id, name, description FROM network_technologies`)
 	if err != nil {
 		return nil, err
 	}

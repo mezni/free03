@@ -16,14 +16,14 @@ func NewServiceTypeRepository(db *sql.DB) *ServiceTypeRepository {
 	return &ServiceTypeRepository{db: db}
 }
 
-// CreateTable creates the service_types table.
+// CreateTable creates the service_types table with lowercase column names.
 func (r *ServiceTypeRepository) CreateTable() error {
 	query := `
 		CREATE TABLE IF NOT EXISTS service_types (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			Name TEXT NOT NULL,
-			Description TEXT NOT NULL,
-			NetworkTechnology TEXT NOT NULL
+			name TEXT NOT NULL,
+			description TEXT NOT NULL,
+			network_technology TEXT NOT NULL
 		)`
 	_, err := r.db.Exec(query)
 	return err
@@ -33,7 +33,7 @@ func (r *ServiceTypeRepository) CreateTable() error {
 func (r *ServiceTypeRepository) Insert(serviceType entities.ServiceType) error {
 	// First, check if the service type with the same name and network technology already exists.
 	var existingID int
-	query := `SELECT id FROM service_types WHERE Name = ? AND NetworkTechnology = ?`
+	query := `SELECT id FROM service_types WHERE name = ? AND network_technology = ?`
 	err := r.db.QueryRow(query, serviceType.Name, serviceType.NetworkTechnology).Scan(&existingID)
 	if err == nil {
 		// If no error, it means a record with the same name and network technology already exists. Skip the insert.
@@ -50,7 +50,7 @@ func (r *ServiceTypeRepository) Insert(serviceType entities.ServiceType) error {
 
 	// Insert the new service type if it doesn't already exist.
 	insertQuery := `
-		INSERT INTO service_types (Name, Description, NetworkTechnology) 
+		INSERT INTO service_types (name, description, network_technology) 
 		VALUES (?, ?, ?)`
 	_, err = r.db.Exec(insertQuery, serviceType.Name, serviceType.Description, serviceType.NetworkTechnology)
 	return err
@@ -59,7 +59,7 @@ func (r *ServiceTypeRepository) Insert(serviceType entities.ServiceType) error {
 // GetAll retrieves all service types from the database.
 func (r *ServiceTypeRepository) GetAll() ([]entities.ServiceType, error) {
 	rows, err := r.db.Query(`
-		SELECT id, Name, Description, NetworkTechnology FROM service_types`)
+		SELECT id, name, description, network_technology FROM service_types`)
 	if err != nil {
 		return nil, err
 	}
