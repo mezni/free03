@@ -1,9 +1,10 @@
 package sqlitestore
 
 import (
+	"encoding/json"
 	"database/sql"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
-	"log"
+//	"log"
 )
 
 // ServiceTypeRepository handles database operations for service types.
@@ -23,43 +24,73 @@ func (r *ServiceTypeRepository) CreateTable() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL,
-			network_technology TEXT NOT NULL
+			network_technology TEXT NOT NULL,
+			nodes TEXT NOT NULL, -- JSON string
+			bearer_type TEXT NOT NULL,
+			jitter_min INTEGER NOT NULL,
+			jitter_max INTEGER NOT NULL,
+			latency_min INTEGER NOT NULL,
+			latency_max INTEGER NOT NULL,
+			throughput_min INTEGER NOT NULL,
+			throughput_max INTEGER NOT NULL,
+			packet_loss_min INTEGER NOT NULL,
+			packet_loss_max INTEGER NOT NULL,
+			call_setup_time_min INTEGER NOT NULL,
+			call_setup_time_max INTEGER NOT NULL,
+			mos_range_min REAL NOT NULL,
+			mos_range_max REAL NOT NULL
 		)`
 	_, err := r.db.Exec(query)
 	return err
 }
 
+
+
 // Insert inserts a new service type into the database, but does not insert if a duplicate exists.
 func (r *ServiceTypeRepository) Insert(serviceType entities.ServiceType) error {
-	// First, check if the service type with the same name and network technology already exists.
-	var existingID int
-	query := `SELECT id FROM service_types WHERE name = ? AND network_technology = ?`
-	err := r.db.QueryRow(query, serviceType.Name, serviceType.NetworkTechnology).Scan(&existingID)
-	if err == nil {
-		// If no error, it means a record with the same name and network technology already exists. Skip the insert.
-		// No error is returned, just log the action if needed
-		log.Printf("Service type with name %s and network technology %s already exists, skipping insert.\n", serviceType.Name, serviceType.NetworkTechnology)
-		return nil // Simply return nil without inserting or throwing an error
-	}
-
-	// If the error is not nil (which is expected when no row is found), proceed to insert.
-	if err != sql.ErrNoRows {
-		// Return any other unexpected error
+	nodesJSON, err := json.Marshal(serviceType.Nodes)
+	if err != nil {
 		return err
 	}
 
-	// Insert the new service type if it doesn't already exist.
-	insertQuery := `
-		INSERT INTO service_types (name, description, network_technology) 
-		VALUES (?, ?, ?)`
-	_, err = r.db.Exec(insertQuery, serviceType.Name, serviceType.Description, serviceType.NetworkTechnology)
+	query := `
+		INSERT INTO service_types (
+			name, description, network_technology, nodes, bearer_type, 
+			jitter_min, jitter_max, latency_min, latency_max, 
+			throughput_min, throughput_max, packet_loss_min, packet_loss_max, 
+			call_setup_time_min, call_setup_time_max, mos_range_min, mos_range_max
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err = r.db.Exec(query,
+		serviceType.Name,
+		serviceType.Description,
+		serviceType.NetworkTechnology,
+		nodesJSON,
+		serviceType.BearerType,
+		serviceType.JitterMin,
+		serviceType.JitterMax,
+		serviceType.LatencyMin,
+		serviceType.LatencyMax,
+		serviceType.ThroughputMin,
+		serviceType.ThroughputMax,
+		serviceType.PacketLossMin,
+		serviceType.PacketLossMax,
+		serviceType.CallSetupTimeMin,
+		serviceType.CallSetupTimeMax,
+		serviceType.MosRangeMin,
+		serviceType.MosRangeMax,
+	)
 	return err
 }
+
 
 // GetAll retrieves all service types from the database.
 func (r *ServiceTypeRepository) GetAll() ([]entities.ServiceType, error) {
 	rows, err := r.db.Query(`
-		SELECT id, name, description, network_technology FROM service_types`)
+		SELECT id, name, description, network_technology, nodes, bearer_type,
+		jitter_min, jitter_max, latency_min, latency_max, 
+		throughput_min, throughput_max, packet_loss_min, packet_loss_max, 
+		call_setup_time_min, call_setup_time_max, mos_range_min, mos_range_max 
+		FROM service_types`)
 	if err != nil {
 		return nil, err
 	}
@@ -68,9 +99,27 @@ func (r *ServiceTypeRepository) GetAll() ([]entities.ServiceType, error) {
 	var services []entities.ServiceType
 	for rows.Next() {
 		var service entities.ServiceType
-		if err := rows.Scan(&service.ID, &service.Name, &service.Description, &service.NetworkTechnology); err != nil {
+		var nodesJSON string
+
+		err := rows.Scan(
+			&service.ID, &service.Name, &service.Description, &service.NetworkTechnology,
+			&nodesJSON, &service.BearerType,
+			&service.JitterMin, &service.JitterMax,
+			&service.LatencyMin, &service.LatencyMax,
+			&service.ThroughputMin, &service.ThroughputMax,
+			&service.PacketLossMin, &service.PacketLossMax,
+			&service.CallSetupTimeMin, &service.CallSetupTimeMax,
+			&service.MosRangeMin, &service.MosRangeMax,
+		)
+		if err != nil {
 			return nil, err
 		}
+
+		err = json.Unmarshal([]byte(nodesJSON), &service.Nodes)
+		if err != nil {
+			return nil, err
+		}
+
 		services = append(services, service)
 	}
 	return services, nil

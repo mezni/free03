@@ -1,6 +1,7 @@
 package main
 
 import (
+		"encoding/json"
 	"database/sql"
 	"fmt"
 	"log"
@@ -121,5 +122,68 @@ func main() {
 			location.LatitudeMin, location.LatitudeMax,
 			location.LongitudeMin, location.LongitudeMax,
 			location.AreaCode)
+	}
+
+	// Fetch and print the service types
+	serviceTypeRows, err := db.Query("SELECT id, name, description, network_technology, nodes, bearer_type, jitter_min, jitter_max, latency_min, latency_max, throughput_min, throughput_max, packet_loss_min, packet_loss_max, call_setup_time_min, call_setup_time_max, mos_range_min, mos_range_max FROM service_types")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer serviceTypeRows.Close()
+
+	// Initialize a slice to hold the service types
+	var serviceTypes []entities.ServiceType
+
+	// Iterate through the rows and scan the results into the slice
+	for rows.Next() {
+		var serviceType entities.ServiceType
+
+		// Scan the columns into the ServiceType struct
+		var nodesJSON string
+		if err := rows.Scan(
+			&serviceType.ID,
+			&serviceType.Name,
+			&serviceType.Description,
+			&serviceType.NetworkTechnology,
+			&nodesJSON,  // Scan nodes as a string
+			&serviceType.BearerType,
+			&serviceType.JitterMin,
+			&serviceType.JitterMax,
+			&serviceType.LatencyMin,
+			&serviceType.LatencyMax,
+			&serviceType.ThroughputMin,
+			&serviceType.ThroughputMax,
+			&serviceType.PacketLossMin,
+			&serviceType.PacketLossMax,
+			&serviceType.CallSetupTimeMin,
+			&serviceType.CallSetupTimeMax,
+			&serviceType.MosRangeMin,
+			&serviceType.MosRangeMax,
+		); err != nil {
+			log.Fatal(err)
+		}
+
+		// Unmarshal the JSON string into a []string slice for the nodes
+		if err := json.Unmarshal([]byte(nodesJSON), &serviceType.Nodes); err != nil {
+			log.Fatal(err)
+		}
+
+		// Append the scanned service type to the slice
+		serviceTypes = append(serviceTypes, serviceType)
+	}
+
+	// Check for any error that might have occurred while iterating over rows
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Output the service types
+	for _, serviceType := range serviceTypes {
+		fmt.Printf("ServiceType ID: %d, Name: %s, Description: %s, Network Technology: %s, Nodes: %v, BearerType: %s, Jitter Min: %d, Jitter Max: %d, Latency Min: %d, Latency Max: %d, Throughput Min: %d, Throughput Max: %d, Packet Loss Min: %d, Packet Loss Max: %d, Call Setup Time Min: %d, Call Setup Time Max: %d, MOS Min: %f, MOS Max: %f\n",
+			serviceType.ID, serviceType.Name, serviceType.Description, serviceType.NetworkTechnology,
+			serviceType.Nodes, serviceType.BearerType, serviceType.JitterMin, serviceType.JitterMax,
+			serviceType.LatencyMin, serviceType.LatencyMax, serviceType.ThroughputMin, serviceType.ThroughputMax,
+			serviceType.PacketLossMin, serviceType.PacketLossMax, serviceType.CallSetupTimeMin,
+			serviceType.CallSetupTimeMax, serviceType.MosRangeMin, serviceType.MosRangeMax)
 	}
 }
