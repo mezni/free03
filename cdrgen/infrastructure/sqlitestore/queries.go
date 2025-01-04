@@ -108,3 +108,29 @@ const (
 		SELECT id, name, service_name, network_technology
 		FROM service_nodes;`
 )
+
+
+
+const (
+	CreateLocationsTable = `
+		CREATE TABLE IF NOT EXISTS locations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			latitude_min REAL NOT NULL,
+			latitude_max REAL NOT NULL,
+			longitude_min REAL NOT NULL,
+			longitude_max REAL NOT NULL,
+			area_code TEXT NOT NULL,
+			network_technology TEXT NOT NULL
+		);`
+
+	SelectLocationsByNameAndTech = `
+		SELECT id FROM locations WHERE name = ? AND network_technology = ?;`
+
+	InsertLocation = `
+		INSERT INTO locations (name, latitude_min, latitude_max, longitude_min, longitude_max, area_code, network_technology)
+		VALUES (?, ?, ?, ?, ?, ?, ?);`
+
+	SelectAllLocations = `
+		SELECT id, name, latitude_min, latitude_max, longitude_min, longitude_max, area_code, network_technology FROM locations;`
+)

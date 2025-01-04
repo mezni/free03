@@ -65,4 +65,17 @@ func main() {
 		fmt.Printf("ID: %d, Name: %s, Service Name: %s, Network Technology: %s\n",
 			sn.ID, sn.Name, sn.ServiceName, sn.NetworkTechnology)
 	}
+
+	// Step 9: Retrieve all locations from the database
+	locations, err := loaderService.LocationRepo.GetAll()
+	if err != nil {
+		log.Fatalf("Error retrieving locations: %v", err)
+	}
+
+	// Step 10: Print the retrieved locations
+	fmt.Println("\nAll Locations in Database:")
+	for _, loc := range locations {
+		fmt.Printf("ID: %d, Name: %s, LatitudeMin: %f, LatitudeMax: %f, LongitudeMin: %f, LongitudeMax: %f, AreaCode: %s, NetworkTechnology: %s\n",
+			loc.ID, loc.Name, loc.LatitudeMin, loc.LatitudeMax, loc.LongitudeMin, loc.LongitudeMax, loc.AreaCode, loc.NetworkTechnology)
+	}
 }

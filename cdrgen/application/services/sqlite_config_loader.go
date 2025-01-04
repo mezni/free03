@@ -2,17 +2,16 @@ package services
 
 import (
 	"database/sql"
-
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
+	"log"
 
 	"github.com/mezni/wovoka/cdrgen/application/interfaces"
 	"github.com/mezni/wovoka/cdrgen/application/mappers"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	"github.com/mezni/wovoka/cdrgen/domain/factories"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
-	"log"
 )
 
 type LoaderService struct {
@@ -21,6 +20,7 @@ type LoaderService struct {
 	NetworkElementTypeRepo *sqlitestore.NetworkElementTypeRepository
 	ServiceTypeRepo        *sqlitestore.ServiceTypeRepository
 	ServiceNodeRepo        *sqlitestore.ServiceNodeRepository
+	LocationRepo           *sqlitestore.LocationRepository
 }
 
 // NewLoaderService initializes the LoaderService with all repositories.
@@ -41,6 +41,7 @@ func NewLoaderService(dbFile string) (*LoaderService, error) {
 		NetworkElementTypeRepo: sqlitestore.NewNetworkElementTypeRepository(db),
 		ServiceTypeRepo:        sqlitestore.NewServiceTypeRepository(db),
 		ServiceNodeRepo:        sqlitestore.NewServiceNodeRepository(db),
+		LocationRepo:           sqlitestore.NewLocationRepository(db),
 	}, nil
 }
 
@@ -57,6 +58,9 @@ func (l *LoaderService) SetupDatabase() error {
 	}
 	if err := l.ServiceNodeRepo.CreateTable(); err != nil {
 		return fmt.Errorf("failed to create service node table: %v", err)
+	}
+	if err := l.LocationRepo.CreateTable(); err != nil {
+		return fmt.Errorf("failed to create locations table: %v", err)
 	}
 	log.Println("All tables created successfully.")
 	return nil
@@ -186,63 +190,83 @@ func (l *LoaderService) LoadServiceNodes(serviceNodes []interfaces.ServiceNode) 
 	return nil
 }
 
-// Load reads JSON data and loads them into the database.
+// LoadLocations processes and inserts Locations into the database.
+func (l *LoaderService) LoadLocations(locations []entities.Location) error {
+	tx, err := l.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("could not begin transaction: %v", err)
+	}
+
+	for _, loc := range locations {
+		if err := l.LocationRepo.Insert(loc); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error saving location %s: %v", loc.Name, err)
+		}
+		log.Printf("Successfully inserted location: %s", loc.Name)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("could not commit transaction: %v", err)
+	}
+
+	log.Printf("Successfully inserted %d locations", len(locations))
+	return nil
+}
+
+// Load reads YAML data and loads them into the database.
 func (l *LoaderService) Load(yamlFilename string) error {
 	data, err := ioutil.ReadFile(yamlFilename)
 	if err != nil {
 		return fmt.Errorf("could not read YAML file: %v", err)
 	}
 
-	// Unmarshal YAML data into the mappers.Config struct
 	var businessConfig mappers.BusinessConfig
 	if err := yaml.Unmarshal(data, &businessConfig); err != nil {
 		return fmt.Errorf("could not unmarshal YAML: %v", err)
 	}
 
-	// Step 1: Setup the database (create necessary tables)
+	// Setup the database
 	if err := l.SetupDatabase(); err != nil {
 		return fmt.Errorf("failed to set up database tables: %v", err)
 	}
 
-	// Step 2: Read JSON data from the file
+	// Load JSON data
 	jsonData, err := interfaces.ReadConfig()
 	if err != nil {
 		return fmt.Errorf("could not read JSON file: %v", err)
 	}
 
-	// Step 3: Load Network Technologies
-	log.Printf("Started loading %d network technologies", len(jsonData.NetworkTechnologies))
+	// Load various entities
 	if err := l.LoadNetworkTechnologies(jsonData.NetworkTechnologies); err != nil {
 		return fmt.Errorf("failed to load network technologies: %v", err)
 	}
-
-	// Step 4: Load Network Element Types
-	log.Printf("Started loading %d network element types", len(jsonData.NetworkElementTypes))
 	if err := l.LoadNetworkElementTypes(jsonData.NetworkElementTypes); err != nil {
 		return fmt.Errorf("failed to load network element types: %v", err)
 	}
-
-	// Step 5: Load Service Types
-	log.Printf("Started loading %d service types", len(jsonData.ServiceTypes))
 	if err := l.LoadServiceTypes(jsonData.ServiceTypes); err != nil {
 		return fmt.Errorf("failed to load service types: %v", err)
 	}
-
-	// Step 6: Load Service Nodes
-	log.Printf("Started loading %d service nodes", len(jsonData.ServiceNodes))
 	if err := l.LoadServiceNodes(jsonData.ServiceNodes); err != nil {
 		return fmt.Errorf("failed to load service nodes: %v", err)
 	}
 
-	locations, err := factories.GenerateLocations(&businessConfig)
-	if err != nil {
-		return fmt.Errorf("error generating locations: %v", err)
-	}
+locations, err := factories.GenerateLocations(&businessConfig)
+if err != nil {
+    return fmt.Errorf("error generating locations: %v", err)
+}
 
-	// Insert the generated locations into the database
-	for _, lc := range locations {
-		fmt.Println(lc)
-	}
+// Convert []*entities.Location to []entities.Location
+convertedLocations := make([]entities.Location, len(locations))
+for i, loc := range locations {
+    if loc != nil {
+        convertedLocations[i] = *loc // Dereference the pointer
+    }
+}
+
+// Load locations
+if err := l.LoadLocations(convertedLocations); err != nil {
+    return fmt.Errorf("failed to load locations: %v", err)
+}
 
 	return nil
 }
