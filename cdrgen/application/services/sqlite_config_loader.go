@@ -2,12 +2,17 @@ package services
 
 import (
 	"database/sql"
+
 	"fmt"
-	"log"
+	"gopkg.in/yaml.v3"
+	"io/ioutil"
 
 	"github.com/mezni/wovoka/cdrgen/application/interfaces"
+	"github.com/mezni/wovoka/cdrgen/application/mappers"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"github.com/mezni/wovoka/cdrgen/domain/factories"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
+	"log"
 )
 
 type LoaderService struct {
@@ -182,7 +187,18 @@ func (l *LoaderService) LoadServiceNodes(serviceNodes []interfaces.ServiceNode) 
 }
 
 // Load reads JSON data and loads them into the database.
-func (l *LoaderService) Load() error {
+func (l *LoaderService) Load(yamlFilename string) error {
+	data, err := ioutil.ReadFile(yamlFilename)
+	if err != nil {
+		return fmt.Errorf("could not read YAML file: %v", err)
+	}
+
+	// Unmarshal YAML data into the mappers.Config struct
+	var businessConfig mappers.BusinessConfig
+	if err := yaml.Unmarshal(data, &businessConfig); err != nil {
+		return fmt.Errorf("could not unmarshal YAML: %v", err)
+	}
+
 	// Step 1: Setup the database (create necessary tables)
 	if err := l.SetupDatabase(); err != nil {
 		return fmt.Errorf("failed to set up database tables: %v", err)
@@ -216,6 +232,16 @@ func (l *LoaderService) Load() error {
 	log.Printf("Started loading %d service nodes", len(jsonData.ServiceNodes))
 	if err := l.LoadServiceNodes(jsonData.ServiceNodes); err != nil {
 		return fmt.Errorf("failed to load service nodes: %v", err)
+	}
+
+	locations, err := factories.GenerateLocations(&businessConfig)
+	if err != nil {
+		return fmt.Errorf("error generating locations: %v", err)
+	}
+
+	// Insert the generated locations into the database
+	for _, lc := range locations {
+		fmt.Println(lc)
 	}
 
 	return nil

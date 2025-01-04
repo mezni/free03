@@ -9,7 +9,7 @@ import (
 )
 
 // GenerateLocations generates locations based on the provided configuration.
-func GenerateLocations(config *mappers.Config) ([]*entities.Location, error) {
+func GenerateLocations(config *mappers.BusinessConfig) ([]*entities.Location, error) {
 	var locations []*entities.Location
 	locationID := 1
 

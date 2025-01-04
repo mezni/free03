@@ -6,9 +6,12 @@ import (
 	"github.com/mezni/wovoka/cdrgen/application/services"
 )
 
+const (
+	dbFile       = "./cdrgen.db"
+	yamlFilename = "config.yaml"
+)
+
 func main() {
-	// Define the path to the SQLite database file
-	dbFile := "./cdrgen.db"
 
 	// Create a new LoaderService instance
 	loaderService, err := services.NewLoaderService(dbFile)
@@ -23,7 +26,7 @@ func main() {
 	}()
 
 	// Load data into the database
-	if err := loaderService.Load(); err != nil {
+	if err := loaderService.Load(yamlFilename); err != nil {
 		log.Fatalf("Error loading data: %v", err)
 	}
 
