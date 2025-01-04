@@ -42,7 +42,7 @@ func GenerateNetworkElements(networkElementTypes []*entities.NetworkElementType,
 				Description:       fmt.Sprintf("Network element of type %s", netElemType.Name),
 				NetworkTechnology: netElemType.NetworkTechnology,
 				IPAddress:         fmt.Sprintf("192.168.%d.%d", rand.Intn(256), rand.Intn(256)), // Random IP address
-				Status:            "active", // Default status
+				Status:            "active",                                                     // Default status
 			}
 
 			// Assign LAC or TAC based on NetworkTechnology (leave nil for non-special elements)
@@ -66,7 +66,7 @@ func GenerateNetworkElements(networkElementTypes []*entities.NetworkElementType,
 							Description:       fmt.Sprintf("Network element of type %s located at %s", netElemType.Name, loc.Name),
 							NetworkTechnology: netElemType.NetworkTechnology,
 							IPAddress:         fmt.Sprintf("192.168.%d.%d", rand.Intn(256), rand.Intn(256)), // Random IP address
-							Status:            "active", // Default status
+							Status:            "active",                                                     // Default status
 						}
 
 						// Assign LAC or TAC based on NetworkTechnology

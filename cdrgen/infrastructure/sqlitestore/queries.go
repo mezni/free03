@@ -133,7 +133,6 @@ const (
 		SELECT id, name, latitude_min, latitude_max, longitude_min, longitude_max, area_code, network_technology FROM locations;`
 )
 
-
 const (
 	// Create the table for network elements
 	CreateNetworkElementsTable = `
@@ -164,4 +163,31 @@ const (
 	SelectNetworkElementByName = `
 	SELECT id, name, description, network_technology, ip_address, status, tac, lac, cell_id
 	FROM network_elements WHERE name = ?;`
+)
+
+const (
+	// CreateTable for customers
+	CreateCustomerTable = `
+		CREATE TABLE IF NOT EXISTS customers (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			msisdn TEXT NOT NULL,
+			imsi TEXT NOT NULL,
+			imei TEXT NOT NULL,
+			customer_type TEXT NOT NULL,
+			account_type TEXT NOT NULL,
+			status TEXT NOT NULL
+		);`
+
+	// Select by MSISDN to check if the customer exists
+	SelectCustomerByMSISDN = `
+		SELECT id FROM customers WHERE msisdn = ?;`
+
+	// Insert a new customer
+	InsertCustomer = `
+		INSERT INTO customers (msisdn, imsi, imei, customer_type, account_type, status)
+		VALUES (?, ?, ?, ?, ?, ?);`
+
+	// Select all customers
+	SelectAllCustomers = `
+		SELECT id, msisdn, imsi, imei, customer_type, account_type, status FROM customers;`
 )
