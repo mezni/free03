@@ -24,45 +24,69 @@ func GenerateNetworkElements(networkElementTypes []*entities.NetworkElementType,
 		"gNodeB":  true,
 	}
 
+	// Iterate over the network element types
 	for _, netElemType := range networkElementTypes {
-		for _, loc := range locations {
-			// Match locations with the same NetworkTechnology
-			if loc.NetworkTechnology != netElemType.NetworkTechnology {
-				continue
+		// Determine the number of elements to generate for each network element type
+		var elementCount int
+		if specialElementTypes[netElemType.Name] {
+			elementCount = 20
+		} else {
+			elementCount = 1 // Only one element per technology if it's not in specialElementTypes
+		}
+
+		// If it's not in specialElementTypes, don't enter location loop
+		if !specialElementTypes[netElemType.Name] {
+			// Create a single element without considering locations
+			networkElement := &entities.NetworkElement{
+				Name:              fmt.Sprintf("%s-%s-%d", netElemType.NetworkTechnology, netElemType.Name, rand.Intn(10000)),
+				Description:       fmt.Sprintf("Network element of type %s", netElemType.Name),
+				NetworkTechnology: netElemType.NetworkTechnology,
+				IPAddress:         fmt.Sprintf("192.168.%d.%d", rand.Intn(256), rand.Intn(256)), // Random IP address
+				Status:            "active", // Default status
 			}
 
-			// Determine number of elements to generate
-			var elementCount int
-			if specialElementTypes[netElemType.Name] {
-				elementCount = 20
+			// Assign LAC or TAC based on NetworkTechnology
+			if netElemType.NetworkTechnology == "2G" || netElemType.NetworkTechnology == "3G" {
+				networkElement.LAC = nil // No location-specific data for non-special elements
 			} else {
-				elementCount = 1 // Only one element per technology if it's not in specialElementTypes
+				networkElement.TAC = nil // No location-specific data for non-special elements
 			}
 
+			// Add the generated element to the list
+			networkElements = append(networkElements, networkElement)
+		} else {
+			// If it's in specialElementTypes, create element for each location
 			for i := 0; i < elementCount; i++ {
-				networkElement := &entities.NetworkElement{
-					Name:              fmt.Sprintf("%s-%s-%s-%d", netElemType.NetworkTechnology, netElemType.Name, loc.Name, rand.Intn(1000)),
-					Description:       fmt.Sprintf("Network element of type %s located at %s", netElemType.Name, loc.Name),
-					NetworkTechnology: netElemType.NetworkTechnology,
-					IPAddress:         fmt.Sprintf("192.168.%d.%d", rand.Intn(256), rand.Intn(256)), // Random IP address
-					Status:            "active",                                                  // Default status
-				}
+				for _, loc := range locations {
+					// Match locations with the same NetworkTechnology
+					if loc.NetworkTechnology != netElemType.NetworkTechnology {
+						continue
+					}
 
-				// Assign LAC or TAC based on NetworkTechnology
-				if netElemType.NetworkTechnology == "2G" || netElemType.NetworkTechnology == "3G" {
-					networkElement.LAC = &loc.AreaCode
-				} else {
-					networkElement.TAC = &loc.AreaCode
-				}
+					networkElement := &entities.NetworkElement{
+						Name:              fmt.Sprintf("%s-%s-%s-%d", netElemType.NetworkTechnology, netElemType.Name, loc.Name, rand.Intn(10000)),
+						Description:       fmt.Sprintf("Network element of type %s located at %s", netElemType.Name, loc.Name),
+						NetworkTechnology: netElemType.NetworkTechnology,
+						IPAddress:         fmt.Sprintf("192.168.%d.%d", rand.Intn(256), rand.Intn(256)), // Random IP address
+						Status:            "active", // Default status
+					}
 
-				// Generate CellID only for specialElementTypes
-				cellID := fmt.Sprintf("%04d", rand.Intn(10000))
-				if specialElementTypes[netElemType.Name] {
-					networkElement.CellID = &cellID
-				}
+					// Assign LAC or TAC based on NetworkTechnology
+					if netElemType.NetworkTechnology == "2G" || netElemType.NetworkTechnology == "3G" {
+						networkElement.LAC = &loc.AreaCode
+					} else {
+						networkElement.TAC = &loc.AreaCode
+					}
 
-				// Add the generated element to the list
-				networkElements = append(networkElements, networkElement)
+					// Generate CellID only for specialElementTypes
+					if specialElementTypes[netElemType.Name] {
+						cellID := fmt.Sprintf("%04d", rand.Intn(10000))
+						networkElement.CellID = &cellID
+					}
+
+					// Add the generated element to the list
+					networkElements = append(networkElements, networkElement)
+				}
 			}
 		}
 	}
