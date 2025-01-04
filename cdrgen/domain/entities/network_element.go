@@ -8,7 +8,7 @@ type NetworkElement struct {
 	NetworkTechnology string
 	IPAddress         string
 	Status            string
-	TAC               *string 
-	LAC               *string 
+	TAC               *string
+	LAC               *string
 	CellID            *string
 }

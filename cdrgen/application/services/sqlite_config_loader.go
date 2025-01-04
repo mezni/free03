@@ -21,6 +21,7 @@ type LoaderService struct {
 	ServiceTypeRepo        *sqlitestore.ServiceTypeRepository
 	ServiceNodeRepo        *sqlitestore.ServiceNodeRepository
 	LocationRepo           *sqlitestore.LocationRepository
+	NetworkElementRepo     *sqlitestore.NetworkElementRepository
 }
 
 // NewLoaderService initializes the LoaderService with all repositories.
@@ -42,6 +43,7 @@ func NewLoaderService(dbFile string) (*LoaderService, error) {
 		ServiceTypeRepo:        sqlitestore.NewServiceTypeRepository(db),
 		ServiceNodeRepo:        sqlitestore.NewServiceNodeRepository(db),
 		LocationRepo:           sqlitestore.NewLocationRepository(db),
+		NetworkElementRepo:     sqlitestore.NewNetworkElementRepository(db),
 	}, nil
 }
 
@@ -61,6 +63,9 @@ func (l *LoaderService) SetupDatabase() error {
 	}
 	if err := l.LocationRepo.CreateTable(); err != nil {
 		return fmt.Errorf("failed to create locations table: %v", err)
+	}
+	if err := l.NetworkElementRepo.CreateTable(); err != nil {
+		return fmt.Errorf("failed to create network elements table: %v", err)
 	}
 	log.Println("All tables created successfully.")
 	return nil
@@ -213,7 +218,29 @@ func (l *LoaderService) LoadLocations(locations []entities.Location) error {
 	return nil
 }
 
-// Load reads YAML data and loads them into the database.
+// LoadNetworkElements processes and inserts NetworkElements into the database.
+func (l *LoaderService) LoadNetworkElements(networkElements []entities.NetworkElement) error {
+	tx, err := l.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("could not begin transaction: %v", err)
+	}
+
+	for _, ne := range networkElements {
+		if err := l.NetworkElementRepo.Insert(ne); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error saving network element %s: %v", ne.Name, err)
+		}
+		log.Printf("Successfully inserted network element: %s", ne.Name)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("could not commit transaction: %v", err)
+	}
+
+	log.Printf("Successfully inserted %d network elements", len(networkElements))
+	return nil
+}
+
 func (l *LoaderService) Load(yamlFilename string) error {
 	data, err := ioutil.ReadFile(yamlFilename)
 	if err != nil {
@@ -250,23 +277,64 @@ func (l *LoaderService) Load(yamlFilename string) error {
 		return fmt.Errorf("failed to load service nodes: %v", err)
 	}
 
-locations, err := factories.GenerateLocations(&businessConfig)
-if err != nil {
-    return fmt.Errorf("error generating locations: %v", err)
-}
+	locations, err := factories.GenerateLocations(&businessConfig)
+	if err != nil {
+		return fmt.Errorf("error generating locations: %v", err)
+	}
 
-// Convert []*entities.Location to []entities.Location
-convertedLocations := make([]entities.Location, len(locations))
-for i, loc := range locations {
-    if loc != nil {
-        convertedLocations[i] = *loc // Dereference the pointer
-    }
-}
+	// Convert []*entities.Location to []entities.Location
+	convertedLocations := make([]entities.Location, len(locations))
+	for i, loc := range locations {
+		if loc != nil {
+			convertedLocations[i] = *loc // Dereference the pointer
+		}
+	}
 
-// Load locations
-if err := l.LoadLocations(convertedLocations); err != nil {
-    return fmt.Errorf("failed to load locations: %v", err)
-}
+	// Load locations
+	if err := l.LoadLocations(convertedLocations); err != nil {
+		return fmt.Errorf("failed to load locations: %v", err)
+	}
+
+	networkElementTypesList, err := l.NetworkElementTypeRepo.GetAll()
+	if err != nil {
+		return fmt.Errorf("failed to get network element types: %v", err)
+	}
+
+	locationsList, err := l.LocationRepo.GetAll()
+	if err != nil {
+		return fmt.Errorf("failed to get locations: %v", err)
+	}
+
+	// Convert []entities.NetworkElementType to []*entities.NetworkElementType
+	networkElementTypesListPointers := make([]*entities.NetworkElementType, len(networkElementTypesList))
+	for i, netElemType := range networkElementTypesList {
+		networkElementTypesListPointers[i] = &netElemType
+	}
+
+	// Convert []entities.Location to []*entities.Location
+	locationsListPointers := make([]*entities.Location, len(locationsList))
+	for i, loc := range locationsList {
+		locationsListPointers[i] = &loc
+	}
+
+	// Now pass the converted slices to GenerateNetworkElements
+	networkElements, err := factories.GenerateNetworkElements(networkElementTypesListPointers, locationsListPointers)
+	if err != nil {
+		return fmt.Errorf("error generating network elements: %v", err)
+	}
+
+	// Convert []*entities.NetworkElement to []entities.NetworkElement
+	convertedNetworkElements := make([]entities.NetworkElement, len(networkElements))
+	for i, ne := range networkElements {
+		if ne != nil {
+			convertedNetworkElements[i] = *ne // Dereference the pointer
+		}
+	}
+
+	// Load network elements
+	if err := l.LoadNetworkElements(convertedNetworkElements); err != nil {
+		return fmt.Errorf("failed to load network elements: %v", err)
+	}
 
 	return nil
 }

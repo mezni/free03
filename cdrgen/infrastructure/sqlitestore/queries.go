@@ -109,8 +109,6 @@ const (
 		FROM service_nodes;`
 )
 
-
-
 const (
 	CreateLocationsTable = `
 		CREATE TABLE IF NOT EXISTS locations (
@@ -133,4 +131,37 @@ const (
 
 	SelectAllLocations = `
 		SELECT id, name, latitude_min, latitude_max, longitude_min, longitude_max, area_code, network_technology FROM locations;`
+)
+
+
+const (
+	// Create the table for network elements
+	CreateNetworkElementsTable = `
+	CREATE TABLE IF NOT EXISTS network_elements (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		description TEXT,
+		network_technology TEXT NOT NULL,
+		ip_address TEXT,
+		status TEXT,
+		tac TEXT,
+		lac TEXT,
+		cell_id TEXT
+	);`
+
+	// Insert a new network element
+	InsertNetworkElement = `
+	INSERT INTO network_elements 
+	(name, description, network_technology, ip_address, status, tac, lac, cell_id)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
+
+	// Select all network elements
+	SelectAllNetworkElements = `
+	SELECT id, name, description, network_technology, ip_address, status, tac, lac, cell_id
+	FROM network_elements;`
+
+	// Select network elements by name
+	SelectNetworkElementByName = `
+	SELECT id, name, description, network_technology, ip_address, status, tac, lac, cell_id
+	FROM network_elements WHERE name = ?;`
 )
