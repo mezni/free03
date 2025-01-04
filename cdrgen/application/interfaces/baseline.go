@@ -21,7 +21,7 @@ type ServiceType struct {
 	Description       string  `json:"Description"`
 	NetworkTechnology string  `json:"NetworkTechnology"`
 	BearerType        string  `json:"BearerType"`
-	JitterMin         float64 `json:"JitterMin"`
+	JitterMin         int `json:"JitterMin"`
 	JitterMax         float64 `json:"JitterMax"`
 	LatencyMin        float64 `json:"LatencyMin"`
 	LatencyMax        float64 `json:"LatencyMax"`
