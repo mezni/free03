@@ -37,8 +37,9 @@ type ServiceType struct {
 
 // New ServiceNode struct (No Nodes field in ServiceType now)
 type ServiceNode struct {
-	Name              string `json:"Name"`
+	ServiceName       string `json:"ServiceName"`
 	NetworkTechnology string `json:"NetworkTechnology"`
+	Name              string `json:"Name"`
 }
 
 type Config struct {
@@ -519,74 +520,104 @@ func ReadConfig() (Config, error) {
     ],
     "service_nodes": [
         {
-            "Name": "Voice Call",
+            "ServiceName": "Voice Call",
             "NetworkTechnology": "2G",
-            "Nodes": "MSC"
+            "Name": "MSC"
         },
         {
-            "Name": "SMS",
+            "ServiceName": "SMS",
             "NetworkTechnology": "2G",
-            "Nodes": "SMSC"
+            "Name": "SMSC"
         },
         {
-            "Name": "MMS",
+            "ServiceName": "MMS",
             "NetworkTechnology": "2G",
-            "Nodes": "MMSC"
+            "Name": "MMSC"
         },
         {
-            "Name": "Voice Call",
+            "ServiceName": "Voice Call",
             "NetworkTechnology": "3G",
-            "Nodes": "RNC, MSC"
+            "Name": "RNC"
         },
         {
-            "Name": "SMS",
+            "ServiceName": "Voice Call",
             "NetworkTechnology": "3G",
-            "Nodes": "SMSC"
+            "Name": "MSC"
         },
         {
-            "Name": "Data",
+            "ServiceName": "SMS",
             "NetworkTechnology": "3G",
-            "Nodes": "RNC, GGSN"
+            "Name": "SMSC"
         },
         {
-            "Name": "Voice Call",
+            "ServiceName": "Data",
+            "NetworkTechnology": "3G",
+            "Name": "RNC"
+        },
+        {
+            "ServiceName": "Data",
+            "NetworkTechnology": "3G",
+            "Name": "GGSN"
+        },
+        {
+            "ServiceName": "Voice Call",
             "NetworkTechnology": "4G",
-            "Nodes": "IMS"
+            "Name": "IMS"
         },
         {
-            "Name": "SMS",
+            "ServiceName": "SMS",
             "NetworkTechnology": "4G",
-            "Nodes": "SMSC, IMS"
+            "Name": "IMS"
         },
         {
-            "Name": "Data",
+            "ServiceName": "SMS",
             "NetworkTechnology": "4G",
-            "Nodes": "IMS, PGW"
+            "Name": "SMSC"
         },
         {
-            "Name": "Voice Call",
-            "NetworkTechnology": "5G",
-            "Nodes": "gNodeB"
-        },
-        {
-            "Name": "SMS",
-            "NetworkTechnology": "5G",
-            "Nodes": "SMSC, gNodeB"
-        },
-        {
-            "Name": "Data",
-            "NetworkTechnology": "5G",
-            "Nodes": "gNodeB, UPF"
-        },
-        {
-            "Name": "Video Call",
+            "ServiceName": "Data",
             "NetworkTechnology": "4G",
-            "Nodes": "IMS"
+            "Name": "IMS"
         },
         {
-            "Name": "Video Call",
+            "ServiceName": "Data",
+            "NetworkTechnology": "4G",
+            "Name": "PGW"
+        },
+        {
+            "ServiceName": "Voice Call",
             "NetworkTechnology": "5G",
-            "Nodes": "gNodeB"
+            "Name": "gNodeB"
+        },
+        {
+            "ServiceName": "SMS",
+            "NetworkTechnology": "5G",
+            "Name": "gNodeB"
+        },
+        {
+            "ServiceName": "SMS",
+            "NetworkTechnology": "5G",
+            "Name": "SMSC"
+        },
+        {
+            "ServiceName": "Data",
+            "NetworkTechnology": "5G",
+            "Name": "gNodeB"
+        },
+        {
+            "ServiceName": "Data",
+            "NetworkTechnology": "5G",
+            "Name": "UPF"
+        },
+        {
+            "ServiceName": "Video Call",
+            "NetworkTechnology": "4G",
+            "Name": "IMS"
+        },
+        {
+            "ServiceName": "Video Call",
+            "NetworkTechnology": "5G",
+            "Name": "gNodeB"
         }
     ]
 }`)

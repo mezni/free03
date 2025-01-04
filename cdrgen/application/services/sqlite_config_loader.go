@@ -15,6 +15,7 @@ type LoaderService struct {
 	NetworkTechRepo        *sqlitestore.NetworkTechnologyRepository
 	NetworkElementTypeRepo *sqlitestore.NetworkElementTypeRepository
 	ServiceTypeRepo        *sqlitestore.ServiceTypeRepository
+	ServiceNodeRepo        *sqlitestore.ServiceNodeRepository
 }
 
 // NewLoaderService initializes the LoaderService with all repositories.
@@ -34,6 +35,7 @@ func NewLoaderService(dbFile string) (*LoaderService, error) {
 		NetworkTechRepo:        sqlitestore.NewNetworkTechnologyRepository(db),
 		NetworkElementTypeRepo: sqlitestore.NewNetworkElementTypeRepository(db),
 		ServiceTypeRepo:        sqlitestore.NewServiceTypeRepository(db),
+		ServiceNodeRepo:        sqlitestore.NewServiceNodeRepository(db),
 	}, nil
 }
 
@@ -47,6 +49,9 @@ func (l *LoaderService) SetupDatabase() error {
 	}
 	if err := l.ServiceTypeRepo.CreateTable(); err != nil {
 		return fmt.Errorf("failed to create service type table: %v", err)
+	}
+	if err := l.ServiceNodeRepo.CreateTable(); err != nil {
+		return fmt.Errorf("failed to create service node table: %v", err)
 	}
 	log.Println("All tables created successfully.")
 	return nil
@@ -148,6 +153,34 @@ func (l *LoaderService) LoadServiceTypes(serviceTypes []interfaces.ServiceType) 
 	return nil
 }
 
+// LoadServiceNodes processes and inserts ServiceNodes into the database.
+func (l *LoaderService) LoadServiceNodes(serviceNodes []interfaces.ServiceNode) error {
+	tx, err := l.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("could not begin transaction: %v", err)
+	}
+
+	for _, sn := range serviceNodes {
+		entity := entities.ServiceNode{
+			Name:              sn.Name,
+			ServiceName:       sn.ServiceName,
+			NetworkTechnology: sn.NetworkTechnology,
+		}
+		if err := l.ServiceNodeRepo.Insert(entity); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error saving service node %s: %v", entity.Name, err)
+		}
+		log.Printf("Successfully inserted service node: %s", entity.Name)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("could not commit transaction: %v", err)
+	}
+
+	log.Printf("Successfully inserted %d service nodes", len(serviceNodes))
+	return nil
+}
+
 // Load reads JSON data and loads them into the database.
 func (l *LoaderService) Load() error {
 	// Step 1: Setup the database (create necessary tables)
@@ -177,6 +210,12 @@ func (l *LoaderService) Load() error {
 	log.Printf("Started loading %d service types", len(jsonData.ServiceTypes))
 	if err := l.LoadServiceTypes(jsonData.ServiceTypes); err != nil {
 		return fmt.Errorf("failed to load service types: %v", err)
+	}
+
+	// Step 6: Load Service Nodes
+	log.Printf("Started loading %d service nodes", len(jsonData.ServiceNodes))
+	if err := l.LoadServiceNodes(jsonData.ServiceNodes); err != nil {
+		return fmt.Errorf("failed to load service nodes: %v", err)
 	}
 
 	return nil

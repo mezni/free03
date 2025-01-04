@@ -50,6 +50,19 @@ func main() {
 	fmt.Println("\nAll Service Types in Database:")
 	for _, st := range serviceTypes {
 		fmt.Printf("ID: %d, Name: %s, Description: %s, Network Technology: %s, Bearer Type: %s, Jitter Min: %d\n",
-			st.ID, st.Name, st.Description, st.NetworkTechnology, st.BearerType ,  st.JitterMin)
+			st.ID, st.Name, st.Description, st.NetworkTechnology, st.BearerType, st.JitterMin)
+	}
+
+	// Step 7: Retrieve all service nodes from the database
+	serviceNodes, err := loaderService.ServiceNodeRepo.GetAll()
+	if err != nil {
+		log.Fatalf("Error retrieving service nodes: %v", err)
+	}
+
+	// Step 8: Print the retrieved service nodes
+	fmt.Println("\nAll Service Nodes in Database:")
+	for _, sn := range serviceNodes {
+		fmt.Printf("ID: %d, Name: %s, Service Name: %s, Network Technology: %s\n",
+			sn.ID, sn.Name, sn.ServiceName, sn.NetworkTechnology)
 	}
 }

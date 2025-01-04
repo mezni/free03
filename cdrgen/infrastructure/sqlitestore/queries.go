@@ -83,3 +83,28 @@ const (
 			mos_min, mos_max
 		FROM service_types;`
 )
+
+const (
+	// SQL for creating the service_nodes table
+	CreateServiceNodesTable = `
+		CREATE TABLE IF NOT EXISTS service_nodes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			service_name TEXT NOT NULL,
+			network_technology TEXT NOT NULL
+		);`
+
+	// SQL for checking if a service node with the same name and network technology exists
+	SelectServiceNodesByNameAndTechAndServ = `
+		SELECT id FROM service_nodes WHERE name = ? AND network_technology = ? AND service_name = ?;`
+
+	// SQL for inserting a new service node
+	InsertServiceNode = `
+		INSERT INTO service_nodes (name, service_name, network_technology)
+		VALUES (?, ?, ?);`
+
+	// SQL for selecting all service nodes
+	SelectAllServiceNodes = `
+		SELECT id, name, service_name, network_technology
+		FROM service_nodes;`
+)
