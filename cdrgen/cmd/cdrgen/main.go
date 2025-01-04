@@ -39,4 +39,17 @@ func main() {
 		fmt.Printf("ID: %d, Name: %s, Description: %s, Network Technology: %s\n",
 			net.ID, net.Name, net.Description, net.NetworkTechnology)
 	}
+
+	// Step 5: Retrieve all service types from the database
+	serviceTypes, err := loaderService.ServiceTypeRepo.GetAll()
+	if err != nil {
+		log.Fatalf("Error retrieving service types: %v", err)
+	}
+
+	// Step 6: Print the retrieved service types
+	fmt.Println("\nAll Service Types in Database:")
+	for _, st := range serviceTypes {
+		fmt.Printf("ID: %d, Name: %s, Description: %s, Network Technology: %s, Bearer Type: %s, Jitter Min: %d\n",
+			st.ID, st.Name, st.Description, st.NetworkTechnology, st.BearerType ,  st.JitterMin)
+	}
 }

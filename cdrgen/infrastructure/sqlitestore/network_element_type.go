@@ -48,7 +48,6 @@ func (r *NetworkElementTypeRepository) Insert(networkElementType entities.Networ
 	return nil
 }
 
-
 // GetAll retrieves all network element types from the database.
 func (r *NetworkElementTypeRepository) GetAll() ([]entities.NetworkElementType, error) {
 	rows, err := r.db.Query(SelectAllNetworkElementTypes)

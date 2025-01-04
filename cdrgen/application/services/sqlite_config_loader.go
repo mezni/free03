@@ -11,9 +11,10 @@ import (
 )
 
 type LoaderService struct {
-	DB                  *sql.DB
-	NetworkTechRepo     *sqlitestore.NetworkTechnologyRepository
-	NetworkElementTypeRepo  *sqlitestore.NetworkElementTypeRepository
+	DB                     *sql.DB
+	NetworkTechRepo        *sqlitestore.NetworkTechnologyRepository
+	NetworkElementTypeRepo *sqlitestore.NetworkElementTypeRepository
+	ServiceTypeRepo        *sqlitestore.ServiceTypeRepository
 }
 
 // NewLoaderService initializes the LoaderService with all repositories.
@@ -29,9 +30,10 @@ func NewLoaderService(dbFile string) (*LoaderService, error) {
 	}
 
 	return &LoaderService{
-		DB:                  db,
-		NetworkTechRepo:     sqlitestore.NewNetworkTechnologyRepository(db),
-		NetworkElementTypeRepo:  sqlitestore.NewNetworkElementTypeRepository(db),
+		DB:                     db,
+		NetworkTechRepo:        sqlitestore.NewNetworkTechnologyRepository(db),
+		NetworkElementTypeRepo: sqlitestore.NewNetworkElementTypeRepository(db),
+		ServiceTypeRepo:        sqlitestore.NewServiceTypeRepository(db),
 	}, nil
 }
 
@@ -42,6 +44,9 @@ func (l *LoaderService) SetupDatabase() error {
 	}
 	if err := l.NetworkElementTypeRepo.CreateTable(); err != nil {
 		return fmt.Errorf("failed to create network element type table: %v", err)
+	}
+	if err := l.ServiceTypeRepo.CreateTable(); err != nil {
+		return fmt.Errorf("failed to create service type table: %v", err)
 	}
 	log.Println("All tables created successfully.")
 	return nil
@@ -102,6 +107,47 @@ func (l *LoaderService) LoadNetworkElementTypes(networkElementTypes []interfaces
 	return nil
 }
 
+// LoadServiceTypes processes and inserts ServiceTypes into the database.
+func (l *LoaderService) LoadServiceTypes(serviceTypes []interfaces.ServiceType) error {
+	tx, err := l.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("could not begin transaction: %v", err)
+	}
+
+	for _, st := range serviceTypes {
+		entity := entities.ServiceType{
+			Name:              st.Name,
+			Description:       st.Description,
+			NetworkTechnology: st.NetworkTechnology,
+			BearerType:        st.BearerType,
+			JitterMin:         st.JitterMin,
+			JitterMax:         st.JitterMax,
+			LatencyMin:        st.LatencyMin,
+			LatencyMax:        st.LatencyMax,
+			ThroughputMin:     st.ThroughputMin,
+			ThroughputMax:     st.ThroughputMax,
+			PacketLossMin:     st.PacketLossMin,
+			PacketLossMax:     st.PacketLossMax,
+			CallSetupTimeMin:  st.CallSetupTimeMin,
+			CallSetupTimeMax:  st.CallSetupTimeMax,
+			MosMin:            st.MosMin,
+			MosMax:            st.MosMax,
+		}
+		if err := l.ServiceTypeRepo.Insert(entity); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error saving service type %s: %v", entity.Name, err)
+		}
+		log.Printf("Successfully inserted service type: %s", entity.Name)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("could not commit transaction: %v", err)
+	}
+
+	log.Printf("Successfully inserted %d service types", len(serviceTypes))
+	return nil
+}
+
 // Load reads JSON data and loads them into the database.
 func (l *LoaderService) Load() error {
 	// Step 1: Setup the database (create necessary tables)
@@ -125,6 +171,12 @@ func (l *LoaderService) Load() error {
 	log.Printf("Started loading %d network element types", len(jsonData.NetworkElementTypes))
 	if err := l.LoadNetworkElementTypes(jsonData.NetworkElementTypes); err != nil {
 		return fmt.Errorf("failed to load network element types: %v", err)
+	}
+
+	// Step 5: Load Service Types
+	log.Printf("Started loading %d service types", len(jsonData.ServiceTypes))
+	if err := l.LoadServiceTypes(jsonData.ServiceTypes); err != nil {
+		return fmt.Errorf("failed to load service types: %v", err)
 	}
 
 	return nil

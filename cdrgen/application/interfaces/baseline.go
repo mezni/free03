@@ -21,16 +21,16 @@ type ServiceType struct {
 	Description       string  `json:"Description"`
 	NetworkTechnology string  `json:"NetworkTechnology"`
 	BearerType        string  `json:"BearerType"`
-	JitterMin         int `json:"JitterMin"`
-	JitterMax         float64 `json:"JitterMax"`
-	LatencyMin        float64 `json:"LatencyMin"`
-	LatencyMax        float64 `json:"LatencyMax"`
-	ThroughputMin     float64 `json:"ThroughputMin"`
-	ThroughputMax     float64 `json:"ThroughputMax"`
+	JitterMin         int     `json:"JitterMin"`
+	JitterMax         int     `json:"JitterMax"`
+	LatencyMin        int     `json:"LatencyMin"`
+	LatencyMax        int     `json:"LatencyMax"`
+	ThroughputMin     int     `json:"ThroughputMin"`
+	ThroughputMax     int     `json:"ThroughputMax"`
 	PacketLossMin     float64 `json:"PacketLossMin"`
 	PacketLossMax     float64 `json:"PacketLossMax"`
-	CallSetupTimeMin  float64 `json:"CallSetupTimeMin"`
-	CallSetupTimeMax  float64 `json:"CallSetupTimeMax"`
+	CallSetupTimeMin  int     `json:"CallSetupTimeMin"`
+	CallSetupTimeMax  int     `json:"CallSetupTimeMax"`
 	MosMin            float64 `json:"MosMin"`
 	MosMax            float64 `json:"MosMax"`
 }

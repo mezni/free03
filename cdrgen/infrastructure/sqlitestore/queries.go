@@ -1,4 +1,5 @@
 package sqlitestore
+
 const (
 	CreateNetworkTechnologiesTable = `
 		CREATE TABLE IF NOT EXISTS network_technologies (
@@ -39,4 +40,46 @@ const (
 		SELECT id, name, description, network_technology FROM network_element_types;`
 )
 
+const (
+	CreateServiceTypesTable = `
+		CREATE TABLE IF NOT EXISTS service_types (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL,
+			network_technology TEXT NOT NULL,
+			bearer_type TEXT NOT NULL,
+			jitter_min INTEGER NOT NULL,
+			jitter_max INTEGER NOT NULL,
+			latency_min INTEGER NOT NULL,
+			latency_max INTEGER NOT NULL,
+			throughput_min INTEGER NOT NULL,
+			throughput_max INTEGER NOT NULL,
+			packet_loss_min REAL NOT NULL,
+			packet_loss_max REAL NOT NULL,
+			call_setup_time_min INTEGER NOT NULL,
+			call_setup_time_max INTEGER NOT NULL,
+			mos_min REAL NOT NULL,
+			mos_max REAL NOT NULL
+		);`
 
+	SelectServiceTypesByNameAndTech = `
+		SELECT id FROM service_types WHERE name = ? AND network_technology = ?;`
+
+	InsertServiceType = `
+		INSERT INTO service_types (
+			name, description, network_technology, bearer_type,
+			jitter_min, jitter_max, latency_min, latency_max,
+			throughput_min, throughput_max, packet_loss_min,
+			packet_loss_max, call_setup_time_min, call_setup_time_max,
+			mos_min, mos_max
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
+
+	SelectAllServiceTypes = `
+		SELECT id, name, description, network_technology, bearer_type,
+			jitter_min, jitter_max, latency_min, latency_max,
+			throughput_min, throughput_max, packet_loss_min,
+			packet_loss_max, call_setup_time_min, call_setup_time_max,
+			mos_min, mos_max
+		FROM service_types;`
+)
