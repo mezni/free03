@@ -22,6 +22,7 @@ type LoaderService struct {
 	ServiceNodeRepo        *sqlitestore.ServiceNodeRepository
 	LocationRepo           *sqlitestore.LocationRepository
 	NetworkElementRepo     *sqlitestore.NetworkElementRepository
+	CustomerRepo     *sqlitestore.CustomerRepository
 }
 
 // NewLoaderService initializes the LoaderService with all repositories.
@@ -44,6 +45,7 @@ func NewLoaderService(dbFile string) (*LoaderService, error) {
 		ServiceNodeRepo:        sqlitestore.NewServiceNodeRepository(db),
 		LocationRepo:           sqlitestore.NewLocationRepository(db),
 		NetworkElementRepo:     sqlitestore.NewNetworkElementRepository(db),
+		CustomerRepo:     sqlitestore.NewCustomerRepository(db),
 	}, nil
 }
 
@@ -66,6 +68,9 @@ func (l *LoaderService) SetupDatabase() error {
 	}
 	if err := l.NetworkElementRepo.CreateTable(); err != nil {
 		return fmt.Errorf("failed to create network elements table: %v", err)
+	}
+	if err := l.CustomerRepo.CreateTable(); err != nil {
+		return fmt.Errorf("failed to create customers table: %v", err)
 	}
 	log.Println("All tables created successfully.")
 	return nil
@@ -241,6 +246,28 @@ func (l *LoaderService) LoadNetworkElements(networkElements []entities.NetworkEl
 	return nil
 }
 
+func (l *LoaderService) LoadCustomers(customers []entities.Customer) error {
+	tx, err := l.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("could not begin transaction: %v", err)
+	}
+
+	for _, cus := range customers {
+		if err := l.CustomerRepo.Insert(cus); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error saving customer %s: %v", cus.MSISDN, err)
+		}
+		log.Printf("Successfully inserted customer: %s", cus.MSISDN)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("could not commit transaction: %v", err)
+	}
+
+	log.Printf("Successfully inserted %d customers", len(customers))
+	return nil
+}
+
 func (l *LoaderService) Load(yamlFilename string) error {
 	data, err := ioutil.ReadFile(yamlFilename)
 	if err != nil {
@@ -334,6 +361,22 @@ func (l *LoaderService) Load(yamlFilename string) error {
 	// Load network elements
 	if err := l.LoadNetworkElements(convertedNetworkElements); err != nil {
 		return fmt.Errorf("failed to load network elements: %v", err)
+	}
+
+	customers, err := factories.GenerateCustomers(&businessConfig)
+	if err != nil {
+		return fmt.Errorf("error generating customers: %v", err)
+	}
+
+	convertedCustomers := make([]entities.Customer, len(customers))
+	for i, cus := range customers {
+		if cus != nil {
+			convertedCustomers[i] = *cus 
+		}
+	}
+
+	if err := l.LoadCustomers(convertedCustomers); err != nil {
+		return fmt.Errorf("failed to load customers: %v", err)
 	}
 
 	return nil
