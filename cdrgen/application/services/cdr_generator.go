@@ -4,15 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-
+	"time"
 
 //	"github.com/mezni/wovoka/cdrgen/domain/entities"
-	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
+	"github.com/mezni/wovoka/cdrgen/domain/factories"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/inmemstore"
+	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 )
 
 type CdrGeneratorService struct {
-	DB                     *sql.DB
+	DB                           *sql.DB
 	NetworkTechSqliteRepo        *sqlitestore.NetworkTechnologyRepository
 	NetworkElementTypeSqliteRepo *sqlitestore.NetworkElementTypeRepository
 	ServiceTypeSqliteRepo        *sqlitestore.ServiceTypeRepository
@@ -20,10 +21,10 @@ type CdrGeneratorService struct {
 	LocationSqliteRepo           *sqlitestore.LocationRepository
 	NetworkElementSqliteRepo     *sqlitestore.NetworkElementRepository
 	CustomerSqliteRepo           *sqlitestore.CustomerRepository
-	NetworkTechInmemRepo        *inmemstore.InMemNetworkTechnologyRepository
-	NetworkElementInmemRepo     *inmemstore.InMemNetworkElementRepository
-	ServiceTypeInmemRepo        *inmemstore.InMemServiceTypeRepository
-	CustomerInmemRepo           *inmemstore.InMemCustomerRepository   
+	NetworkTechInmemRepo         *inmemstore.InMemNetworkTechnologyRepository
+	NetworkElementInmemRepo      *inmemstore.InMemNetworkElementRepository
+	ServiceTypeInmemRepo         *inmemstore.InMemServiceTypeRepository
+	CustomerInmemRepo            *inmemstore.InMemCustomerRepository
 }
 
 // NewLoaderService initializes the LoaderService with all repositories.
@@ -39,7 +40,7 @@ func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 	}
 
 	return &CdrGeneratorService{
-		DB:                     db,
+		DB:                           db,
 		NetworkTechSqliteRepo:        sqlitestore.NewNetworkTechnologyRepository(db),
 		NetworkElementTypeSqliteRepo: sqlitestore.NewNetworkElementTypeRepository(db),
 		ServiceTypeSqliteRepo:        sqlitestore.NewServiceTypeRepository(db),
@@ -48,9 +49,9 @@ func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 		NetworkElementSqliteRepo:     sqlitestore.NewNetworkElementRepository(db),
 		CustomerSqliteRepo:           sqlitestore.NewCustomerRepository(db),
 		NetworkTechInmemRepo:         inmemstore.NewInMemNetworkTechnologyRepository(),
-	    NetworkElementInmemRepo:      inmemstore.NewInMemNetworkElementRepository(),
-	    ServiceTypeInmemRepo:         inmemstore.NewInMemServiceTypeRepository(),
-	    CustomerInmemRepo:         inmemstore.NewInMemCustomerRepository(),
+		NetworkElementInmemRepo:      inmemstore.NewInMemNetworkElementRepository(),
+		ServiceTypeInmemRepo:         inmemstore.NewInMemServiceTypeRepository(),
+		CustomerInmemRepo:            inmemstore.NewInMemCustomerRepository(),
 	}, nil
 }
 
@@ -71,8 +72,6 @@ func (c *CdrGeneratorService) SetupCache() error {
 
 	log.Printf("successfully cached %d network technologies", len(networkTechnologies))
 
-
-
 	networkElements, err := c.NetworkElementSqliteRepo.GetAll()
 	if err != nil {
 		return fmt.Errorf("failed to fetch network elements from SQLite repository: %v", err)
@@ -88,7 +87,6 @@ func (c *CdrGeneratorService) SetupCache() error {
 
 	log.Printf("successfully cached %d network elements", len(networkElements))
 
-
 	serviceTypes, err := c.ServiceTypeSqliteRepo.GetAll()
 	if err != nil {
 		return fmt.Errorf("failed to fetch service types from SQLite repository: %v", err)
@@ -103,7 +101,6 @@ func (c *CdrGeneratorService) SetupCache() error {
 	}
 
 	log.Printf("successfully cached %d service types", len(serviceTypes))
-
 
 	customers, err := c.CustomerSqliteRepo.GetAll()
 	if err != nil {
@@ -123,21 +120,30 @@ func (c *CdrGeneratorService) SetupCache() error {
 	return nil
 }
 
-
-func (c *CdrGeneratorService) Generate() error {
+func (c *CdrGeneratorService) Generate() ( error) {
 	// Setup the cache
 	if err := c.SetupCache(); err != nil {
-		return fmt.Errorf("failed to set up cache: %v", err)
+		return  fmt.Errorf("failed to set up cache: %v", err)
 	}
 
-	callingCustomer, err := c.CustomerInmemRepo.GetRandomByCustomerType("Home")
+	// Get service types from the in-memory repository
+	serviceTypes, err := c.ServiceTypeInmemRepo.GetAll()
 	if err != nil {
-		log.Fatalf("Error retrieving random customer: %v", err)
+		return  fmt.Errorf("failed to fetch service types: %v", err)
 	}
-	calledCustomer, err := c.CustomerInmemRepo.GetRandomByCustomerType("Home")
+
+	// Prepare configuration for CDR generation
+	config := map[string]interface{}{
+		"serviceTypes": serviceTypes,
+		"startTime":    time.Now(),
+	}
+
+	// Generate CDRs
+	cdrs, err := factories.GenerateCdr(config)
 	if err != nil {
-		log.Fatalf("Error retrieving random customer: %v", err)
+		return  fmt.Errorf("error generating CDRs: %v", err)
 	}
-	fmt.Println(" %s  %s",callingCustomer.MSISDN,calledCustomer.MSISDN)
+	fmt.Println(cdrs)
+
 	return nil
 }
