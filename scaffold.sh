@@ -22,7 +22,7 @@ BASE_DIR="cdrgen"
 SUBCOMMANDS=("cdrgen" "cdrcfg")
 
 # List of files to add in specific directories
-FILES=("network_technology.go" "network_element_type.go" "service_type.go")
+FILES=("cdr.go")
 
 # Create the base project directory
 create_directory "$BASE_DIR"
@@ -61,11 +61,12 @@ create_directory "$BASE_DIR/configs"
 for FILE in "${FILES[@]}"; do
     create_file "$BASE_DIR/domain/entities/$FILE"
     create_file "$BASE_DIR/domain/repositories/$FILE"
+    create_file "$BASE_DIR/domain/factories/$FILE"
 #    create_file "$BASE_DIR/domain/factories/$FILE"
 #    create_file "$BASE_DIR/application/dtos/$FILE"
 #    create_file "$BASE_DIR/application/mappers/$FILE"
     create_file "$BASE_DIR/application/services/$FILE"
-    create_file "$BASE_DIR/infrastructure/sqlitestore/$FILE"
+    create_file "$BASE_DIR/infrastructure/inmemstore/$FILE"
 done
 
 go mod init github.com/mezni/wovoka
