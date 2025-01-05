@@ -22,7 +22,7 @@ type LoaderService struct {
 	ServiceNodeRepo        *sqlitestore.ServiceNodeRepository
 	LocationRepo           *sqlitestore.LocationRepository
 	NetworkElementRepo     *sqlitestore.NetworkElementRepository
-	CustomerRepo     *sqlitestore.CustomerRepository
+	CustomerRepo           *sqlitestore.CustomerRepository
 }
 
 // NewLoaderService initializes the LoaderService with all repositories.
@@ -45,7 +45,7 @@ func NewLoaderService(dbFile string) (*LoaderService, error) {
 		ServiceNodeRepo:        sqlitestore.NewServiceNodeRepository(db),
 		LocationRepo:           sqlitestore.NewLocationRepository(db),
 		NetworkElementRepo:     sqlitestore.NewNetworkElementRepository(db),
-		CustomerRepo:     sqlitestore.NewCustomerRepository(db),
+		CustomerRepo:           sqlitestore.NewCustomerRepository(db),
 	}, nil
 }
 
@@ -371,7 +371,7 @@ func (l *LoaderService) Load(yamlFilename string) error {
 	convertedCustomers := make([]entities.Customer, len(customers))
 	for i, cus := range customers {
 		if cus != nil {
-			convertedCustomers[i] = *cus 
+			convertedCustomers[i] = *cus
 		}
 	}
 

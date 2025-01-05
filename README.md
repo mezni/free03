@@ -1,3 +1,3 @@
-export VERSION=0.0.107
-export MESSAGE="Revamp"
+export VERSION=0.0.108
+export MESSAGE="Finilized cdrcfg"
 ./commit.sh $VERSION "$MESSAGE"
