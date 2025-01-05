@@ -1,3 +1,3 @@
-export VERSION=0.0.110
-export MESSAGE="Finalized init cache"
+export VERSION=0.0.111
+export MESSAGE="Fix generating IMSI IMEI"
 ./commit.sh $VERSION "$MESSAGE"

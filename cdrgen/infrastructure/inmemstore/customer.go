@@ -2,7 +2,9 @@ package inmemstore
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
@@ -44,4 +46,29 @@ func (repo *InMemCustomerRepository) GetAll() ([]entities.Customer, error) {
 	}
 
 	return customers, nil
+}
+
+// GetRandomByCustomerType retrieves a random customer of a specified type.
+func (repo *InMemCustomerRepository) GetRandomByCustomerType(customerType string) (*entities.Customer, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	// Collect customers matching the type
+	var matchingCustomers []entities.Customer
+	for _, customer := range repo.data {
+		if customer.CustomerType == customerType {
+			matchingCustomers = append(matchingCustomers, customer)
+		}
+	}
+
+	// Return error if no matching customers found
+	if len(matchingCustomers) == 0 {
+		return nil, errors.New("no customers found for the given customer type")
+	}
+
+	// Seed random generator and pick a random customer
+	rand.Seed(time.Now().UnixNano())
+	randomIndex := rand.Intn(len(matchingCustomers))
+
+	return &matchingCustomers[randomIndex], nil
 }

@@ -19,8 +19,8 @@ func GenerateCustomers(config *mappers.BusinessConfig) ([]*entities.Customer, er
 	// Generate customers for home MSISDN
 	for i := 0; i < config.Customer.Msisdn.Home.Count; i++ {
 		msisdn := generateMsisdn(config.Customer.Msisdn.Home.CountryCode, config.Customer.Msisdn.Home.NdcRanges, config.Customer.Msisdn.Home.Digits)
-		imsi := generateRandomNumber(config.Customer.Msisdn.Home.Digits)
-		imei := generateRandomNumber(config.Customer.Msisdn.Home.Digits)
+		imsi := generateRandomNumber(15)
+		imei := generateRandomNumber(15)
 		customer := &entities.Customer{
 			MSISDN:       msisdn,
 			IMSI:         imsi,
@@ -35,8 +35,8 @@ func GenerateCustomers(config *mappers.BusinessConfig) ([]*entities.Customer, er
 	// Generate customers for national MSISDN
 	for i := 0; i < config.Customer.Msisdn.National.Count; i++ {
 		msisdn := generateMsisdn(config.Customer.Msisdn.National.CountryCode, config.Customer.Msisdn.National.NdcRanges, config.Customer.Msisdn.National.Digits)
-		imsi := generateRandomNumber(config.Customer.Msisdn.National.Digits)
-		imei := generateRandomNumber(config.Customer.Msisdn.National.Digits)
+		imsi := generateRandomNumber(15)
+		imei := generateRandomNumber(15)
 		customer := &entities.Customer{
 			MSISDN:       msisdn,
 			IMSI:         imsi,

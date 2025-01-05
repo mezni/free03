@@ -130,6 +130,14 @@ func (c *CdrGeneratorService) Generate() error {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
 
-	// Additional logic for generation can follow here
+	callingCustomer, err := c.CustomerInmemRepo.GetRandomByCustomerType("Home")
+	if err != nil {
+		log.Fatalf("Error retrieving random customer: %v", err)
+	}
+	calledCustomer, err := c.CustomerInmemRepo.GetRandomByCustomerType("Home")
+	if err != nil {
+		log.Fatalf("Error retrieving random customer: %v", err)
+	}
+	fmt.Println(" %s  %s",callingCustomer.MSISDN,calledCustomer.MSISDN)
 	return nil
 }
