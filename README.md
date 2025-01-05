@@ -1,3 +1,3 @@
-export VERSION=0.0.112
-export MESSAGE="work generate CDR"
+export VERSION=0.0.113
+export MESSAGE="Fix CdrId seq"
 ./commit.sh $VERSION "$MESSAGE"

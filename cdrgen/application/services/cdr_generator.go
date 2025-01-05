@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
-
+	"math/rand"
 //	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	"github.com/mezni/wovoka/cdrgen/domain/factories"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/inmemstore"
@@ -53,6 +53,17 @@ func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 		ServiceTypeInmemRepo:         inmemstore.NewInMemServiceTypeRepository(),
 		CustomerInmemRepo:            inmemstore.NewInMemCustomerRepository(),
 	}, nil
+}
+
+func getLastNearestStartInterval(t time.Time) time.Time {
+	// Calculate minutes since the start of the day
+	totalMinutes := t.Hour()*60 + t.Minute()
+
+	// Round down to the nearest 30-minute interval
+	intervalMinutes := totalMinutes / 30 * 30
+
+	// Create a new time object with the rounded minutes
+	return time.Date(t.Year(), t.Month(), t.Day(), intervalMinutes/60, intervalMinutes%60, 0, 0, t.Location())
 }
 
 func (c *CdrGeneratorService) SetupCache() error {
@@ -120,30 +131,53 @@ func (c *CdrGeneratorService) SetupCache() error {
 	return nil
 }
 
-func (c *CdrGeneratorService) Generate() ( error) {
+func (c *CdrGeneratorService) Generate() error {
 	// Setup the cache
 	if err := c.SetupCache(); err != nil {
-		return  fmt.Errorf("failed to set up cache: %v", err)
+		return fmt.Errorf("failed to set up cache: %v", err)
 	}
 
 	// Get service types from the in-memory repository
 	serviceTypes, err := c.ServiceTypeInmemRepo.GetAll()
 	if err != nil {
-		return  fmt.Errorf("failed to fetch service types: %v", err)
+		return fmt.Errorf("failed to fetch service types: %v", err)
 	}
+
+	// Get the nearest start time interval
+	startTimeInterval := getLastNearestStartInterval(time.Now())
+
+	// Convert startTimeInterval to Unix timestamp (seconds since epoch)
+	unixTimestamp := startTimeInterval.Unix()
+
+	// Get the last 6 digits of the Unix timestamp
+	last6Digits := unixTimestamp % 1000000
+
+	// Generate a random 2-digit number
+	randomDigits := rand.Intn(90) + 10 // generates a number between 10 and 99
+
+	// Concatenate the random digits with the last 6 digits as an integer
+	cdrIdSeq := int64(randomDigits)*1000000 + last6Digits
+
+	// Print the cdrIdSeq (integer)
+	log.Printf("Generated cdrIdSeq: %d", cdrIdSeq)
 
 	// Prepare configuration for CDR generation
 	config := map[string]interface{}{
 		"serviceTypes": serviceTypes,
-		"startTime":    time.Now(),
+		"cdrIdSeq":     cdrIdSeq,  // cdrIdSeq is now an int64
+		"startTime":    startTimeInterval,
 	}
 
 	// Generate CDRs
 	cdrs, err := factories.GenerateCdr(config)
 	if err != nil {
-		return  fmt.Errorf("error generating CDRs: %v", err)
+		return fmt.Errorf("error generating CDRs: %v", err)
 	}
-	fmt.Println(cdrs)
+
+	// Print out the generated CDR IDs (or more detailed information if needed)
+	for _, cdr := range cdrs {
+		log.Printf("Generated CDR with ID: %d", cdr.ID)
+	}
 
 	return nil
 }
