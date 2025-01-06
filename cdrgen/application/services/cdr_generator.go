@@ -3,7 +3,7 @@ package services
 import (
 	"database/sql"
 	"fmt"
-	"github.com/mezni/wovoka/cdrgen/domain/factories"
+	//	"github.com/mezni/wovoka/cdrgen/domain/factories"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/inmemstore"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 	"log"
@@ -52,32 +52,6 @@ func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 		ServiceTypeInmemRepo:         inmemstore.NewInMemServiceTypeRepository(),
 		CustomerInmemRepo:            inmemstore.NewInMemCustomerRepository(),
 	}, nil
-}
-
-func getLastNearestStartIntervalAndCdrIdSeq(t time.Time) (time.Time, int64) {
-	// Calculate minutes since the start of the day
-	totalMinutes := t.Hour()*60 + t.Minute()
-
-	// Round down to the nearest 30-minute interval
-	intervalMinutes := totalMinutes / 30 * 30
-
-	// Create a new time object with the rounded minutes
-	startTimeInterval := time.Date(t.Year(), t.Month(), t.Day(), intervalMinutes/60, intervalMinutes%60, 0, 0, t.Location())
-
-	// Convert startTimeInterval to Unix timestamp (seconds since epoch)
-	unixTimestamp := startTimeInterval.Unix()
-
-	// Get the last 6 digits of the Unix timestamp
-	last6Digits := unixTimestamp % 1000000
-
-	// Generate a random 2-digit number
-	randomDigits := rand.Intn(90) + 10 // generates a number between 10 and 99
-
-	// Concatenate the random digits with the last 6 digits as an integer
-	cdrIdSeq := int64(randomDigits)*1000000 + last6Digits
-
-	// Return both startTimeInterval and cdrIdSeq
-	return startTimeInterval, cdrIdSeq
 }
 
 func (c *CdrGeneratorService) SetupCache() error {
@@ -145,41 +119,51 @@ func (c *CdrGeneratorService) SetupCache() error {
 	return nil
 }
 
+func RandomNetwork(twoGProb, threeGProb, fourGProb float64) string {
+	rand.Seed(time.Now().UnixNano())
+	randomNumber := rand.Float64()
+
+	if randomNumber < twoGProb {
+		return "2G"
+	} else if randomNumber < twoGProb+threeGProb {
+		return "3G"
+	} else if randomNumber < twoGProb+threeGProb+fourGProb {
+		return "4G"
+	} else {
+		return "5G"
+	}
+}
+
 func (c *CdrGeneratorService) Generate() error {
 	// Setup the cache
 	if err := c.SetupCache(); err != nil {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
 
-	// Get the nearest start time interval and the cdrIdSeq
-	startTimeInterval, cdrIdSeq := getLastNearestStartIntervalAndCdrIdSeq(time.Now())
+	// Randomly select a network technology
+	networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
+	log.Printf("Selected Network Technology: %s", networkTechnology)
 
-	// Print the generated cdrIdSeq (integer)
-	log.Printf("Generated cdrIdSeq: %d", cdrIdSeq)
-
-	// Get service types from the in-memory repository
-	serviceTypes, err := c.ServiceTypeInmemRepo.GetAll()
+	// Fetch calling customer
+	callingCustomer, err := c.CustomerInmemRepo.GetRandomByCustomerType("Home")
 	if err != nil {
-		return fmt.Errorf("failed to fetch service types: %v", err)
+		return fmt.Errorf("failed to fetch calling customer: %v", err)
 	}
+	log.Printf("Calling Customer: %+v", callingCustomer)
 
-	// Prepare configuration for CDR generation
-	config := map[string]interface{}{
-		"serviceTypes": serviceTypes,
-		"cdrIdSeq":     cdrIdSeq, // cdrIdSeq is now an int64
-		"startTime":    startTimeInterval,
+	// Fetch called customer ensuring it's different from calling customer
+	var calledCustomer inmemstore.Customer
+	for {
+		calledCustomer, err = c.CustomerInmemRepo.GetRandomByCustomerType("Home")
+		if err != nil {
+			return fmt.Errorf("failed to fetch called customer: %v", err)
+		}
+		if calledCustomer.ID != callingCustomer.ID {
+			break
+		}
+		log.Printf("Retrying to fetch a different called customer...")
 	}
-
-	// Generate CDRs
-	cdrs, err := factories.GenerateCdr(config)
-	if err != nil {
-		return fmt.Errorf("error generating CDRs: %v", err)
-	}
-
-	// Print out the generated CDR IDs (or more detailed information if needed)
-	for _, cdr := range cdrs {
-		log.Printf("Generated CDR with ID: %d service: %s NT: %s", cdr.ID, cdr.ServiceTypeName, cdr.NetworkTechnology)
-	}
+	log.Printf("Called Customer: %+v", calledCustomer)
 
 	return nil
 }
