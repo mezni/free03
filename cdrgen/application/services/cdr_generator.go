@@ -201,10 +201,9 @@ func (c *CdrGeneratorService) Generate() error {
 	if err := c.SetupCache(); err != nil {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
-
+	cdrId := 0
 	// Randomly select a network technology
 	networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
-	log.Printf("Selected Network Technology: %s", networkTechnology)
 
 	customerTypes := []string{"Home", "National", "International"}
 	callerProbabilities := []float64{0.75, 0.2, 0.05}
@@ -218,15 +217,31 @@ func (c *CdrGeneratorService) Generate() error {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-	log.Printf("%s %s", callerType, calleeType)
+	var callType string
+	if callerType == "Home" && calleeType == "Home" {
+		callType = "Local"
+	} else {
+		callType = "Other" // Handle other types appropriately
+	}
 
 	// Get two different customers
 	callingCustomer, calledCustomer, err := c.GetCustomers(callerType, calleeType)
 	if err != nil {
 		return fmt.Errorf("failed to get two different customers: %v", err)
 	}
+	cdrId++
+	cdr := &entities.Cdr{
+		ID:                  cdrId,
+		CallingPartyNumber:  callingCustomer.MSISDN,
+		CalledPartyNumber:   calledCustomer.MSISDN,
+		IMSI:                callingCustomer.IMSI,
+		IMEI:                calledCustomer.IMEI,
+		CallType:            callType,
+		CallReferenceNumber: fmt.Sprintf("REF-%d", cdrId),
+		PartialIndicator:    false,
+		NetworkTechnology:   networkTechnology,
+	}
 
-	log.Printf("Calling Customer: %+v", callingCustomer)
-	log.Printf("Called Customer: %+v", calledCustomer)
+	log.Printf("Calling Customer: %+v", cdr)
 	return nil
 }

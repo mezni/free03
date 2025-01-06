@@ -36,7 +36,7 @@ func GenerateCdr(config map[string]interface{}) ([]*entities.Cdr, error) {
 	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
 
-	cdrIdSeq := config["cdrIdSeq"].(int64) // The initial cdrIdSeq
+	cdrIdSeq := config["cdrIdSeq"].(int) // The initial cdrIdSeq
 	startTime := config["startTime"].(time.Time)
 
 	serviceTypes := []entities.ServiceType{ /* populate this slice with your data */ }
@@ -55,8 +55,8 @@ func GenerateCdr(config map[string]interface{}) ([]*entities.Cdr, error) {
 
 		// Create a new CDR
 		cdr := &entities.Cdr{
-			ID:                cdrIdSeq,
-			ServiceTypeName:   randomService.Name,
+			ID: cdrIdSeq,
+			//			ServiceTypeName:   randomService.Name,
 			NetworkTechnology: randomService.NetworkTechnology,
 		}
 
