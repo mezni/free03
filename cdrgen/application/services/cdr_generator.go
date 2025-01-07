@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"sync/atomic"
 	"time"
+	"strconv"
 )
 
 type CdrGeneratorService struct {
@@ -136,9 +137,40 @@ func RandomService(voice, sms, data float64) string {
 	}
 }
 
-// GetNextCdrID returns a unique, thread-safe CDR ID.
+func generateCDRID() int32 {
+	// Seed the random number generator
+	rand.Seed(time.Now().UnixNano())
+
+	// Get the current Unix timestamp
+	currentTime := time.Now().Unix()
+
+	// Extract the last 6 digits of the timestamp
+	lastSixDigits := currentTime % 1000000
+
+	// Generate a random two-digit number
+	randomTwoDigits := rand.Intn(90) + 10
+
+	// Combine the two-digit number and the last six digits
+	combined := fmt.Sprintf("%02d%06d", randomTwoDigits, lastSixDigits)
+
+	// Convert the combined string to an int32
+	combinedInt64, err := strconv.ParseInt(combined, 10, 32)
+	if err != nil {
+		// Handle the error if conversion fails
+		fmt.Printf("Error converting combined to int32: %v\n", err)
+		return 0 // Return 0 or an error-specific value
+	}
+
+	// Return the combined value as int32
+	return int32(combinedInt64)
+}
+
 func getNextCdrID() int {
-	return int(atomic.AddInt32(&cdrId, 1))
+	// Store the new CDR ID atomically
+	atomic.StoreInt32(&cdrId, generateCDRID())
+
+	// Return the CDR ID as int (converted from int32)
+	return int(atomic.LoadInt32(&cdrId))
 }
 
 func (c *CdrGeneratorService) Generate() error {
@@ -164,12 +196,28 @@ func (c *CdrGeneratorService) Generate() error {
 		fmt.Printf("Random NetworkElement: %+v\n", networkElement)
 	}
 
+	var tac string
+	if networkElement.TAC != nil {
+		tac = *networkElement.TAC
+	} else {
+		tac = ""
+	}
+
+	var lac string
+	if networkElement.LAC != nil {
+		lac = *networkElement.LAC
+	} else {
+		lac = ""
+	}
+
 	cdrId := getNextCdrID()
 	cdr := &entities.Cdr{
-		ID: cdrId,
-		//		TAC: *networkElement.TAC,
-		//		LAC: *networkElement.LAC,
-		CellID: *networkElement.CellID,
+		ID:                cdrId,
+		ServiceType:       serviceType.Name,
+		NetworkTechnology: networkTechnology,
+		TAC:               tac,
+		LAC:               lac,
+		CellID:            *networkElement.CellID,
 	}
 	log.Printf("Generated CDR: %+v", cdr)
 	return nil
