@@ -2,9 +2,11 @@ package inmemstore
 
 import (
 	"errors"
-	"sync"
-
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"math/rand"
+	"strings"
+	"sync"
+	"time"
 )
 
 // InMemServiceTypeRepository is an in-memory implementation of ServiceTypeRepository.
@@ -15,6 +17,8 @@ type InMemServiceTypeRepository struct {
 
 // NewInMemServiceTypeRepository creates a new in-memory repository instance for service types.
 func NewInMemServiceTypeRepository() *InMemServiceTypeRepository {
+	// Initialize the random seed
+	rand.Seed(time.Now().UnixNano())
 	return &InMemServiceTypeRepository{
 		data: make(map[int]entities.ServiceType),
 	}
@@ -45,3 +49,36 @@ func (repo *InMemServiceTypeRepository) GetAll() ([]entities.ServiceType, error)
 
 	return serviceTypes, nil
 }
+
+// GetByNetworkTechnologyAndName retrieves a ServiceType where NetworkTechnology matches exactly,
+// and Name contains the given name in a case-insensitive manner. If no such match is found,
+// it returns a random ServiceType with the same NetworkTechnology.
+func (repo *InMemServiceTypeRepository) GetByNetworkTechnologyAndName(networkTechnology, name string) (entities.ServiceType, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	upperName := strings.ToUpper(name)
+	var fallbackCandidates []entities.ServiceType
+
+	for _, serviceType := range repo.data {
+		// Check if NetworkTechnology matches exactly
+		if serviceType.NetworkTechnology == networkTechnology {
+			// Add to fallback candidates
+			fallbackCandidates = append(fallbackCandidates, serviceType)
+
+			// Check if Name contains the input name (case-insensitive)
+			if strings.Contains(strings.ToUpper(serviceType.Name), upperName) {
+				return serviceType, nil
+			}
+		}
+	}
+
+	// If no exact match, return a random fallback candidate
+	if len(fallbackCandidates) > 0 {
+		randomIndex := rand.Intn(len(fallbackCandidates))
+		return fallbackCandidates[randomIndex], nil
+	}
+
+	return entities.ServiceType{}, errors.New("no service type found for the given network technology and name")
+}
+

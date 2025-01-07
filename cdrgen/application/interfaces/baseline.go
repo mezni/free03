@@ -331,6 +331,23 @@ func ReadConfig() (Config, error) {
             "MosMax": 3.5
         },
         {
+            "Name": "Data",
+            "NetworkTechnology": "2G",
+            "BearerType": "Packet-Switched",
+            "JitterMin": 10,
+            "JitterMax": 50,
+            "LatencyMin": 200,
+            "LatencyMax": 1000,
+            "ThroughputMin": 10,
+            "ThroughputMax": 50,
+            "PacketLossMin": 0.1,
+            "PacketLossMax": 5,
+            "CallSetupTimeMin": 2000,
+            "CallSetupTimeMax": 5000,
+            "MosMin": 2.5,
+            "MosMax": 3.5
+        },
+        {
             "Name": "Voice Call",
             "NetworkTechnology": "3G",
             "BearerType": "Circuit-Switched",
