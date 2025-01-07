@@ -11,5 +11,8 @@ type Cdr struct {
 	CallType            string
 	CallReferenceNumber string
 	PartialIndicator    bool
+	CallStartTime       string
+	CallEndTime         string
+	CallDurationSec     int
 	NetworkTechnology   string
 }

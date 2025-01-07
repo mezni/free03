@@ -8,6 +8,7 @@ import (
 	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 	"log"
 	"math/rand"
+	"sync/atomic"
 	"time"
 )
 
@@ -26,7 +27,14 @@ type CdrGeneratorService struct {
 	CustomerInmemRepo            *inmemstore.InMemCustomerRepository
 }
 
-// NewLoaderService initializes the LoaderService with all repositories.
+var cdrId int32
+
+// Pre-seed random number generator
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+// NewCdrGeneratorService initializes the CdrGeneratorService with all repositories.
 func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
@@ -55,72 +63,57 @@ func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 }
 
 func (c *CdrGeneratorService) SetupCache() error {
-	// Step 1: Fetch all network technologies from the SQLite repository
+	// Fetch and cache network technologies, elements, service types, and customers
 	networkTechnologies, err := c.NetworkTechSqliteRepo.GetAll()
 	if err != nil {
-		return fmt.Errorf("failed to fetch network technologies from SQLite repository: %v", err)
+		return fmt.Errorf("failed to fetch network technologies: %v", err)
 	}
-
-	// Step 2: Write all network technologies to the in-memory repository
 	for _, tech := range networkTechnologies {
-		err := c.NetworkTechInmemRepo.Insert(tech)
-		if err != nil {
-			log.Printf("warning: failed to insert network technology with ID %d into in-memory repository: %v", tech.ID, err)
+		if err := c.NetworkTechInmemRepo.Insert(tech); err != nil {
+			log.Printf("Warning: failed to insert network technology ID %d: %v", tech.ID, err)
 		}
 	}
-
-	log.Printf("successfully cached %d network technologies", len(networkTechnologies))
 
 	networkElements, err := c.NetworkElementSqliteRepo.GetAll()
 	if err != nil {
-		return fmt.Errorf("failed to fetch network elements from SQLite repository: %v", err)
+		return fmt.Errorf("failed to fetch network elements: %v", err)
 	}
-
-	// Step 2: Write all network technologies to the in-memory repository
 	for _, ne := range networkElements {
-		err := c.NetworkElementInmemRepo.Insert(ne)
-		if err != nil {
-			log.Printf("warning: failed to insert network element with ID %d into in-memory repository: %v", ne.ID, err)
+		if err := c.NetworkElementInmemRepo.Insert(ne); err != nil {
+			log.Printf("Warning: failed to insert network element ID %d: %v", ne.ID, err)
 		}
 	}
-
-	log.Printf("successfully cached %d network elements", len(networkElements))
 
 	serviceTypes, err := c.ServiceTypeSqliteRepo.GetAll()
 	if err != nil {
-		return fmt.Errorf("failed to fetch service types from SQLite repository: %v", err)
+		return fmt.Errorf("failed to fetch service types: %v", err)
 	}
-
-	// Step 2: Write all network technologies to the in-memory repository
 	for _, st := range serviceTypes {
-		err := c.ServiceTypeInmemRepo.Insert(st)
-		if err != nil {
-			log.Printf("warning: failed to insert service types with ID %d into in-memory repository: %v", st.ID, err)
+		if err := c.ServiceTypeInmemRepo.Insert(st); err != nil {
+			log.Printf("Warning: failed to insert service type ID %d: %v", st.ID, err)
 		}
 	}
-
-	log.Printf("successfully cached %d service types", len(serviceTypes))
 
 	customers, err := c.CustomerSqliteRepo.GetAll()
 	if err != nil {
-		return fmt.Errorf("failed to fetch customers from SQLite repository: %v", err)
+		return fmt.Errorf("failed to fetch customers: %v", err)
 	}
-
-	// Step 2: Write all network technologies to the in-memory repository
 	for _, cs := range customers {
-		err := c.CustomerInmemRepo.Insert(cs)
-		if err != nil {
-			log.Printf("warning: failed to insert customers with ID %d into in-memory repository: %v", cs.ID, err)
+		if err := c.CustomerInmemRepo.Insert(cs); err != nil {
+			log.Printf("Warning: failed to insert customer ID %d: %v", cs.ID, err)
 		}
 	}
 
-	log.Printf("successfully cached %d customers", len(customers))
-
+	log.Println("Cache setup complete.")
 	return nil
 }
 
+// GetNextCdrID returns a unique, thread-safe CDR ID.
+func getNextCdrID() int {
+	return int(atomic.AddInt32(&cdrId, 1))
+}
+
 func RandomNetwork(twoGProb, threeGProb, fourGProb float64) string {
-	rand.Seed(time.Now().UnixNano())
 	randomNumber := rand.Float64()
 
 	if randomNumber < twoGProb {
@@ -134,42 +127,11 @@ func RandomNetwork(twoGProb, threeGProb, fourGProb float64) string {
 	}
 }
 
-func (c *CdrGeneratorService) GetCustomers(callingCustomerType, calledCustomerType string) (entities.Customer, entities.Customer, error) {
-	// Fetch a random customer for the calling party
-	callingCustomerPtr, err := c.CustomerInmemRepo.GetRandomByCustomerType(callingCustomerType)
-	if err != nil {
-		return entities.Customer{}, entities.Customer{}, fmt.Errorf("failed to fetch calling customer: %v", err)
-	}
-	// Dereference the pointer to get the value
-	callingCustomer := *callingCustomerPtr
-
-	var calledCustomer entities.Customer
-
-	// Fetch a random customer for the called party, ensuring it's different from the calling customer
-	for {
-		calledCustomerPtr, err := c.CustomerInmemRepo.GetRandomByCustomerType(calledCustomerType)
-		if err != nil {
-			return entities.Customer{}, entities.Customer{}, fmt.Errorf("failed to fetch called customer: %v", err)
-		}
-		// Dereference the pointer to get the value
-		calledCustomer = *calledCustomerPtr
-
-		// Ensure the called customer is not the same as the calling customer
-		if calledCustomer.ID != callingCustomer.ID {
-			break
-		}
-	}
-
-	return callingCustomer, calledCustomer, nil
-}
-
 func GetRandomCustomerType(customerTypes []string, customerProbabilities []float64) (string, error) {
-	// Validate inputs
 	if len(customerTypes) != len(customerProbabilities) {
 		return "", fmt.Errorf("customerTypes and customerProbabilities must have the same length")
 	}
 
-	// Calculate cumulative probabilities
 	cumulativeProbabilities := make([]float64, len(customerProbabilities))
 	cumulativeSum := 0.0
 	for i, prob := range customerProbabilities {
@@ -182,18 +144,113 @@ func GetRandomCustomerType(customerTypes []string, customerProbabilities []float
 		return "", fmt.Errorf("customerProbabilities must sum to 1, got %f", cumulativeSum)
 	}
 
-	// Generate a random number between 0 and 1
-	rand.Seed(time.Now().UnixNano())
+	// Select customer type based on random number
 	randomNumber := rand.Float64()
-
-	// Select the customer type based on the random number
 	for i, cumProb := range cumulativeProbabilities {
 		if randomNumber <= cumProb {
 			return customerTypes[i], nil
 		}
 	}
-
 	return "", fmt.Errorf("failed to select customer type")
+}
+
+func (c *CdrGeneratorService) GetCustomers(callingCustomerType, calledCustomerType string) (entities.Customer, entities.Customer, error) {
+	// Fetch a random customer for the calling party
+	callingCustomerPtr, err := c.CustomerInmemRepo.GetRandomByCustomerType(callingCustomerType)
+	if err != nil {
+		return entities.Customer{}, entities.Customer{}, fmt.Errorf("failed to fetch calling customer: %v", err)
+	}
+	callingCustomer := *callingCustomerPtr
+
+	var calledCustomer entities.Customer
+
+	// Fetch a random customer for the called party, ensuring it's different from the calling customer
+	for {
+		calledCustomerPtr, err := c.CustomerInmemRepo.GetRandomByCustomerType(calledCustomerType)
+		if err != nil {
+			return entities.Customer{}, entities.Customer{}, fmt.Errorf("failed to fetch called customer: %v", err)
+		}
+		calledCustomer = *calledCustomerPtr
+
+		if calledCustomer.ID != callingCustomer.ID {
+			break
+		}
+	}
+
+	return callingCustomer, calledCustomer, nil
+}
+
+func GetStartOfInterval(inputTime time.Time) time.Time {
+	// Calculate the start of the 30-minute interval
+	hour := inputTime.Hour()
+	minute := inputTime.Minute()
+
+	intervalStartMinute := (minute / 30) * 30
+
+	return time.Date(inputTime.Year(), inputTime.Month(), inputTime.Day(), hour, intervalStartMinute, 0, 0, inputTime.Location())
+}
+
+func GetRandomTimeInInterval(startOfInterval time.Time) time.Time {
+	// Calculate the end of the interval
+	endOfInterval := startOfInterval.Add(30 * time.Minute)
+	randomDuration := time.Duration(rand.Int63n(int64(endOfInterval.Sub(startOfInterval))))
+
+	return startOfInterval.Add(randomDuration)
+}
+
+func GetCallDurationSec() int {
+	// Generate a random call duration
+	randomChoice := rand.Float64()
+
+	if randomChoice < 0.80 {
+		return rand.Intn(600) + 1 // 80% chance for a number between 1 and 600
+	} else if randomChoice < 0.85 {
+		return 0 // 5% chance for 0
+	} else {
+		return rand.Intn(3000) + 601 // 15% chance for a number between 601 and 3600
+	}
+}
+
+func GetCallIntervals(callStartTime, callEndTime, intervalStartTime, intervalEndTime time.Time) ([]map[string]interface{}, error) {
+	var intervals []map[string]interface{}
+
+	// If the call ends before the interval starts, there's no need to process it
+	if callEndTime.Before(intervalStartTime) {
+		return intervals, nil
+	}
+
+	// Recursive case: Generate intervals for the call
+	currentStartTime := callStartTime
+	currentEndTime := intervalEndTime
+
+	for currentStartTime.Before(callEndTime) {
+		if currentStartTime.Before(intervalStartTime) {
+			currentStartTime = intervalStartTime
+		}
+
+		// If the call ends within the current 30-minute interval, adjust the end time
+		if currentEndTime.After(callEndTime) {
+			currentEndTime = callEndTime
+		}
+
+		// Add current interval details to the list
+		intervals = append(intervals, map[string]interface{}{
+			"start":    currentStartTime.Format("2006-01-02 15:04:05"),
+			"end":      currentEndTime.Format("2006-01-02 15:04:05"),
+			"duration": int(currentEndTime.Sub(currentStartTime).Seconds()),
+		})
+
+		// If the call has reached the end, exit the loop
+		if currentEndTime.Equal(callEndTime) {
+			break
+		}
+
+		// Move to the next interval (next 30-minute period)
+		currentStartTime = currentEndTime
+		currentEndTime = currentEndTime.Add(30 * time.Minute)
+	}
+
+	return intervals, nil
 }
 
 func (c *CdrGeneratorService) Generate() error {
@@ -201,27 +258,33 @@ func (c *CdrGeneratorService) Generate() error {
 	if err := c.SetupCache(); err != nil {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
-	cdrId := 0
+
+	currentTime := time.Now()
+	startOfInterval := GetStartOfInterval(currentTime)
+	intervalEndTime := startOfInterval.Add(30 * time.Minute)
+
 	// Randomly select a network technology
 	networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
 
 	customerTypes := []string{"Home", "National", "International"}
 	callerProbabilities := []float64{0.75, 0.2, 0.05}
 	calleeProbabilities := []float64{0.55, 0.4, 0.05}
+
 	callerType, err := GetRandomCustomerType(customerTypes, callerProbabilities)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		return fmt.Errorf("failed to get caller customer type: %v", err)
 	}
 
 	calleeType, err := GetRandomCustomerType(customerTypes, calleeProbabilities)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		return fmt.Errorf("failed to get callee customer type: %v", err)
 	}
+
 	var callType string
 	if callerType == "Home" && calleeType == "Home" {
 		callType = "Local"
 	} else {
-		callType = "Other" // Handle other types appropriately
+		callType = "Other"
 	}
 
 	// Get two different customers
@@ -229,19 +292,74 @@ func (c *CdrGeneratorService) Generate() error {
 	if err != nil {
 		return fmt.Errorf("failed to get two different customers: %v", err)
 	}
-	cdrId++
-	cdr := &entities.Cdr{
-		ID:                  cdrId,
-		CallingPartyNumber:  callingCustomer.MSISDN,
-		CalledPartyNumber:   calledCustomer.MSISDN,
-		IMSI:                callingCustomer.IMSI,
-		IMEI:                calledCustomer.IMEI,
-		CallType:            callType,
-		CallReferenceNumber: fmt.Sprintf("REF-%d", cdrId),
-		PartialIndicator:    false,
-		NetworkTechnology:   networkTechnology,
+
+	callStartTime := GetRandomTimeInInterval(startOfInterval)
+	callDurationSec := GetCallDurationSec()
+
+	// Calculate callEndTime
+	callEndTime := callStartTime.Add(time.Duration(callDurationSec) * time.Second)
+
+	intervals, err := GetCallIntervals(callStartTime, callEndTime, startOfInterval, intervalEndTime)
+	if err != nil {
+		return fmt.Errorf("error in calculating call intervals: %v", err)
 	}
 
-	log.Printf("Calling Customer: %+v", cdr)
+	if len(intervals) == 1 {
+		// Single CDR generation
+		cdrId := getNextCdrID()
+		cdr := &entities.Cdr{
+			ID:                  cdrId,
+			CallingPartyNumber:  callingCustomer.MSISDN,
+			CalledPartyNumber:   calledCustomer.MSISDN,
+			IMSI:                callingCustomer.IMSI,
+			IMEI:                calledCustomer.IMEI,
+			CallType:            callType,
+			CallReferenceNumber: fmt.Sprintf("REF-%d", cdrId),
+			PartialIndicator:    false,
+			CallStartTime:       callStartTime.Format("2006-01-02 15:04:05"),
+			CallEndTime:         callEndTime.Format("2006-01-02 15:04:05"),
+			CallDurationSec:     callDurationSec,
+			NetworkTechnology:   networkTechnology,
+		}
+		log.Printf("Generated CDR: %+v", cdr)
+	} else {
+
+		for i, interval := range intervals {
+			intervalStartTime, err := time.Parse("2006-01-02 15:04:05", interval["start"].(string))
+			if err != nil {
+				return fmt.Errorf("error parsing start time: %v", err)
+			}
+			intervalEndTime, err := time.Parse("2006-01-02 15:04:05", interval["end"].(string))
+			if err != nil {
+				return fmt.Errorf("error parsing end time: %v", err)
+			}
+
+			// Generate CDR ID and call reference number only for the first interval
+			cdrId := getNextCdrID()
+			var callReferenceNumber string
+			if i == 0 {
+				callReferenceNumber = fmt.Sprintf("REF-%d", cdrId)
+			}
+
+			// Create the CDR for the current interval
+			cdr := &entities.Cdr{
+				ID:                  cdrId,
+				CallingPartyNumber:  callingCustomer.MSISDN,
+				CalledPartyNumber:   calledCustomer.MSISDN,
+				IMSI:                callingCustomer.IMSI,
+				IMEI:                calledCustomer.IMEI,
+				CallType:            callType,
+				CallReferenceNumber: callReferenceNumber, // Same reference for the whole call
+				PartialIndicator:    true,
+				CallStartTime:       intervalStartTime.Format("2006-01-02 15:04:05"),
+				CallEndTime:         intervalEndTime.Format("2006-01-02 15:04:05"),
+				CallDurationSec:     interval["duration"].(int),
+				NetworkTechnology:   networkTechnology,
+			}
+			log.Printf("Generated Partial CDR: %+v", cdr)
+		}
+
+	}
+
 	return nil
 }
