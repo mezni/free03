@@ -2,8 +2,11 @@ package inmemstore
 
 import (
 	"errors"
-	"sync"
-
+	"math/rand"
+	"strings"
+	"time"
+"sync"
+"fmt"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
 
@@ -45,3 +48,40 @@ func (repo *InMemNetworkElementRepository) GetAll() ([]entities.NetworkElement, 
 
 	return elements, nil
 }
+
+
+
+func (repo *InMemNetworkElementRepository) GetRandomRanByNetworkTechnology(networkTechnology string) (entities.NetworkElement, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	// Define allowed RAN element types
+	ranElementTypes := map[string]bool{
+		"BSC":     true,
+		"NodeBs":  true,
+		"eNodeBs": true,
+		"gNodeB":  true,
+	}
+
+	// Collect all matching elements
+	var matchingElements []entities.NetworkElement
+	for _, element := range repo.data {
+		fmt.Println(element)
+		if strings.EqualFold(element.NetworkTechnology, networkTechnology) && ranElementTypes[element.Name] {
+			matchingElements = append(matchingElements, element)
+		}
+	}
+
+	// If no matches are found, return an error
+	if len(matchingElements) == 0 {
+		return entities.NetworkElement{}, errors.New("no RAN elements found for the given network technology")
+	}
+
+	// Seed random number generator
+	rand.Seed(time.Now().UnixNano())
+
+	// Pick a random matching element
+	randomIndex := rand.Intn(len(matchingElements))
+	return matchingElements[randomIndex], nil
+}
+

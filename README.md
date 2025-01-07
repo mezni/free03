@@ -1,3 +1,3 @@
-export VERSION=0.0.124
+export VERSION=0.0.125
 export MESSAGE="Work New Version"
 ./commit.sh $VERSION "$MESSAGE"

@@ -140,6 +140,7 @@ const (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
 		description TEXT,
+		element_type TEXT NOT NULL,
 		network_technology TEXT NOT NULL,
 		ip_address TEXT,
 		status TEXT,
@@ -151,17 +152,17 @@ const (
 	// Insert a new network element
 	InsertNetworkElement = `
 	INSERT INTO network_elements 
-	(name, description, network_technology, ip_address, status, tac, lac, cell_id)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
+	(name, description, element_type, network_technology, ip_address, status, tac, lac, cell_id)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 	// Select all network elements
 	SelectAllNetworkElements = `
-	SELECT id, name, description, network_technology, ip_address, status, tac, lac, cell_id
+	SELECT id, name, description,element_type, network_technology, ip_address, status, tac, lac, cell_id
 	FROM network_elements;`
 
 	// Select network elements by name
 	SelectNetworkElementByName = `
-	SELECT id, name, description, network_technology, ip_address, status, tac, lac, cell_id
+	SELECT id, name, description, element_type, network_technology, ip_address, status, tac, lac, cell_id
 	FROM network_elements WHERE name = ?;`
 )
 

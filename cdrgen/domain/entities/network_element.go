@@ -5,6 +5,7 @@ type NetworkElement struct {
 	ID                int
 	Name              string
 	Description       string
+	ElementType       string
 	NetworkTechnology string
 	IPAddress         string
 	Status            string

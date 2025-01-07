@@ -6,4 +6,5 @@ import "github.com/mezni/wovoka/cdrgen/domain/entities"
 type NetworkElementRepository interface {
 	Insert(networkElement entities.NetworkElement) error
 	GetAll() ([]entities.NetworkElement, error)
+	GetRandomNetworkElementByNetworkTechnology(networkTechnology string) (entities.NetworkElement, error)
 }

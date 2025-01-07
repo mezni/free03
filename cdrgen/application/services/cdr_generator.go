@@ -153,5 +153,12 @@ func (c *CdrGeneratorService) Generate() error {
 	} else {
 		fmt.Printf("Random ServiceType: %+v\n", serviceType)
 	}
+
+networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology) 
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Printf("Random NetworkElement: %+v\n", networkElement)
+	}
 	return nil
 }
