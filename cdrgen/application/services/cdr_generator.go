@@ -3,12 +3,12 @@ package services
 import (
 	"database/sql"
 	"fmt"
-	//	"github.com/mezni/wovoka/cdrgen/domain/entities"
+	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/inmemstore"
 	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 	"log"
 	"math/rand"
-	//	"sync/atomic"
+	"sync/atomic"
 	"time"
 )
 
@@ -136,6 +136,11 @@ func RandomService(voice, sms, data float64) string {
 	}
 }
 
+// GetNextCdrID returns a unique, thread-safe CDR ID.
+func getNextCdrID() int {
+	return int(atomic.AddInt32(&cdrId, 1))
+}
+
 func (c *CdrGeneratorService) Generate() error {
 	// Setup the cache
 	if err := c.SetupCache(); err != nil {
@@ -143,7 +148,7 @@ func (c *CdrGeneratorService) Generate() error {
 	}
 	networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
 
-	serviceCategory := RandomService(0.4, 0.1, 0.49)
+	serviceCategory := RandomService(0.4, 0.1, 0.45)
 
 	serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
 	if err != nil {
@@ -158,5 +163,14 @@ func (c *CdrGeneratorService) Generate() error {
 	} else {
 		fmt.Printf("Random NetworkElement: %+v\n", networkElement)
 	}
+
+	cdrId := getNextCdrID()
+	cdr := &entities.Cdr{
+		ID: cdrId,
+		//		TAC: *networkElement.TAC,
+		//		LAC: *networkElement.LAC,
+		CellID: *networkElement.CellID,
+	}
+	log.Printf("Generated CDR: %+v", cdr)
 	return nil
 }

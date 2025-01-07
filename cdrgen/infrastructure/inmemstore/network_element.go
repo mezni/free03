@@ -2,11 +2,11 @@ package inmemstore
 
 import (
 	"errors"
+	"github.com/mezni/wovoka/cdrgen/domain/entities"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
-	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
 
 // InMemNetworkElementRepository is an in-memory implementation of NetworkElementRepository.
