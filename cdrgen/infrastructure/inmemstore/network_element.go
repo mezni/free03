@@ -4,9 +4,8 @@ import (
 	"errors"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
-"sync"
-"fmt"
 	"github.com/mezni/wovoka/cdrgen/domain/entities"
 )
 
@@ -49,25 +48,23 @@ func (repo *InMemNetworkElementRepository) GetAll() ([]entities.NetworkElement, 
 	return elements, nil
 }
 
-
-
 func (repo *InMemNetworkElementRepository) GetRandomRanByNetworkTechnology(networkTechnology string) (entities.NetworkElement, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	// Define allowed RAN element types
 	ranElementTypes := map[string]bool{
-		"BSC":     true,
-		"NodeBs":  true,
-		"eNodeBs": true,
-		"gNodeB":  true,
+		"BSC":    true,
+		"NodeB":  true,
+		"eNodeB": true,
+		"gNodeB": true,
 	}
 
 	// Collect all matching elements
 	var matchingElements []entities.NetworkElement
 	for _, element := range repo.data {
-		fmt.Println(element)
-		if strings.EqualFold(element.NetworkTechnology, networkTechnology) && ranElementTypes[element.Name] {
+		// Check if element.ElementType is in ranElementTypes
+		if strings.EqualFold(element.NetworkTechnology, networkTechnology) && ranElementTypes[element.ElementType] {
 			matchingElements = append(matchingElements, element)
 		}
 	}
@@ -84,4 +81,3 @@ func (repo *InMemNetworkElementRepository) GetRandomRanByNetworkTechnology(netwo
 	randomIndex := rand.Intn(len(matchingElements))
 	return matchingElements[randomIndex], nil
 }
-

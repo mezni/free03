@@ -81,4 +81,3 @@ func (repo *InMemServiceTypeRepository) GetByNetworkTechnologyAndName(networkTec
 
 	return entities.ServiceType{}, errors.New("no service type found for the given network technology and name")
 }
-

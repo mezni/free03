@@ -18,10 +18,10 @@ func GenerateNetworkElements(networkElementTypes []*entities.NetworkElementType,
 
 	// Map of special element types requiring 20 elements per location
 	specialElementTypes := map[string]bool{
-		"BSC":     true,
-		"NodeBs":  true,
-		"eNodeBs": true,
-		"gNodeB":  true,
+		"BSC":    true,
+		"NodeB":  true,
+		"eNodeB": true,
+		"gNodeB": true,
 	}
 
 	// Iterate over the network element types
@@ -40,7 +40,7 @@ func GenerateNetworkElements(networkElementTypes []*entities.NetworkElementType,
 			networkElement := &entities.NetworkElement{
 				Name:              fmt.Sprintf("%s-%s-%d", netElemType.NetworkTechnology, netElemType.Name, rand.Intn(10000)),
 				Description:       fmt.Sprintf("Network element of type %s", netElemType.Name),
-				ElementType: netElemType.Name,
+				ElementType:       netElemType.Name,
 				NetworkTechnology: netElemType.NetworkTechnology,
 				IPAddress:         fmt.Sprintf("192.168.%d.%d", rand.Intn(256), rand.Intn(256)), // Random IP address
 				Status:            "active",                                                     // Default status
@@ -62,10 +62,11 @@ func GenerateNetworkElements(networkElementTypes []*entities.NetworkElementType,
 				// Match locations with the same NetworkTechnology
 				if loc.NetworkTechnology == netElemType.NetworkTechnology {
 					for i := 0; i < elementCount; i++ {
+
 						networkElement := &entities.NetworkElement{
 							Name:              fmt.Sprintf("%s-%s-%s-%d", netElemType.NetworkTechnology, netElemType.Name, loc.Name, rand.Intn(10000)),
 							Description:       fmt.Sprintf("Network element of type %s located at %s", netElemType.Name, loc.Name),
-							ElementType: netElemType.Name,
+							ElementType:       netElemType.Name,
 							NetworkTechnology: netElemType.NetworkTechnology,
 							IPAddress:         fmt.Sprintf("192.168.%d.%d", rand.Intn(256), rand.Intn(256)), // Random IP address
 							Status:            "active",                                                     // Default status
@@ -83,7 +84,6 @@ func GenerateNetworkElements(networkElementTypes []*entities.NetworkElementType,
 							cellID := fmt.Sprintf("%04d", rand.Intn(10000))
 							networkElement.CellID = &cellID
 						}
-
 						// Add the generated element to the list
 						networkElements = append(networkElements, networkElement)
 					}
