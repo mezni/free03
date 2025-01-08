@@ -8,4 +8,9 @@ type Cdr struct {
 	LAC               string
 	CellID            string
 	NetworkTechnology string
+	MessageLength     int
+	DeliveryStatus    string
+	Reference         string
+	StartTime         string
+	EndTime           string
 }

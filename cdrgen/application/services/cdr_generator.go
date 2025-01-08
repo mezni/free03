@@ -166,11 +166,43 @@ func generateCDRID() int32 {
 }
 
 func getNextCdrID() int {
+	rand.Seed(time.Now().UnixNano()) // Ensure randomness
 	// Increment cdrId atomically and return the new value
 	newCdrID := atomic.AddInt32(&cdrId, 1)
 
 	// Return the incremented CDR ID as an int
 	return int(newCdrID)
+}
+
+func getStartAndEndInterval(t time.Time) (time.Time, time.Time) {
+	// Calculate the total minutes since the start of the day
+	totalMinutes := t.Hour()*60 + t.Minute()
+
+	// Round down to the nearest 30-minute interval
+	intervalMinutes := totalMinutes / 30 * 30
+
+	// Create the start time of the interval
+	startTimeInterval := time.Date(t.Year(), t.Month(), t.Day(), intervalMinutes/60, intervalMinutes%60, 0, 0, t.Location())
+
+	// Calculate the end time (30 minutes after the start time)
+	endTimeInterval := startTimeInterval.Add(30 * time.Minute)
+
+	// Return both the start and end intervals
+	return startTimeInterval, endTimeInterval
+}
+
+// getRandomDate generates a random date between the given start and end times.
+func getRandomDate(startTimeInterval, endTimeInterval time.Time) time.Time {
+	// Calculate the duration between start and end times in seconds
+	duration := endTimeInterval.Sub(startTimeInterval).Seconds()
+
+	// Generate a random offset in seconds within the duration
+	randomOffset := rand.Int63n(int64(duration))
+
+	// Add the random offset to the start time
+	randomDate := startTimeInterval.Add(time.Duration(randomOffset) * time.Second)
+
+	return randomDate
 }
 
 func (c *CdrGeneratorService) Generate() error {
@@ -180,6 +212,7 @@ func (c *CdrGeneratorService) Generate() error {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
 
+	startTimeInterval, endTimeInterval := getStartAndEndInterval(time.Now())
 	// Generate 10 CDRs
 	for i := 0; i < 10; i++ {
 
@@ -222,7 +255,21 @@ func (c *CdrGeneratorService) Generate() error {
 			LAC:               lac,
 			CellID:            *networkElement.CellID,
 		}
-
+		eventStartTime := getRandomDate(startTimeInterval, endTimeInterval)
+		if serviceCategory == "SMS" {
+			eventEndTime := eventStartTime.Add(5 * time.Second)
+			cdr.MessageLength = rand.Intn(2048) + 1
+			cdr.DeliveryStatus = "Delivered"
+			cdr.Reference = fmt.Sprintf("SMS-%d", cdrId)
+			cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
+			cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+		} else if serviceCategory == "Voice" {
+			cdr.Reference = fmt.Sprintf("CAL-%d", cdrId)
+		} else if serviceCategory == "Data" {
+			cdr.Reference = fmt.Sprintf("SES-%d", cdrId)
+		} else {
+			cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
+		}
 		// Log the generated CDR
 		log.Printf("Generated CDR #%d: %+v", i+1, cdr)
 	}
