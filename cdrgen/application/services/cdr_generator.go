@@ -8,9 +8,9 @@ import (
 	"github.com/mezni/wovoka/cdrgen/infrastructure/sqlitestore"
 	"log"
 	"math/rand"
+	"strconv"
 	"sync/atomic"
 	"time"
-	"strconv"
 )
 
 type CdrGeneratorService struct {
@@ -166,59 +166,65 @@ func generateCDRID() int32 {
 }
 
 func getNextCdrID() int {
-	// Store the new CDR ID atomically
-	atomic.StoreInt32(&cdrId, generateCDRID())
+	// Increment cdrId atomically and return the new value
+	newCdrID := atomic.AddInt32(&cdrId, 1)
 
-	// Return the CDR ID as int (converted from int32)
-	return int(atomic.LoadInt32(&cdrId))
+	// Return the incremented CDR ID as an int
+	return int(newCdrID)
 }
 
 func (c *CdrGeneratorService) Generate() error {
+	cdrId = generateCDRID()
 	// Setup the cache
 	if err := c.SetupCache(); err != nil {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
-	networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
 
-	serviceCategory := RandomService(0.4, 0.1, 0.45)
+	// Generate 10 CDRs
+	for i := 0; i < 10; i++ {
 
-	serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
-	if err != nil {
-		fmt.Println("Error:", err)
-	} else {
-		fmt.Printf("Random ServiceType: %+v\n", serviceType)
+		networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
+
+		serviceCategory := RandomService(0.4, 0.1, 0.45)
+
+		serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
+		if err != nil {
+			fmt.Println("Error:", err)
+			continue
+		}
+
+		networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology)
+		if err != nil {
+			fmt.Println("Error:", err)
+			continue
+		}
+
+		var tac string
+		if networkElement.TAC != nil {
+			tac = *networkElement.TAC
+		} else {
+			tac = ""
+		}
+
+		var lac string
+		if networkElement.LAC != nil {
+			lac = *networkElement.LAC
+		} else {
+			lac = ""
+		}
+
+		cdrId := getNextCdrID()
+		cdr := &entities.Cdr{
+			ID:                cdrId,
+			ServiceType:       serviceType.Name,
+			NetworkTechnology: networkTechnology,
+			TAC:               tac,
+			LAC:               lac,
+			CellID:            *networkElement.CellID,
+		}
+
+		// Log the generated CDR
+		log.Printf("Generated CDR #%d: %+v", i+1, cdr)
 	}
-
-	networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology)
-	if err != nil {
-		fmt.Println("Error:", err)
-	} else {
-		fmt.Printf("Random NetworkElement: %+v\n", networkElement)
-	}
-
-	var tac string
-	if networkElement.TAC != nil {
-		tac = *networkElement.TAC
-	} else {
-		tac = ""
-	}
-
-	var lac string
-	if networkElement.LAC != nil {
-		lac = *networkElement.LAC
-	} else {
-		lac = ""
-	}
-
-	cdrId := getNextCdrID()
-	cdr := &entities.Cdr{
-		ID:                cdrId,
-		ServiceType:       serviceType.Name,
-		NetworkTechnology: networkTechnology,
-		TAC:               tac,
-		LAC:               lac,
-		CellID:            *networkElement.CellID,
-	}
-	log.Printf("Generated CDR: %+v", cdr)
 	return nil
 }
