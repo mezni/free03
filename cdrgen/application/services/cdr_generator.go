@@ -318,18 +318,17 @@ func (c *CdrGeneratorService) Generate() error {
 				log.Fatalf("Error generating customers: %v", err)
 			}
 
-			// Output the result
-			fmt.Printf("Caller: %+v\n", caller)
-			fmt.Printf("Called: %+v\n", called)
-			fmt.Printf("Roaming: %s\n", roamingIndicator)
-			cdrId := getNextCdrID()
 			cdr := &entities.Cdr{
-				ID:                cdrId,
-				ServiceType:       serviceType.Name,
-				NetworkTechnology: networkTechnology,
-				TAC:               tac,
-				LAC:               lac,
-				CellID:            *networkElement.CellID,
+				ServiceType:        serviceType.Name,
+				CallingPartyNumber: caller.MSISDN,
+				CalledPartyNumber:  called.MSISDN,
+				TerminationCause:   "Normal Release",
+				RoamingIndicator:   roamingIndicator,
+				IMSI:               caller.IMSI,
+				IMEI:               caller.IMEI,
+				TAC:                tac,
+				LAC:                lac,
+				CellID:             *networkElement.CellID,
 			}
 			eventStartTime := getRandomDate(startTimeInterval, endTimeInterval)
 			if serviceCategory == "SMS" {
@@ -339,6 +338,8 @@ func (c *CdrGeneratorService) Generate() error {
 				cdr.Reference = fmt.Sprintf("SMS-%d", cdrId)
 				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+				cdrId := getNextCdrID()
+				cdr.ID = cdrId
 				c.CdrInmemRepo.Insert(*cdr)
 			} else if serviceCategory == "Voice" {
 				callDurationSec := GetCallDurationSec()
@@ -352,6 +353,8 @@ func (c *CdrGeneratorService) Generate() error {
 					cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 					cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
 					cdr.Duration = callDurationSec
+					cdrId := getNextCdrID()
+					cdr.ID = cdrId
 					c.CdrInmemRepo.Insert(*cdr)
 				} else {
 					for k, interval := range intervals {
@@ -359,8 +362,11 @@ func (c *CdrGeneratorService) Generate() error {
 						cdr.EndTime = interval["end"].(string)
 						cdr.Duration = interval["duration"].(int)
 						if k == 0 {
+							cdrId := getNextCdrID()
+							cdr.ID = cdrId
 							c.CdrInmemRepo.Insert(*cdr)
 						} else {
+							cdr.ID = 0
 							cdrFuture = append(cdrFuture, *cdr)
 						}
 					}
@@ -377,6 +383,8 @@ func (c *CdrGeneratorService) Generate() error {
 					cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 					cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
 					cdr.Duration = callDurationSec
+					cdrId := getNextCdrID()
+					cdr.ID = cdrId
 					c.CdrInmemRepo.Insert(*cdr)
 				} else {
 					for k, interval := range intervals {
@@ -384,14 +392,19 @@ func (c *CdrGeneratorService) Generate() error {
 						cdr.EndTime = interval["end"].(string)
 						cdr.Duration = interval["duration"].(int)
 						if k == 0 {
+							cdrId := getNextCdrID()
+							cdr.ID = cdrId
 							c.CdrInmemRepo.Insert(*cdr)
 						} else {
+							cdr.ID = 0
 							cdrFuture = append(cdrFuture, *cdr)
 						}
 					}
 				}
 			} else {
 				cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
+				cdrId := getNextCdrID()
+				cdr.ID = cdrId
 				c.CdrInmemRepo.Insert(*cdr)
 			}
 		}

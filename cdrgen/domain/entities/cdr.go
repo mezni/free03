@@ -6,7 +6,7 @@ type Cdr struct {
 	ServiceType        string
 	CallingPartyNumber string
 	CalledPartyNumber  string
-        TerminationCause   string
+	TerminationCause   string
 	RoamingIndicator   string
 	IMSI               string
 	IMEI               string
