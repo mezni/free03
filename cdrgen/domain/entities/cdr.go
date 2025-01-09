@@ -13,4 +13,5 @@ type Cdr struct {
 	Reference         string
 	StartTime         string
 	EndTime           string
+	Duration           int
 }

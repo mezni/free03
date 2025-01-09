@@ -30,9 +30,8 @@ type CdrGeneratorService struct {
 
 var cdrId int32
 
-// Pre-seed random number generator
 func init() {
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano()) // Pre-seed random number generator
 }
 
 // NewCdrGeneratorService initializes the CdrGeneratorService with all repositories.
@@ -63,8 +62,8 @@ func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 	}, nil
 }
 
+// SetupCache preloads data from SQLite into in-memory repositories.
 func (c *CdrGeneratorService) SetupCache() error {
-	// Fetch and cache network technologies, elements, service types, and customers
 	networkTechnologies, err := c.NetworkTechSqliteRepo.GetAll()
 	if err != nil {
 		return fmt.Errorf("failed to fetch network technologies: %v", err)
@@ -111,141 +110,132 @@ func (c *CdrGeneratorService) SetupCache() error {
 
 func RandomNetwork(twoGProb, threeGProb, fourGProb float64) string {
 	randomNumber := rand.Float64()
-
-	if randomNumber < twoGProb {
+	switch {
+	case randomNumber < twoGProb:
 		return "2G"
-	} else if randomNumber < twoGProb+threeGProb {
+	case randomNumber < twoGProb+threeGProb:
 		return "3G"
-	} else if randomNumber < twoGProb+threeGProb+fourGProb {
+	case randomNumber < twoGProb+threeGProb+fourGProb:
 		return "4G"
-	} else {
+	default:
 		return "5G"
 	}
 }
 
 func RandomService(voice, sms, data float64) string {
 	randomNumber := rand.Float64()
-
-	if randomNumber < voice {
+	switch {
+	case randomNumber < voice:
 		return "Voice"
-	} else if randomNumber < voice+sms {
+	case randomNumber < voice+sms:
 		return "SMS"
-	} else if randomNumber < voice+sms+data {
+	case randomNumber < voice+sms+data:
 		return "Data"
-	} else {
+	default:
 		return "Other"
 	}
 }
 
 func generateCDRID() int32 {
-	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
-
-	// Get the current Unix timestamp
 	currentTime := time.Now().Unix()
-
-	// Extract the last 6 digits of the timestamp
 	lastSixDigits := currentTime % 1000000
-
-	// Generate a random two-digit number
 	randomTwoDigits := rand.Intn(90) + 10
-
-	// Combine the two-digit number and the last six digits
 	combined := fmt.Sprintf("%02d%06d", randomTwoDigits, lastSixDigits)
-
-	// Convert the combined string to an int32
-	combinedInt64, err := strconv.ParseInt(combined, 10, 32)
-	if err != nil {
-		// Handle the error if conversion fails
-		fmt.Printf("Error converting combined to int32: %v\n", err)
-		return 0 // Return 0 or an error-specific value
-	}
-
-	// Return the combined value as int32
+	combinedInt64, _ := strconv.ParseInt(combined, 10, 32)
 	return int32(combinedInt64)
 }
 
 func getNextCdrID() int {
-	rand.Seed(time.Now().UnixNano()) // Ensure randomness
-	// Increment cdrId atomically and return the new value
-	newCdrID := atomic.AddInt32(&cdrId, 1)
-
-	// Return the incremented CDR ID as an int
-	return int(newCdrID)
+	rand.Seed(time.Now().UnixNano())
+	return int(atomic.AddInt32(&cdrId, 1))
 }
 
 func getStartAndEndInterval(t time.Time) (time.Time, time.Time) {
-	// Calculate the total minutes since the start of the day
 	totalMinutes := t.Hour()*60 + t.Minute()
-
-	// Round down to the nearest 30-minute interval
 	intervalMinutes := totalMinutes / 30 * 30
-
-	// Create the start time of the interval
-	startTimeInterval := time.Date(t.Year(), t.Month(), t.Day(), intervalMinutes/60, intervalMinutes%60, 0, 0, t.Location())
-
-	// Calculate the end time (30 minutes after the start time)
-	endTimeInterval := startTimeInterval.Add(30 * time.Minute)
-
-	// Return both the start and end intervals
-	return startTimeInterval, endTimeInterval
+	start := time.Date(t.Year(), t.Month(), t.Day(), intervalMinutes/60, intervalMinutes%60, 0, 0, t.Location())
+	return start, start.Add(30 * time.Minute)
 }
 
-// getRandomDate generates a random date between the given start and end times.
-func getRandomDate(startTimeInterval, endTimeInterval time.Time) time.Time {
-	// Calculate the duration between start and end times in seconds
-	duration := endTimeInterval.Sub(startTimeInterval).Seconds()
-
-	// Generate a random offset in seconds within the duration
+func getRandomDate(start, end time.Time) time.Time {
+	duration := end.Sub(start).Seconds()
 	randomOffset := rand.Int63n(int64(duration))
+	return start.Add(time.Duration(randomOffset) * time.Second)
+}
 
-	// Add the random offset to the start time
-	randomDate := startTimeInterval.Add(time.Duration(randomOffset) * time.Second)
+func GetCallDurationSec() int {
+	randomChoice := rand.Float64()
+	switch {
+	case randomChoice < 0.80:
+		return rand.Intn(600) + 1
+	case randomChoice < 0.85:
+		return 0
+	default:
+		return rand.Intn(3000) + 601
+	}
+}
 
-	return randomDate
+func GetCallIntervals(callStartTime, callEndTime, intervalStartTime, intervalEndTime time.Time) ([]map[string]interface{}, error) {
+	var intervals []map[string]interface{}
+	if callEndTime.Before(intervalStartTime) {
+		return intervals, nil
+	}
+	currentStartTime := callStartTime
+	currentEndTime := intervalEndTime
+	for currentStartTime.Before(callEndTime) {
+		if currentStartTime.Before(intervalStartTime) {
+			currentStartTime = intervalStartTime
+		}
+		if currentEndTime.After(callEndTime) {
+			currentEndTime = callEndTime
+		}
+		intervals = append(intervals, map[string]interface{}{
+			"start":    currentStartTime.Format("2006-01-02 15:04:05"),
+			"end":      currentEndTime.Format("2006-01-02 15:04:05"),
+			"duration": int(currentEndTime.Sub(currentStartTime).Seconds()),
+		})
+		if currentEndTime.Equal(callEndTime) {
+			break
+		}
+		currentStartTime = currentEndTime
+		currentEndTime = currentEndTime.Add(30 * time.Minute)
+	}
+	return intervals, nil
 }
 
 func (c *CdrGeneratorService) Generate() error {
 	cdrId = generateCDRID()
-	// Setup the cache
 	if err := c.SetupCache(); err != nil {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
-
+	var cdrFuture []entities.Cdr
 	startTimeInterval, endTimeInterval := getStartAndEndInterval(time.Now())
-	// Generate 10 CDRs
 	for i := 0; i < 10; i++ {
-
 		networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
-
 		serviceCategory := RandomService(0.4, 0.1, 0.45)
-
 		serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
 		if err != nil {
 			fmt.Println("Error:", err)
 			continue
 		}
-
 		networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology)
 		if err != nil {
 			fmt.Println("Error:", err)
 			continue
 		}
-
 		var tac string
 		if networkElement.TAC != nil {
 			tac = *networkElement.TAC
 		} else {
 			tac = ""
 		}
-
 		var lac string
 		if networkElement.LAC != nil {
 			lac = *networkElement.LAC
 		} else {
 			lac = ""
 		}
-
 		cdrId := getNextCdrID()
 		cdr := &entities.Cdr{
 			ID:                cdrId,
@@ -264,14 +254,52 @@ func (c *CdrGeneratorService) Generate() error {
 			cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 			cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
 		} else if serviceCategory == "Voice" {
+			callDurationSec := GetCallDurationSec()
+			eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
+			intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
+			if err != nil {
+				return fmt.Errorf("error in calculating call intervals: %v", err)
+			}
 			cdr.Reference = fmt.Sprintf("CAL-%d", cdrId)
+			if len(intervals) == 1 {
+				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
+				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+				cdr.Duration = callDurationSec
+			} else {
+				for _, interval := range intervals {
+					cdr.StartTime = interval["start"].(string)
+					cdr.EndTime = interval["end"].(string)
+					cdr.Duration = interval["duration"].(int)
+					cdrFuture = append(cdrFuture, *cdr)
+					log.Printf("XXX")
+				}
+			}
 		} else if serviceCategory == "Data" {
+			callDurationSec := GetCallDurationSec()
+			eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
+			intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
+			if err != nil {
+				return fmt.Errorf("error in calculating call intervals: %v", err)
+			}
 			cdr.Reference = fmt.Sprintf("SES-%d", cdrId)
+			if len(intervals) == 1 {
+				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
+				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+				cdr.Duration = callDurationSec
+			} else {
+				for _, interval := range intervals {
+					cdr.StartTime = interval["start"].(string)
+					cdr.EndTime = interval["end"].(string)
+					cdr.Duration = interval["duration"].(int)
+					cdrFuture = append(cdrFuture, *cdr)
+					log.Printf("XXX")
+				}
+			}
 		} else {
 			cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
 		}
-		// Log the generated CDR
 		log.Printf("Generated CDR #%d: %+v", i+1, cdr)
+		log.Printf("Lenght :",len(cdrFuture))
 	}
 	return nil
 }
