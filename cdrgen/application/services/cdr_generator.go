@@ -206,6 +206,86 @@ func GetCallIntervals(callStartTime, callEndTime, intervalStartTime, intervalEnd
 	return intervals, nil
 }
 
+func (c *CdrGeneratorService) GetCustomers() (entities.Customer, entities.Customer, string, error) {
+
+	rand.Seed(time.Now().UnixNano())
+
+	// Probabilities
+	probHome := 0.60
+	probNational := 0.39
+	probInternational := 1 - probHome - probNational
+
+	// Generate a random number for the CallerType
+	CallerTypeValue := rand.Float64()
+	var CallerType string
+	var roamingIndicator bool
+
+	// Determine CallerType and roaming indicator
+	switch {
+	case CallerTypeValue < probHome:
+		CallerType = "Home"
+	case CallerTypeValue < probHome+probNational:
+		CallerType = "National"
+		roamingIndicator = true
+	default:
+		CallerType = "International"
+		roamingIndicator = true
+	}
+
+	// Generate a random number for the CalledType
+	CalledTypeValue := rand.Float64()
+	var CalledType string
+
+	// Determine CalledType
+	switch {
+	case CalledTypeValue < probHome:
+		CalledType = "Home"
+	case CalledTypeValue < probHome+probNational:
+		CalledType = "National"
+	default:
+		CalledType = "International"
+	}
+
+	// Fetch random customer by type from the repository
+	var callerCustomer, calledCustomer entities.Customer
+	var err error
+
+	callerCustomer, err = c.CustomerInmemRepo.GetRandomByCustomerType(CallerType)
+	if err != nil {
+		return entities.Customer{}, entities.Customer{}, "", err
+	}
+
+retryLimit := 10
+retries := 0
+
+for {
+	calledCustomer, err = c.CustomerInmemRepo.GetRandomByCustomerType(CalledType)
+	if err != nil {
+		return entities.Customer{}, entities.Customer{}, "", err
+	}
+
+	// Check if the customers are different
+	if calledCustomer.ID != callerCustomer.ID {
+		break
+	}
+
+	retries++
+	if retries >= retryLimit {
+		return entities.Customer{}, entities.Customer{}, "", errors.New("unable to find a distinct called customer")
+	}
+}
+
+	// Convert roamingIndicator to string
+	roamingStr := "No"
+	if roamingIndicator {
+		roamingStr = "Yes"
+	}
+
+	return callerCustomer, calledCustomer, roamingStr, nil
+}
+
+
+
 func (c *CdrGeneratorService) Generate() error {
 	cdrId = generateCDRID()
 	if err := c.SetupCache(); err != nil {
