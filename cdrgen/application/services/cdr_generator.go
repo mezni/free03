@@ -212,8 +212,10 @@ func (c *CdrGeneratorService) Generate() error {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
 	var cdrFuture []entities.Cdr
+
 	startTimeInterval, endTimeInterval := getStartAndEndInterval(time.Now())
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 2; i++ {
+	for j := 0; j < 10; j++ {
 		networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
 		serviceCategory := RandomService(0.4, 0.1, 0.45)
 		serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
@@ -270,11 +272,11 @@ func (c *CdrGeneratorService) Generate() error {
 				cdr.Duration = callDurationSec
 				c.CdrInmemRepo.Insert(*cdr)
 			} else {
-				for i, interval := range intervals {
+				for k, interval := range intervals {
 					cdr.StartTime = interval["start"].(string)
 					cdr.EndTime = interval["end"].(string)
 					cdr.Duration = interval["duration"].(int)
-					if i == 0 {
+					if k == 0 {
 						c.CdrInmemRepo.Insert(*cdr)
 					} else {
 						cdrFuture = append(cdrFuture, *cdr)
@@ -295,11 +297,11 @@ func (c *CdrGeneratorService) Generate() error {
 				cdr.Duration = callDurationSec
 				c.CdrInmemRepo.Insert(*cdr)
 			} else {
-				for i, interval := range intervals {
+				for k, interval := range intervals {
 					cdr.StartTime = interval["start"].(string)
 					cdr.EndTime = interval["end"].(string)
 					cdr.Duration = interval["duration"].(int)
-					if i == 0 {
+					if k == 0 {
 						c.CdrInmemRepo.Insert(*cdr)
 					} else {
 						cdrFuture = append(cdrFuture, *cdr)
@@ -310,12 +312,29 @@ func (c *CdrGeneratorService) Generate() error {
 			cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
 			c.CdrInmemRepo.Insert(*cdr)
 		}
-	}
+	}}
 
 	count, err := c.CdrInmemRepo.Length()
 	if err != nil {
 		log.Fatalf("Error getting CDR count: %v", err)
 	}
 	fmt.Printf("Total CDRs: %d - Total Future CDRs %d\n", count, len(cdrFuture))
+
+	// Retrieve all CDRs from the repository
+	cdrs, err := c.CdrInmemRepo.GetAll()
+	if err != nil {
+		log.Fatalf("Error retrieving CDRs: %v", err)
+	}
+
+	// Print all CDRs
+	for _, cdr := range cdrs {
+		fmt.Printf("CDR ID: %d, ServiceType: %s, NetworkTechnology: %s, StartTime: %s, EndTime: %s, Duration: %d seconds\n",
+			cdr.ID, cdr.ServiceType, cdr.NetworkTechnology, cdr.StartTime, cdr.EndTime, cdr.Duration)
+	}
+fmt.Printf("--\n")
+	for _, cdr := range cdrFuture {
+		fmt.Printf("CDR ID: %d, ServiceType: %s, NetworkTechnology: %s, StartTime: %s, EndTime: %s, Duration: %d seconds\n",
+			cdr.ID, cdr.ServiceType, cdr.NetworkTechnology, cdr.StartTime, cdr.EndTime, cdr.Duration)
+	}
 	return nil
 }
