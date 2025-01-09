@@ -213,7 +213,7 @@ func (c *CdrGeneratorService) GetCustomers() (entities.Customer, entities.Custom
 	// Probabilities
 	probHome := 0.60
 	probNational := 0.39
-	probInternational := 1 - probHome - probNational
+	//	probInternational := 1 - probHome - probNational
 
 	// Generate a random number for the CallerType
 	CallerTypeValue := rand.Float64()
@@ -247,33 +247,26 @@ func (c *CdrGeneratorService) GetCustomers() (entities.Customer, entities.Custom
 	}
 
 	// Fetch random customer by type from the repository
-	var callerCustomer, calledCustomer entities.Customer
+	var callerCustomer, calledCustomer *entities.Customer
 	var err error
 
+	// Get random caller customer (pointer)
 	callerCustomer, err = c.CustomerInmemRepo.GetRandomByCustomerType(CallerType)
 	if err != nil {
 		return entities.Customer{}, entities.Customer{}, "", err
 	}
 
-retryLimit := 10
-retries := 0
+	// Make sure the called customer is different from the caller
+	for {
+		calledCustomer, err = c.CustomerInmemRepo.GetRandomByCustomerType(CalledType)
+		if err != nil {
+			return entities.Customer{}, entities.Customer{}, "", err
+		}
 
-for {
-	calledCustomer, err = c.CustomerInmemRepo.GetRandomByCustomerType(CalledType)
-	if err != nil {
-		return entities.Customer{}, entities.Customer{}, "", err
+		if calledCustomer.ID != callerCustomer.ID {
+			break
+		}
 	}
-
-	// Check if the customers are different
-	if calledCustomer.ID != callerCustomer.ID {
-		break
-	}
-
-	retries++
-	if retries >= retryLimit {
-		return entities.Customer{}, entities.Customer{}, "", errors.New("unable to find a distinct called customer")
-	}
-}
 
 	// Convert roamingIndicator to string
 	roamingStr := "No"
@@ -281,10 +274,9 @@ for {
 		roamingStr = "Yes"
 	}
 
-	return callerCustomer, calledCustomer, roamingStr, nil
+	// Dereference the pointer if needed
+	return *callerCustomer, *calledCustomer, roamingStr, nil
 }
-
-
 
 func (c *CdrGeneratorService) Generate() error {
 	cdrId = generateCDRID()
@@ -295,104 +287,115 @@ func (c *CdrGeneratorService) Generate() error {
 
 	startTimeInterval, endTimeInterval := getStartAndEndInterval(time.Now())
 	for i := 0; i < 2; i++ {
-	for j := 0; j < 10; j++ {
-		networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
-		serviceCategory := RandomService(0.4, 0.1, 0.45)
-		serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
-		if err != nil {
-			fmt.Println("Error:", err)
-			continue
-		}
-		networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology)
-		if err != nil {
-			fmt.Println("Error:", err)
-			continue
-		}
-		var tac string
-		if networkElement.TAC != nil {
-			tac = *networkElement.TAC
-		} else {
-			tac = ""
-		}
-		var lac string
-		if networkElement.LAC != nil {
-			lac = *networkElement.LAC
-		} else {
-			lac = ""
-		}
-		cdrId := getNextCdrID()
-		cdr := &entities.Cdr{
-			ID:                cdrId,
-			ServiceType:       serviceType.Name,
-			NetworkTechnology: networkTechnology,
-			TAC:               tac,
-			LAC:               lac,
-			CellID:            *networkElement.CellID,
-		}
-		eventStartTime := getRandomDate(startTimeInterval, endTimeInterval)
-		if serviceCategory == "SMS" {
-			eventEndTime := eventStartTime.Add(5 * time.Second)
-			cdr.MessageLength = rand.Intn(2048) + 1
-			cdr.DeliveryStatus = "Delivered"
-			cdr.Reference = fmt.Sprintf("SMS-%d", cdrId)
-			cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
-			cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
-			c.CdrInmemRepo.Insert(*cdr)
-		} else if serviceCategory == "Voice" {
-			callDurationSec := GetCallDurationSec()
-			eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
-			intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
+		for j := 0; j < 10; j++ {
+			networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
+			serviceCategory := RandomService(0.4, 0.1, 0.45)
+			serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
 			if err != nil {
-				return fmt.Errorf("error in calculating call intervals: %v", err)
+				fmt.Println("Error:", err)
+				continue
 			}
-			cdr.Reference = fmt.Sprintf("CAL-%d", cdrId)
-			if len(intervals) == 1 {
+			networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology)
+			if err != nil {
+				fmt.Println("Error:", err)
+				continue
+			}
+			var tac string
+			if networkElement.TAC != nil {
+				tac = *networkElement.TAC
+			} else {
+				tac = ""
+			}
+			var lac string
+			if networkElement.LAC != nil {
+				lac = *networkElement.LAC
+			} else {
+				lac = ""
+			}
+			caller, called, roamingIndicator, err := c.GetCustomers()
+
+			if err != nil {
+				log.Fatalf("Error generating customers: %v", err)
+			}
+
+			// Output the result
+			fmt.Printf("Caller: %+v\n", caller)
+			fmt.Printf("Called: %+v\n", called)
+			fmt.Printf("Roaming: %s\n", roamingIndicator)
+			cdrId := getNextCdrID()
+			cdr := &entities.Cdr{
+				ID:                cdrId,
+				ServiceType:       serviceType.Name,
+				NetworkTechnology: networkTechnology,
+				TAC:               tac,
+				LAC:               lac,
+				CellID:            *networkElement.CellID,
+			}
+			eventStartTime := getRandomDate(startTimeInterval, endTimeInterval)
+			if serviceCategory == "SMS" {
+				eventEndTime := eventStartTime.Add(5 * time.Second)
+				cdr.MessageLength = rand.Intn(2048) + 1
+				cdr.DeliveryStatus = "Delivered"
+				cdr.Reference = fmt.Sprintf("SMS-%d", cdrId)
 				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
-				cdr.Duration = callDurationSec
 				c.CdrInmemRepo.Insert(*cdr)
-			} else {
-				for k, interval := range intervals {
-					cdr.StartTime = interval["start"].(string)
-					cdr.EndTime = interval["end"].(string)
-					cdr.Duration = interval["duration"].(int)
-					if k == 0 {
-						c.CdrInmemRepo.Insert(*cdr)
-					} else {
-						cdrFuture = append(cdrFuture, *cdr)
+			} else if serviceCategory == "Voice" {
+				callDurationSec := GetCallDurationSec()
+				eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
+				intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
+				if err != nil {
+					return fmt.Errorf("error in calculating call intervals: %v", err)
+				}
+				cdr.Reference = fmt.Sprintf("CAL-%d", cdrId)
+				if len(intervals) == 1 {
+					cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
+					cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+					cdr.Duration = callDurationSec
+					c.CdrInmemRepo.Insert(*cdr)
+				} else {
+					for k, interval := range intervals {
+						cdr.StartTime = interval["start"].(string)
+						cdr.EndTime = interval["end"].(string)
+						cdr.Duration = interval["duration"].(int)
+						if k == 0 {
+							c.CdrInmemRepo.Insert(*cdr)
+						} else {
+							cdrFuture = append(cdrFuture, *cdr)
+						}
 					}
 				}
-			}
-		} else if serviceCategory == "Data" {
-			callDurationSec := GetCallDurationSec()
-			eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
-			intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
-			if err != nil {
-				return fmt.Errorf("error in calculating call intervals: %v", err)
-			}
-			cdr.Reference = fmt.Sprintf("SES-%d", cdrId)
-			if len(intervals) == 1 {
-				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
-				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
-				cdr.Duration = callDurationSec
-				c.CdrInmemRepo.Insert(*cdr)
-			} else {
-				for k, interval := range intervals {
-					cdr.StartTime = interval["start"].(string)
-					cdr.EndTime = interval["end"].(string)
-					cdr.Duration = interval["duration"].(int)
-					if k == 0 {
-						c.CdrInmemRepo.Insert(*cdr)
-					} else {
-						cdrFuture = append(cdrFuture, *cdr)
+			} else if serviceCategory == "Data" {
+				callDurationSec := GetCallDurationSec()
+				eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
+				intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
+				if err != nil {
+					return fmt.Errorf("error in calculating call intervals: %v", err)
+				}
+				cdr.Reference = fmt.Sprintf("SES-%d", cdrId)
+				if len(intervals) == 1 {
+					cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
+					cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+					cdr.Duration = callDurationSec
+					c.CdrInmemRepo.Insert(*cdr)
+				} else {
+					for k, interval := range intervals {
+						cdr.StartTime = interval["start"].(string)
+						cdr.EndTime = interval["end"].(string)
+						cdr.Duration = interval["duration"].(int)
+						if k == 0 {
+							c.CdrInmemRepo.Insert(*cdr)
+						} else {
+							cdrFuture = append(cdrFuture, *cdr)
+						}
 					}
 				}
+			} else {
+				cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
+				c.CdrInmemRepo.Insert(*cdr)
 			}
-		} else {
-			cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
-			c.CdrInmemRepo.Insert(*cdr)
 		}
-	}}
+	}
 
 	count, err := c.CdrInmemRepo.Length()
 	if err != nil {
@@ -411,7 +414,7 @@ func (c *CdrGeneratorService) Generate() error {
 		fmt.Printf("CDR ID: %d, ServiceType: %s, NetworkTechnology: %s, StartTime: %s, EndTime: %s, Duration: %d seconds\n",
 			cdr.ID, cdr.ServiceType, cdr.NetworkTechnology, cdr.StartTime, cdr.EndTime, cdr.Duration)
 	}
-fmt.Printf("--\n")
+	fmt.Printf("--\n")
 	for _, cdr := range cdrFuture {
 		fmt.Printf("CDR ID: %d, ServiceType: %s, NetworkTechnology: %s, StartTime: %s, EndTime: %s, Duration: %d seconds\n",
 			cdr.ID, cdr.ServiceType, cdr.NetworkTechnology, cdr.StartTime, cdr.EndTime, cdr.Duration)

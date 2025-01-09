@@ -106,4 +106,3 @@ func (repo *InMemCdrRepository) Length() (int, error) {
 	defer repo.mu.RUnlock()
 	return len(repo.data), nil // Corrected to use repo.data
 }
-
