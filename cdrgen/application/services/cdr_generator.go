@@ -138,14 +138,14 @@ func RandomService(voice, sms, data float64) string {
 	}
 }
 
-func generateCDRID() int32 {
+func generateCDRID() int {
 	rand.Seed(time.Now().UnixNano())
 	currentTime := time.Now().Unix()
 	lastSixDigits := currentTime % 1000000
 	randomTwoDigits := rand.Intn(90) + 10
 	combined := fmt.Sprintf("%02d%06d", randomTwoDigits, lastSixDigits)
 	combinedInt64, _ := strconv.ParseInt(combined, 10, 32)
-	return int32(combinedInt64)
+	return int(combinedInt64)
 }
 
 func getNextCdrID() int {
@@ -278,159 +278,161 @@ func (c *CdrGeneratorService) GetCustomers() (entities.Customer, entities.Custom
 	return *callerCustomer, *calledCustomer, roamingStr, nil
 }
 
+func (c *CdrGeneratorService) initCdr(startTimeInterval, endTimeInterval time.Time, serviceCategory string) (*entities.Cdr, error) {
+	// Select a random network technology
+	networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
+	if networkTechnology == "" {
+		return nil, fmt.Errorf("invalid network technology selected")
+	}
+
+	// Get service type for the selected technology
+	serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching service type: %v", err)
+	}
+
+	// Get a random network element
+	networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching network element: %v", err)
+	}
+
+	// Get customers (caller and called)
+	caller, called, roamingIndicator, err := c.GetCustomers()
+	if err != nil {
+		return nil, fmt.Errorf("error generating customers: %v", err)
+	}
+
+	var tac string
+	if networkElement.TAC != nil {
+		tac = *networkElement.TAC
+	} else {
+		tac = ""
+	}
+	var lac string
+	if networkElement.LAC != nil {
+		lac = *networkElement.LAC
+	} else {
+		lac = ""
+	}
+
+	// Create and return the CDR object
+	cdr := &entities.Cdr{
+		ServiceType:        serviceType.Name,
+		CallingPartyNumber: caller.MSISDN,
+		CalledPartyNumber:  called.MSISDN,
+		TerminationCause:   "Normal Release",
+		RoamingIndicator:   roamingIndicator,
+		IMSI:               caller.IMSI,
+		IMEI:               caller.IMEI,
+		TAC:                tac,
+		LAC:                lac,
+		CellID:             *networkElement.CellID,
+	}
+
+	return cdr, nil
+}
+
 func (c *CdrGeneratorService) Generate() error {
-	cdrId = generateCDRID()
+	cdrId := generateCDRID()
 	if err := c.SetupCache(); err != nil {
 		return fmt.Errorf("failed to set up cache: %v", err)
 	}
-	var cdrFuture []entities.Cdr
 
+	var cdrFuture []entities.Cdr
 	startTimeInterval, endTimeInterval := getStartAndEndInterval(time.Now())
+
 	for i := 0; i < 2; i++ {
 		for j := 0; j < 10; j++ {
-			networkTechnology := RandomNetwork(0.05, 0.4, 0.55)
 			serviceCategory := RandomService(0.4, 0.1, 0.45)
-			serviceType, err := c.ServiceTypeInmemRepo.GetByNetworkTechnologyAndName(networkTechnology, serviceCategory)
+			cdr, err := c.initCdr(startTimeInterval, endTimeInterval, serviceCategory)
 			if err != nil {
-				fmt.Println("Error:", err)
+				fmt.Println("Error initializing CDR:", err)
 				continue
 			}
-			networkElement, err := c.NetworkElementInmemRepo.GetRandomRanByNetworkTechnology(networkTechnology)
-			if err != nil {
-				fmt.Println("Error:", err)
-				continue
-			}
-			var tac string
-			if networkElement.TAC != nil {
-				tac = *networkElement.TAC
-			} else {
-				tac = ""
-			}
-			var lac string
-			if networkElement.LAC != nil {
-				lac = *networkElement.LAC
-			} else {
-				lac = ""
-			}
-			caller, called, roamingIndicator, err := c.GetCustomers()
 
-			if err != nil {
-				log.Fatalf("Error generating customers: %v", err)
-			}
-
-			cdr := &entities.Cdr{
-				ServiceType:        serviceType.Name,
-				CallingPartyNumber: caller.MSISDN,
-				CalledPartyNumber:  called.MSISDN,
-				TerminationCause:   "Normal Release",
-				RoamingIndicator:   roamingIndicator,
-				IMSI:               caller.IMSI,
-				IMEI:               caller.IMEI,
-				TAC:                tac,
-				LAC:                lac,
-				CellID:             *networkElement.CellID,
-			}
 			eventStartTime := getRandomDate(startTimeInterval, endTimeInterval)
+
 			if serviceCategory == "SMS" {
+				// SMS CDR Handling
 				eventEndTime := eventStartTime.Add(5 * time.Second)
 				cdr.MessageLength = rand.Intn(2048) + 1
 				cdr.DeliveryStatus = "Delivered"
 				cdr.Reference = fmt.Sprintf("SMS-%d", cdrId)
 				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
-				cdrId := getNextCdrID()
 				cdr.ID = cdrId
 				c.CdrInmemRepo.Insert(*cdr)
-			} else if serviceCategory == "Voice" {
-				callDurationSec := GetCallDurationSec()
-				eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
-				intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
-				if err != nil {
-					return fmt.Errorf("error in calculating call intervals: %v", err)
-				}
-				cdr.Reference = fmt.Sprintf("CAL-%d", cdrId)
-				if len(intervals) == 1 {
-					cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
-					cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
-					cdr.Duration = callDurationSec
-					cdrId := getNextCdrID()
-					cdr.ID = cdrId
-					c.CdrInmemRepo.Insert(*cdr)
-				} else {
-					for k, interval := range intervals {
-						cdr.StartTime = interval["start"].(string)
-						cdr.EndTime = interval["end"].(string)
-						cdr.Duration = interval["duration"].(int)
-						if k == 0 {
-							cdrId := getNextCdrID()
-							cdr.ID = cdrId
-							c.CdrInmemRepo.Insert(*cdr)
-						} else {
-							cdr.ID = 0
-							cdrFuture = append(cdrFuture, *cdr)
-						}
-					}
-				}
-			} else if serviceCategory == "Data" {
-				callDurationSec := GetCallDurationSec()
-				eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
-				intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
-				if err != nil {
-					return fmt.Errorf("error in calculating call intervals: %v", err)
-				}
-				cdr.Reference = fmt.Sprintf("SES-%d", cdrId)
-				if len(intervals) == 1 {
-					cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
-					cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
-					cdr.Duration = callDurationSec
-					cdrId := getNextCdrID()
-					cdr.ID = cdrId
-					c.CdrInmemRepo.Insert(*cdr)
-				} else {
-					for k, interval := range intervals {
-						cdr.StartTime = interval["start"].(string)
-						cdr.EndTime = interval["end"].(string)
-						cdr.Duration = interval["duration"].(int)
-						if k == 0 {
-							cdrId := getNextCdrID()
-							cdr.ID = cdrId
-							c.CdrInmemRepo.Insert(*cdr)
-						} else {
-							cdr.ID = 0
-							cdrFuture = append(cdrFuture, *cdr)
-						}
-					}
-				}
+
 			} else {
-				cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
-				cdrId := getNextCdrID()
-				cdr.ID = cdrId
-				c.CdrInmemRepo.Insert(*cdr)
+				// Other CDR Handling
+				var reference string
+				if serviceCategory == "Voice" {
+					reference = fmt.Sprintf("CAL-%d", cdrId)
+				} else if serviceCategory == "Data" {
+					reference = fmt.Sprintf("SES-%d", cdrId)
+				} else if serviceCategory == "Other" {
+					reference = fmt.Sprintf("OTH-%d", cdrId)
+				}
+
+				callDurationSec := GetCallDurationSec()
+				eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
+
+				intervals, err := GetCallIntervals(eventStartTime, eventEndTime, startTimeInterval, endTimeInterval)
+				if err != nil {
+					return fmt.Errorf("error calculating call intervals: %v", err)
+				}
+
+				cdr.Reference = reference
+				if len(intervals) == 1 {
+					cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
+					cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+					cdr.Duration = callDurationSec
+					cdr.ID = cdrId
+					c.CdrInmemRepo.Insert(*cdr)
+				} else {
+					for k, interval := range intervals {
+						cdr.StartTime = interval["start"].(string)
+						cdr.EndTime = interval["end"].(string)
+						cdr.Duration = interval["duration"].(int)
+						if k == 0 {
+							cdr.ID = cdrId
+							c.CdrInmemRepo.Insert(*cdr)
+						} else {
+							cdr.ID = 0
+							cdrFuture = append(cdrFuture, *cdr)
+						}
+					}
+				}
 			}
+
+			// Increment CDR ID after processing
+			cdrId = getNextCdrID()
 		}
 	}
 
+	// Print summary and details
 	count, err := c.CdrInmemRepo.Length()
 	if err != nil {
 		log.Fatalf("Error getting CDR count: %v", err)
 	}
-	fmt.Printf("Total CDRs: %d - Total Future CDRs %d\n", count, len(cdrFuture))
+	fmt.Printf("Total CDRs: %d - Total Future CDRs: %d\n", count, len(cdrFuture))
 
-	// Retrieve all CDRs from the repository
 	cdrs, err := c.CdrInmemRepo.GetAll()
 	if err != nil {
 		log.Fatalf("Error retrieving CDRs: %v", err)
 	}
 
-	// Print all CDRs
 	for _, cdr := range cdrs {
 		fmt.Printf("CDR ID: %d, ServiceType: %s, NetworkTechnology: %s, StartTime: %s, EndTime: %s, Duration: %d seconds\n",
 			cdr.ID, cdr.ServiceType, cdr.NetworkTechnology, cdr.StartTime, cdr.EndTime, cdr.Duration)
 	}
-	fmt.Printf("--\n")
+
+	fmt.Println("--")
 	for _, cdr := range cdrFuture {
 		fmt.Printf("CDR ID: %d, ServiceType: %s, NetworkTechnology: %s, StartTime: %s, EndTime: %s, Duration: %d seconds\n",
 			cdr.ID, cdr.ServiceType, cdr.NetworkTechnology, cdr.StartTime, cdr.EndTime, cdr.Duration)
 	}
+
 	return nil
 }
