@@ -26,6 +26,7 @@ type CdrGeneratorService struct {
 	NetworkElementInmemRepo      *inmemstore.InMemNetworkElementRepository
 	ServiceTypeInmemRepo         *inmemstore.InMemServiceTypeRepository
 	CustomerInmemRepo            *inmemstore.InMemCustomerRepository
+	CdrInmemRepo                 *inmemstore.InMemCdrRepository
 }
 
 var cdrId int32
@@ -59,6 +60,7 @@ func NewCdrGeneratorService(dbFile string) (*CdrGeneratorService, error) {
 		NetworkElementInmemRepo:      inmemstore.NewInMemNetworkElementRepository(),
 		ServiceTypeInmemRepo:         inmemstore.NewInMemServiceTypeRepository(),
 		CustomerInmemRepo:            inmemstore.NewInMemCustomerRepository(),
+		CdrInmemRepo:                 inmemstore.NewInMemCdrRepository(),
 	}, nil
 }
 
@@ -253,6 +255,7 @@ func (c *CdrGeneratorService) Generate() error {
 			cdr.Reference = fmt.Sprintf("SMS-%d", cdrId)
 			cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 			cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
+			c.CdrInmemRepo.Insert(*cdr)
 		} else if serviceCategory == "Voice" {
 			callDurationSec := GetCallDurationSec()
 			eventEndTime := eventStartTime.Add(time.Duration(callDurationSec) * time.Second)
@@ -265,13 +268,17 @@ func (c *CdrGeneratorService) Generate() error {
 				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
 				cdr.Duration = callDurationSec
+				c.CdrInmemRepo.Insert(*cdr)
 			} else {
-				for _, interval := range intervals {
+				for i, interval := range intervals {
 					cdr.StartTime = interval["start"].(string)
 					cdr.EndTime = interval["end"].(string)
 					cdr.Duration = interval["duration"].(int)
-					cdrFuture = append(cdrFuture, *cdr)
-					log.Printf("XXX")
+					if i == 0 {
+						c.CdrInmemRepo.Insert(*cdr)
+					} else {
+						cdrFuture = append(cdrFuture, *cdr)
+					}
 				}
 			}
 		} else if serviceCategory == "Data" {
@@ -286,20 +293,29 @@ func (c *CdrGeneratorService) Generate() error {
 				cdr.StartTime = eventStartTime.Format("2006-01-02 15:04:05")
 				cdr.EndTime = eventEndTime.Format("2006-01-02 15:04:05")
 				cdr.Duration = callDurationSec
+				c.CdrInmemRepo.Insert(*cdr)
 			} else {
-				for _, interval := range intervals {
+				for i, interval := range intervals {
 					cdr.StartTime = interval["start"].(string)
 					cdr.EndTime = interval["end"].(string)
 					cdr.Duration = interval["duration"].(int)
-					cdrFuture = append(cdrFuture, *cdr)
-					log.Printf("XXX")
+					if i == 0 {
+						c.CdrInmemRepo.Insert(*cdr)
+					} else {
+						cdrFuture = append(cdrFuture, *cdr)
+					}
 				}
 			}
 		} else {
 			cdr.Reference = fmt.Sprintf("OTH-%d", cdrId)
+			c.CdrInmemRepo.Insert(*cdr)
 		}
-		log.Printf("Generated CDR #%d: %+v", i+1, cdr)
-		log.Printf("Lenght :",len(cdrFuture))
 	}
+
+	count, err := c.CdrInmemRepo.Length()
+	if err != nil {
+		log.Fatalf("Error getting CDR count: %v", err)
+	}
+	fmt.Printf("Total CDRs: %d - Total Future CDRs %d\n", count, len(cdrFuture))
 	return nil
 }
