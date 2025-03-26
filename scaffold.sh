@@ -1,5 +1,7 @@
 #!/bin/bash
 
+
+
 # Function to create directories
 create_directory() {
     mkdir -p "$1"
