@@ -1,4 +1,5 @@
 _archive*
+.env
 
 # Binaries
 /bin
