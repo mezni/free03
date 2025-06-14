@@ -1,9 +1,16 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
-import os
+from transformers import pipeline
 
-# Set your Google API key as an environment variable or getpass
-os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY"
+# Load a pre-trained model and tokenizer
+model_name = "deepset/bert-base-cased-squad2"
+qa_model = pipeline('question-answering', model=model_name)
 
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.7)
-response = llm.invoke("What is the capital of France?")
-print(response.content)
+# Define a question and context
+question = "What is the capital of France?"
+context = "France is a country in Europe. Its capital is Paris."
+
+# Get the answer
+result = qa_model(question=question, context=context)
+
+# Print the answer
+print("Answer:", result['answer'])
+print("Score:", result['score'])
