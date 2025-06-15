@@ -1,23 +1,21 @@
-from langchain_huggingface import HuggingFaceEndpoint
-from dotenv import load_dotenv
-import os
+from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
 
-# Load Hugging Face token from .env file
-load_dotenv()
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+model_name = "deepset/roberta-base-squad2"
 
-repo_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+# Load pipeline
+nlp = pipeline('question-answering', model=model_name, tokenizer=model_name)
 
-llm = HuggingFaceEndpoint(
-    repo_id=repo_id,
-    task="text-generation",
-    max_new_tokens=150,
-    do_sample=False,
-)
+# Define question and context
+QA_input = {
+    'question': 'List of mobile prefixes by operator in Morocco',
+    'context': '''
+    Maroc Telecom uses prefixes like 061, 062, 063. Orange Morocco uses 064, 065. Inwi uses 066, 067.
+    These prefixes help identify the operator of a given mobile number.
+    '''
+}
 
-country = "Tunisia" 
+# Get prediction
+res = nlp(QA_input)
 
-prompt = f"List of telecom operators in {country}:"
-
-response = llm.invoke(prompt)
-print(response)
+# Output
+print(res)
