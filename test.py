@@ -1,21 +1,17 @@
-from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
+from langchain_huggingface import HuggingFaceEndpoint
+from dotenv import load_dotenv
+import os
 
-model_name = "deepset/roberta-base-squad2"
+# Load Hugging Face token from .env
+load_dotenv()
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
-# Load pipeline
-nlp = pipeline('question-answering', model=model_name, tokenizer=model_name)
+from transformers import GPT2Tokenizer, GPT2Model
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+model = GPT2Model.from_pretrained('gpt2')
+text = "Replace me by any text you'd like."
+encoded_input = tokenizer(text, return_tensors='pt')
+output = model(**encoded_input)
 
-# Define question and context
-QA_input = {
-    'question': 'List of mobile prefixes by operator in Morocco',
-    'context': '''
-    Maroc Telecom uses prefixes like 061, 062, 063. Orange Morocco uses 064, 065. Inwi uses 066, 067.
-    These prefixes help identify the operator of a given mobile number.
-    '''
-}
+print (output)
 
-# Get prediction
-res = nlp(QA_input)
-
-# Output
-print(res)
