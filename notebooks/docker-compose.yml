@@ -1,13 +1,9 @@
-version: '3.8'
-
 services:
   jupyter:
-    image: jupyter/datascience-notebook:latest
-    container_name: jupyter-ds
+    build:
+      context: .
     ports:
-      - "8888:8888"
+      - 8889:8888
     volumes:
       - ./notebooks:/home/jovyan/work
-    environment:
-      - JUPYTER_ENABLE_LAB=yes
-    restart: unless-stopped
+    command: start-notebook.py --NotebookApp.token='my-token'
