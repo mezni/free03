@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgis/postgis:18-3.6
+    container_name: database-service
+    environment:
+      POSTGRES_DB: ev_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"  
+    networks:
+      - ev_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ev_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  osm2pgsql:
+    image: iboates/osm2pgsql:latest
+    container_name: osm2pgsql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: ev_db
+    volumes:
+      - ./data:/data
+    command: >
+      osm2pgsql
+      -H postgres
+      -U postgres
+      -d ev_db
+      --create
+      --slim
+      --hstore
+      --multi-geometry
+      --verbose
+      /data/tunisia-251022.osm.pbf
+    networks:
+      - ev_network
+
+volumes:
+  postgres_data:
+
+networks:
+  ev_network:
+    driver: bridge

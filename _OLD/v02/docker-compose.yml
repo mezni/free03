@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: postgres
+    environment:
+      POSTGRES_DB: voltwise_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"   # change host port if 5432 is in use
+    networks:
+      - osm_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d voltwise_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  osm2pgsql:
+    image: iboates/osm2pgsql:latest
+    container_name: osm2pgsql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: voltwise_db
+    volumes:
+      - ./data:/data
+    command: >
+      osm2pgsql
+      -H postgres
+      -U postgres
+      -d voltwise_db
+      --create
+      --slim
+      --hstore
+      --multi-geometry
+      --verbose
+      /data/map.osm.pbf
+    networks:
+      - osm_network
+
+volumes:
+  postgres_data:
+
+networks:
+  osm_network:
+    driver: bridge
