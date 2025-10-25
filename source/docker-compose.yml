@@ -1,0 +1,65 @@
+services:
+  postgis:
+    image: postgis/postgis:18-3.6
+    container_name: postgis
+    environment:
+      POSTGRES_DB: ev_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ev_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osm_network
+
+  osm-importer:
+    build:
+      context: ./osm-importer
+      dockerfile: Dockerfile
+    container_name: osm-importer
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      PGHOST: postgis
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGDATABASE: ev_db
+      REGION: tunisia
+      DATADIR: /osm/data
+    volumes:
+      - ./data:/osm/data
+    networks:
+      - osm_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    ports:
+      - "8080:80"
+    depends_on:
+      postgis:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - osm_network
+
+volumes:
+  postgis_data:
+  pgadmin_data:
+
+networks:
+  osm_network:
+    driver: bridge

@@ -18,6 +18,57 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 
 
+-- Major Tunisian cities coordinates for testing
+-- Tunis: POINT(10.1815 36.8065)
+-- Sfax: POINT(10.7685 34.7397)  
+-- Sousse: POINT(10.6412 35.8288)
+-- Kairouan: POINT(10.1000 35.6833)
+-- Bizerte: POINT(9.8737 37.2745)
+-- Gabès: POINT(10.0833 33.8833)
+-- Djerba: POINT(10.8596 33.8089)
+-- Hammamet: POINT(10.6167 36.4000)
+
+
+chargingStations = [
+            {
+                name: "STEG Charging Station - Lac",
+                coords: [36.8380, 10.2417],
+                type: "Fast Charger",
+                address: "Lac de Tunis, near Tunis City Center"
+            },
+            {
+                name: "Hotel Golden Tulip El Mechtel",
+                coords: [36.8374, 10.2087],
+                type: "Type 2",
+                address: "Avenue Ouled Haffouz, Tunis"
+            },
+            {
+                name: "Tunisia Mall Charging Point",
+                coords: [36.8510, 10.2376],
+                type: "Type 2",
+                address: "Les Berges du Lac, Tunis"
+            },
+            {
+                name: "Energym Charging Station",
+                coords: [36.8185, 10.3135],
+                type: "Fast Charger",
+                address: "La Goulette, Tunis"
+            },
+            {
+                name: "The Residence Tunis",
+                coords: [36.9542, 10.3234],
+                type: "Type 2",
+                address: "Gammarth, Tunis"
+            },
+            {
+                name: "Carrefour Charging Point",
+                coords: [36.8782, 10.3247],
+                type: "Type 2",
+                address: "Marsa, Tunis"
+            }
+        ];
+
+
 -- Find chargers within 10km of a point
 SELECT 
     cs.id,
