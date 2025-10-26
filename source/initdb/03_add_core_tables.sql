@@ -37,7 +37,7 @@ CREATE TABLE station_connectors (
 
     CONSTRAINT fk_station_connectors_station FOREIGN KEY (station_id) REFERENCES charging_stations(id) ON DELETE CASCADE,
     CONSTRAINT fk_station_connectors_connector_type FOREIGN KEY (connector_type_id) REFERENCES connector_types(id) ON DELETE CASCADE,
-    CONSTRAINT fk_station_connectors_status FOREIGN KEY (status_id) REFERENCES connector_statuses(id) ON DELETE CASCADE,
+    CONSTRAINT fk_station_connectors_status FOREIGN KEY (status_id) REFERENCES  connector_statuses(id) ON DELETE CASCADE,
     CONSTRAINT fk_station_connectors_current_type FOREIGN KEY (current_type_id) REFERENCES current_types(id) ON DELETE CASCADE,
     CONSTRAINT fk_station_connectors_created_by FOREIGN KEY (created_by) REFERENCES users(id),
     CONSTRAINT fk_station_connectors_updated_by FOREIGN KEY (updated_by) REFERENCES users(id),
