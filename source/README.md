@@ -13,6 +13,20 @@ https://www.abetterrouteplanner.com/
 
 python3 -m http.server 8080
 
+Ivy Charging Station
+Electric vehicle charging station
+400 Dundas St E · +1 800-301-1950
+Open 24 hours
+CCS·100 kW2/2
+CHAdeMO·50 kW2/3
+
+reviews 
+photos
+nearby locations
+
+
+docker system prune --all --volumes
+docker volume rm $(docker volume ls -qf dangling=true)
 
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
