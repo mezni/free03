@@ -32,6 +32,9 @@ This service provides:
          └────────────────────────┘
 
 ---
+## 🔐 Authentication Sequence
+
+![alt text](<auth_sequence.svg>)
 
 ## ⚙️ Configuration
 
