@@ -32,9 +32,12 @@ This service provides:
          └────────────────────────┘
 
 ---
-## 🔐 Authentication Sequence
+## 🔐 Registration, Login and Tokens Sequence
 
 ![alt text](<auth_sequence.svg>)
+
+## 🔐 role and permission management
+![alt text](<role_sequence.svg>)
 
 ## ⚙️ Configuration
 
