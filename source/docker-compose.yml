@@ -1,0 +1,100 @@
+version: "3.9"
+
+networks:
+  secure_net:
+    driver: bridge
+
+secrets:
+  keycloak_admin_user:
+    file: ./secrets/keycloak_admin_user.txt
+  keycloak_admin_pass:
+    file: ./secrets/keycloak_admin_pass.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+
+volumes:
+  postgres_data:
+  keycloak_data:
+
+services:
+  # ------------------------
+  # PostgreSQL
+  # ------------------------
+  postgres:
+    image: postgres:17
+    container_name: keycloak_postgres
+    restart: unless-stopped
+    networks:
+      - secure_net
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: keycloak
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "keycloak"]
+      interval: 10s
+      retries: 5
+
+  # ------------------------
+  # Keycloak
+  # ------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    restart: unless-stopped
+    networks:
+      - secure_net
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      # For dev mode, use plain password to fix SCRAM issue
+      KC_DB_PASSWORD: "StrongDBPassword!"         # Replace with your dev password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: "StrongAdminPassword!"  # Replace with your dev admin password
+      KC_HOSTNAME: localhost
+    secrets:
+      - keycloak_admin_user
+      - keycloak_admin_pass
+      - postgres_password
+    volumes:
+      - ./realms:/opt/keycloak/data/import:ro
+      - keycloak_data:/opt/keycloak/data:rw
+    ports:
+      - "8080:8080"   # Dev HTTP
+      # - "8443:8443" # Uncomment for production HTTPS
+    # ------------------------
+    # Development mode
+    command: ["start-dev"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/master || exit 1"]
+      interval: 10s
+      retries: 5
+
+# ------------------------
+# Production mode example
+# ------------------------
+# Uncomment the following command and ports for production
+# keycloak:
+#   command:
+#     - start
+#     - --https-port=8443
+#     - --https-cert-file=/opt/keycloak/certs/tls.crt
+#     - --https-key-file=/opt/keycloak/certs/tls.key
+#     - --import-realm
+#   environment:
+#     KC_DB_PASSWORD_FILE: /run/secrets/postgres_password
+#     KC_HOSTNAME: keycloak.example.com
+#     KC_PROXY: edge
+#   ports:
+#     - "8443:8443"
+#   volumes:
+#     - ./certs:/opt/keycloak/certs:ro

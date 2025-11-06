@@ -1,0 +1,59 @@
+{
+  "realm": "myrealm",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "TestPassword123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "adminuser",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AdminPassword123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Regular user role"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator role"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "auth-service",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "AuthServiceSecret123!",
+      "redirectUris": ["*"],
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": true
+    }
+  ]
+}

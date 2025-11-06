@@ -1,0 +1,20 @@
+[package]
+name = "auth-service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12.24", features = ["json", "rustls-tls"] }
+tokio = { version = "1.30", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "registry"] }
+thiserror = "2.0.17"
+dotenv = "0.15.0"
+
+
+[lib]
+name = "auth_service"
+path = "src/lib.rs"
