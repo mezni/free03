@@ -1,0 +1,28 @@
+# config/default.toml
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[keycloak]
+url = "http://localhost:8080"
+realm = "master"
+client_id = "admin-cli"
+client_secret = ""
+admin_username = ""
+admin_password = ""
+
+[database]
+url = "postgres://user:pass@localhost:5432/auth"
+max_connections = 10
+
+[cache]
+redis_url = "redis://localhost:6379"
+ttl_seconds = 3600
+
+[jwt]
+secret = "secret"
+expiration_hours = 24
+
+[log]
+level = "info"
+format = "text"
