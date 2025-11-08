@@ -1,0 +1,5 @@
+pub const MAX_CONNECTOR_TYPE_NAME_LENGTH: usize = 50;
+pub const DEFAULT_PAGE_SIZE: u32 = 20;
+pub const MAX_PAGE_SIZE: u32 = 100;
+pub const CACHE_DEFAULT_TTL: u64 = 300;
+pub const CACHE_DEFAULT_CAPACITY: u64 = 10_000;

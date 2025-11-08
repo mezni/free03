@@ -1,0 +1,207 @@
+erDiagram
+    %% Users
+    USERS }|--|| USER_ROLES : "role (admin, operator, public)" 
+    USERS ||--o{ CHARGING_OPERATORS : "may be an operator"
+
+    %% Stations & Connectors
+    CHARGING_OPERATORS ||--o{ CHARGING_STATIONS : "operate"
+    CHARGING_STATIONS ||--o{ CHARGING_CONNECTORS : "has"
+    CHARGING_NETWORKS ||--o{ CHARGING_STATIONS : "has"
+    
+    %% Lookup Tables
+    CHARGING_CONNECTORS }|--|| CONNECTOR_TYPES : "type"
+    CHARGING_CONNECTORS }|--|| CONNECTOR_AVAILABILITY : "availability"
+    CHARGING_STATIONS }|--|| STATION_STATUS : "status"
+    CHARGING_NETWORKS }|--|| NETWORK_OWNER_TYPES : "owner type (company/individual)"
+
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS hstore;
+CREATE EXTENSION IF NOT EXISTS uuid-ossp;
+
+------------------------------------------------------------
+-- USERS
+------------------------------------------------------------
+CREATE TABLE users (
+    id              BIGSERIAL PRIMARY KEY,
+    username        VARCHAR(150) UNIQUE NOT NULL,
+    email           VARCHAR(255) UNIQUE NOT NULL,
+    full_name       VARCHAR(255),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ
+);
+
+------------------------------------------------------------
+-- REFERENCE TABLES
+------------------------------------------------------------
+
+-- Connector Types
+CREATE TABLE connector_types (
+    id              SERIAL PRIMARY KEY,
+    code            VARCHAR(50) UNIQUE NOT NULL,  -- e.g. 'Type1', 'CCS'
+    description     TEXT
+);
+
+-- Connector Availability
+CREATE TABLE connector_availability (
+    id              SERIAL PRIMARY KEY,
+    code            VARCHAR(50) UNIQUE NOT NULL,  -- e.g. 'available', 'in_use', 'maintenance'
+    description     TEXT
+);
+
+-- Charging Station Status
+CREATE TABLE station_status (
+    id              SERIAL PRIMARY KEY,
+    code            VARCHAR(50) UNIQUE NOT NULL,  -- e.g. 'active', 'inactive', 'maintenance'
+    description     TEXT
+);
+
+-- Operator Roles per Network
+CREATE TABLE operator_roles (
+    id              SERIAL PRIMARY KEY,
+    code            VARCHAR(50) UNIQUE NOT NULL,  -- e.g. 'admin', 'manager', 'technician', 'viewer'
+    description     TEXT
+);
+
+-- Network Owner Types
+CREATE TABLE network_owner_types (
+    id              SERIAL PRIMARY KEY,
+    code            VARCHAR(50) UNIQUE NOT NULL,  -- e.g. 'company', 'individual'
+    description     TEXT
+);
+
+------------------------------------------------------------
+-- CHARGING NETWORKS
+------------------------------------------------------------
+CREATE TABLE charging_networks (
+    id              BIGSERIAL PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL UNIQUE,
+    owner_type_id   INT NOT NULL REFERENCES network_owner_types(id),
+    contact_email   VARCHAR(255),
+    phone_number    VARCHAR(50),
+    website_url     TEXT,
+    country         VARCHAR(100),
+    created_by      BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_by      BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+------------------------------------------------------------
+-- OPERATORS
+------------------------------------------------------------
+CREATE TABLE operators (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    display_name    VARCHAR(255) NOT NULL,
+    contact_email   VARCHAR(255),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Operator-Network roles
+CREATE TABLE operator_network_roles (
+    id              BIGSERIAL PRIMARY KEY,
+    operator_id     BIGINT NOT NULL REFERENCES operators(id) ON DELETE CASCADE,
+    network_id      BIGINT NOT NULL REFERENCES charging_networks(id) ON DELETE CASCADE,
+    role_id         INT NOT NULL REFERENCES operator_roles(id),
+    assigned_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (operator_id, network_id)
+);
+
+------------------------------------------------------------
+-- CHARGING STATIONS
+------------------------------------------------------------
+CREATE TABLE charging_stations (
+    id              BIGSERIAL PRIMARY KEY,
+    osm_id          BIGINT UNIQUE NOT NULL,
+    network_id      BIGINT NOT NULL REFERENCES charging_networks(id) ON DELETE CASCADE,
+    name            VARCHAR(255) NOT NULL,
+    address         TEXT,
+    location        GEOGRAPHY(Point, 4326) NOT NULL,
+    power_kw        NUMERIC(10,2),
+    num_connectors  INTEGER DEFAULT 1 CHECK (num_connectors >= 0),
+    status_id       INT NOT NULL REFERENCES station_status(id),
+    tags            HSTORE,
+    created_by      BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_by      BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_charging_stations_location ON charging_stations USING GIST (location);
+CREATE INDEX idx_charging_stations_network ON charging_stations (network_id);
+CREATE INDEX idx_charging_stations_status ON charging_stations (status_id);
+
+------------------------------------------------------------
+-- CONNECTORS
+------------------------------------------------------------
+CREATE TABLE connectors (
+    id              BIGSERIAL PRIMARY KEY,
+    station_id      BIGINT NOT NULL REFERENCES charging_stations(id) ON DELETE CASCADE,
+    connector_type_id INT NOT NULL REFERENCES connector_types(id),
+    max_power_kw    NUMERIC(10,2),
+    availability_id INT NOT NULL REFERENCES connector_availability(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_connectors_station_id ON connectors (station_id);
+
+------------------------------------------------------------
+-- CHARGING SESSIONS
+------------------------------------------------------------
+CREATE TABLE charging_sessions (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    connector_id    BIGINT NOT NULL REFERENCES connectors(id) ON DELETE CASCADE,
+    user_id         BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    started_at      TIMESTAMPTZ NOT NULL,
+    ended_at        TIMESTAMPTZ,
+    energy_kwh      NUMERIC(10,2),
+    cost_usd        NUMERIC(10,2),
+    status_id       INT NOT NULL REFERENCES station_status(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_sessions_connector_id ON charging_sessions (connector_id);
+CREATE INDEX idx_sessions_user_id ON charging_sessions (user_id);
+CREATE INDEX idx_sessions_status ON charging_sessions (status_id);
+
+
+
+CREATE TABLE networks (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    website VARCHAR(255)
+);
+
+CREATE TABLE charging_operators (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    network_id BIGINT REFERENCES charging_networks(id) ON DELETE CASCADE,
+    role_id INT,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+
+
+CREATE TABLE stations (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT,
+    address TEXT,
+    status TEXT,
+    onlineStatus TEXT
+);
+
+CREATE TABLE connectors (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT,
+    type TEXT,
+    status TEXT,
+    onlineStatus TEXT
+);
