@@ -1,0 +1,19 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+workers = 4
+
+[log]
+level = "info"
+format = "json"
+
+[database]
+url = "${DATABASE_URL}"
+max_connections = 20
+
+[redis]
+url = "${REDIS_URL}"
+
+[health_check]
+enabled = true
+endpoint = "/health"

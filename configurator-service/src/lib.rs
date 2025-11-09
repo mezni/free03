@@ -1,86 +1,96 @@
-pub mod shared;
+use actix_web::{App, HttpServer, web};
+use infrastructure::config::Config;
+use infrastructure::database::Database;
+use infrastructure::logger::init_logger;
+use std::sync::Arc;
+
+// Application handlers
+use application::commands::companies::{CompanyCommandHandler, CompanyCommandHandlerImpl};
+use application::commands::networks::{NetworkCommandHandler, NetworkCommandHandlerImpl};
+use application::queries::companies::{CompanyQueryHandler, CompanyQueryHandlerImpl};
+use application::queries::networks::{NetworkQueryHandler, NetworkQueryHandlerImpl};
+
+pub mod api;
+pub mod application;
 pub mod domain;
 pub mod infrastructure;
-pub mod application;
-pub mod api;
-pub mod config;
-pub mod logger;
+pub mod shared;
 
-use actix_web::{web, App, HttpServer};
-use std::io::Result;
-use std::sync::Arc;
-use utoipa_swagger_ui::SwaggerUi; // Add this import
-use utoipa::OpenApi; // Add this import
+// Re-exports for easier access
+pub use shared::constants;
+pub use shared::errors::AppError;
 
-pub use config::Config;
-pub use logger::init_logger;
+// Application state that will be shared across handlers
+#[derive(Clone)]
+pub struct AppState {
+    pub db: infrastructure::database::Database,
+    pub config: infrastructure::config::Config,
+    pub network_command_handler: Arc<dyn NetworkCommandHandler>,
+    pub company_command_handler: Arc<dyn CompanyCommandHandler>,
+    pub network_query_handler: Arc<dyn NetworkQueryHandler>,
+    pub company_query_handler: Arc<dyn CompanyQueryHandler>,
+}
 
-pub async fn run_server(config: Config) -> Result<()> {
+// Result type alias for the application
+pub type Result<T> = std::result::Result<T, AppError>;
+
+/// Create and configure the Actix Web application
+pub async fn create_app() -> std::io::Result<actix_web::dev::Server> {
+    // Initialize logger
     init_logger();
-    
-    log::info!("🚀 Starting Configurator Service on {}", config.server_address());
-    log::info!("📊 Database URL: {}", config.database_url);
-    
-    // Set up database connection
-    let pool = match sqlx::postgres::PgPool::connect(&config.database_url).await {
-        Ok(pool) => {
-            log::info!("✅ Connected to database successfully");
-            pool
-        }
-        Err(e) => {
-            log::error!("❌ Failed to connect to database: {}", e);
-            log::info!("Please check your DATABASE_URL and ensure PostgreSQL is running");
-            std::process::exit(1);
-        }
-    };
-    
-    // Test database connection
-    match sqlx::query("SELECT 1").execute(&pool).await {
-        Ok(_) => log::info!("✅ Database connection test successful"),
-        Err(e) => {
-            log::error!("❌ Database connection test failed: {}", e);
-            std::process::exit(1);
-        }
-    }
-    
-    // Initialize cache
-    let cache = Arc::new(shared::cache::create_connector_type_cache(
-        config.cache_capacity,
-        config.cache_ttl_seconds,
+
+    // Load configuration
+    let config = Config::from_env().expect("Failed to load configuration");
+
+    // Initialize database connection pool
+    let database = Database::new(&config.database_url)
+        .await
+        .expect("Failed to create database pool");
+
+    // Create repositories
+    let network_repository = Box::new(
+        infrastructure::repositories::networks::NetworkRepositoryImpl::new(
+            database.get_pool().clone(),
+        ),
+    );
+    let company_repository = Box::new(
+        infrastructure::repositories::companies::CompanyRepositoryImpl::new(
+            database.get_pool().clone(),
+        ),
+    );
+
+    // Create command handlers - use Arc instead of Box
+    let network_command_handler =
+        Arc::new(NetworkCommandHandlerImpl::new(network_repository.clone()));
+    let company_command_handler = Arc::new(CompanyCommandHandlerImpl::new(
+        company_repository.clone(),
+        network_repository.clone(),
     ));
-    log::info!("✅ Cache initialized with capacity: {}", config.cache_capacity);
-    
-    // Initialize repository
-    let connector_type_repo = infrastructure::ConnectorTypeRepositoryImpl::new(pool);
-    
-    // Initialize commands and queries
-    let create_command = application::CreateConnectorTypeCommand::new(connector_type_repo.clone());
-    let update_command = application::UpdateConnectorTypeCommand::new(connector_type_repo.clone());
-    let delete_command = application::DeleteConnectorTypeCommand::new(connector_type_repo.clone());
-    let list_query = application::ListConnectorTypesQuery::new(connector_type_repo.clone());
-    let get_by_id_query = application::GetConnectorTypeByIdQuery::new(connector_type_repo, cache);
-    
-    log::info!("✅ Application initialized successfully");
-    log::info!("🌐 Server starting on {}", config.server_address());
-    log::info!("📚 Swagger UI available at: http://{}/swagger-ui/", config.server_address());
-    
-    HttpServer::new(move || {
-        let openapi = crate::api::openapi::ApiDoc::openapi();
-        
+
+    // Create query handlers - use Arc instead of Box
+    let network_query_handler = Arc::new(NetworkQueryHandlerImpl::new(network_repository));
+    let company_query_handler = Arc::new(CompanyQueryHandlerImpl::new(company_repository));
+
+    // Create application state
+    let app_state = AppState {
+        db: database,
+        config: config.clone(),
+        network_command_handler,
+        company_command_handler,
+        network_query_handler,
+        company_query_handler,
+    };
+
+    log::info!("Starting server on {}:{}", config.host, config.port);
+
+    // Build and return server
+    let server = HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(get_by_id_query.clone()))
-            .app_data(web::Data::new(list_query.clone()))
-            .app_data(web::Data::new(create_command.clone()))
-            .app_data(web::Data::new(update_command.clone()))
-            .app_data(web::Data::new(delete_command.clone()))
-            .configure(api::configure_routes)
-            // Manual Swagger registration as backup
-            .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}")
-                    .url("/api-docs/openapi.json", openapi),
-            )
+            .app_data(web::Data::new(app_state.clone()))
+            .configure(api::routes::configure_routes)
     })
-    .bind(config.server_address())?
-    .run()
-    .await
+    .bind((config.host.as_str(), config.port))?
+    .run();
+
+    Ok(server)
 }

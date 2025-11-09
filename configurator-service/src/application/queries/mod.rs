@@ -1,1 +1,2 @@
-pub mod connector_type_queries;
+pub mod companies;
+pub mod networks;

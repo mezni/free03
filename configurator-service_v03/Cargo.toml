@@ -1,0 +1,70 @@
+[package]
+name = "configurator-service"
+version = "0.1.0"
+edition = "2021"
+authors = ["M.MEZNI <mamezni@gmail.com>"]
+description = "configurator-service"
+license = "MIT"
+
+[dependencies]
+# ======================
+# Web Framework
+# ======================
+actix-web = "4.11.0"
+actix-rt = "2.11.0"
+actix-cors = "0.7.1"
+actix-service = "2.0.3"
+
+# ======================
+# Async & Runtime
+# ======================
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
+
+# ======================
+# Database Layer
+# ======================
+sqlx = { version = "0.8.6", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "macros",
+    "uuid",
+    "chrono",
+] }
+
+# ======================
+# Serialization & Utils
+# ======================
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+dotenvy = "0.15.7"
+uuid = { version = "1.18.1", features = ["v4", "serde"] }
+chrono = { version = "0.4.42", features = ["serde"] }
+lazy_static = "1.5.0"
+thiserror = "2.0.17"
+
+# ======================
+# Logging
+# ======================
+log = "0.4.28"
+env_logger = "0.11.8"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
+
+# ======================
+# OpenAPI & Swagger
+# ======================
+utoipa = { version = "5.4.0", features = ["actix_extras", "uuid", "chrono"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["actix-web"] }
+
+# ======================
+# Caching
+# ======================
+moka = { version = "0.12.11", features = ["future"] }
+
+# ======================
+# Other
+# ======================
+anyhow = "1.0.100"
+
+[dev-dependencies]
+actix-http = "3.11.2"
