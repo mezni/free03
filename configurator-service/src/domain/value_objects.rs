@@ -1,3 +1,8 @@
+pub const MAX_CITY_LENGTH: usize = 100;
+pub const MAX_STATE_LENGTH: usize = 100;
+pub const MAX_COUNTRY_LENGTH: usize = 100;
+pub const MAX_POSTAL_CODE_LENGTH: usize = 20;
+
 use crate::shared::errors::AppError;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -161,6 +166,38 @@ impl BusinessRegistrationNumber {
 }
 
 impl fmt::Display for BusinessRegistrationNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct City {
+    value: String,
+}
+
+impl City {
+    pub fn new(city: &str) -> Result<Self, AppError> {
+        if city.is_empty() {
+            return Err(AppError::Validation("City cannot be empty".to_string()));
+        }
+        if city.len() > MAX_CITY_LENGTH {
+            return Err(AppError::Validation(format!(
+                "City cannot exceed {} characters",
+                MAX_CITY_LENGTH
+            )));
+        }
+        Ok(Self {
+            value: city.to_string(),
+        })
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+}
+
+impl fmt::Display for City {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
     }

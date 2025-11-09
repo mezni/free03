@@ -33,6 +33,13 @@ pub const MAX_PHONE_LENGTH: usize = 50;
 pub const MAX_BUSINESS_REG_NUMBER_LENGTH: usize = 100;
 pub const MAX_WEBSITE_URL_LENGTH: usize = 255;
 
+pub const MAX_CITY_LENGTH: usize = 100;
+pub const MAX_STATE_LENGTH: usize = 100;
+pub const MAX_COUNTRY_LENGTH: usize = 100;
+pub const MAX_POSTAL_CODE_LENGTH: usize = 20;
+pub const DEFAULT_SEARCH_RADIUS: f64 = 5000.0; // 5km in meters
+pub const MAX_SEARCH_RADIUS: f64 = 50000.0; // 50km in meters
+
 // API constants
 pub const API_VERSION: &str = "v1";
 pub const API_PREFIX: &str = "/api/v1";

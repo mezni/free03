@@ -7,8 +7,10 @@ use std::sync::Arc;
 // Application handlers
 use application::commands::companies::{CompanyCommandHandler, CompanyCommandHandlerImpl};
 use application::commands::networks::{NetworkCommandHandler, NetworkCommandHandlerImpl};
+use application::commands::stations::{StationCommandHandler, StationCommandHandlerImpl};
 use application::queries::companies::{CompanyQueryHandler, CompanyQueryHandlerImpl};
 use application::queries::networks::{NetworkQueryHandler, NetworkQueryHandlerImpl};
+use application::queries::stations::{StationQueryHandler, StationQueryHandlerImpl};
 
 pub mod api;
 pub mod application;
@@ -27,8 +29,10 @@ pub struct AppState {
     pub config: infrastructure::config::Config,
     pub network_command_handler: Arc<dyn NetworkCommandHandler>,
     pub company_command_handler: Arc<dyn CompanyCommandHandler>,
+    pub station_command_handler: Arc<dyn StationCommandHandler>,
     pub network_query_handler: Arc<dyn NetworkQueryHandler>,
     pub company_query_handler: Arc<dyn CompanyQueryHandler>,
+    pub station_query_handler: Arc<dyn StationQueryHandler>,
 }
 
 // Result type alias for the application
@@ -58,6 +62,11 @@ pub async fn create_app() -> std::io::Result<actix_web::dev::Server> {
             database.get_pool().clone(),
         ),
     );
+    let station_repository = Box::new(
+        infrastructure::repositories::stations::StationRepositoryImpl::new(
+            database.get_pool().clone(),
+        ),
+    );
 
     // Create command handlers - use Arc instead of Box
     let network_command_handler =
@@ -66,10 +75,15 @@ pub async fn create_app() -> std::io::Result<actix_web::dev::Server> {
         company_repository.clone(),
         network_repository.clone(),
     ));
+    let station_command_handler = Arc::new(StationCommandHandlerImpl::new(
+        station_repository.clone(),
+        network_repository.clone(),
+    ));
 
     // Create query handlers - use Arc instead of Box
     let network_query_handler = Arc::new(NetworkQueryHandlerImpl::new(network_repository));
     let company_query_handler = Arc::new(CompanyQueryHandlerImpl::new(company_repository));
+    let station_query_handler = Arc::new(StationQueryHandlerImpl::new(station_repository));
 
     // Create application state
     let app_state = AppState {
@@ -77,8 +91,10 @@ pub async fn create_app() -> std::io::Result<actix_web::dev::Server> {
         config: config.clone(),
         network_command_handler,
         company_command_handler,
+        station_command_handler, // Add this
         network_query_handler,
         company_query_handler,
+        station_query_handler, // Add this
     };
 
     log::info!("Starting server on {}:{}", config.host, config.port);

@@ -25,11 +25,99 @@ CREATE TABLE companies (
     FOREIGN KEY (network_id) REFERENCES networks(network_id) ON DELETE CASCADE
 );
 
+
+CREATE TABLE stations (
+    station_id SERIAL PRIMARY KEY,
+    network_id INTEGER NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    address TEXT NOT NULL,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    postal_code VARCHAR(20),
+    location GEOGRAPHY(Point, 4326) NOT NULL,
+    tags HSTORE,
+    osm_id BIGINT,
+    is_operational BOOLEAN DEFAULT TRUE,
+    created_by UUID NOT NULL,
+    updated_by UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (network_id) REFERENCES networks(network_id) ON DELETE CASCADE
+);
+
+-- Create index for spatial queries
+CREATE INDEX idx_stations_location ON stations USING GIST (location);
+CREATE INDEX idx_stations_network_id ON stations (network_id);
+CREATE INDEX idx_stations_operational ON stations (is_operational);
+
 -----------------------------------------------------
 
 
 
 
+-- First, make sure you have a network (if you don't have one already)
+INSERT INTO networks (name, type, created_by) 
+VALUES ('California EV Network', 'company', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')
+RETURNING network_id;
+
+-- Then insert stations (replace 1 with the actual network_id from above)
+INSERT INTO stations (
+    network_id, 
+    name, 
+    address, 
+    city, 
+    state, 
+    country, 
+    postal_code, 
+    location, 
+    tags, 
+    osm_id, 
+    is_operational, 
+    created_by
+) VALUES 
+(
+    1,  -- network_id
+    'Downtown Charging Station',
+    '123 Main Street',
+    'San Francisco',
+    'California', 
+    'United States',
+    '94105',
+    ST_GeogFromText('POINT(-122.399677 37.787994)'),
+    '"amenity"=>"charging_station", "capacity"=>"4", "operator"=>"EVGo", "socket"=>"type2"',
+    123456789,
+    TRUE,
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    1,
+    'Shopping Mall Charging Hub', 
+    '456 Market Street',
+    'San Francisco',
+    'California',
+    'United States', 
+    '94102',
+    ST_GeogFromText('POINT(-122.407235 37.784140)'),
+    '"amenity"=>"charging_station", "capacity"=>"8", "access"=>"public", "socket"=>"ccs"',
+    987654321,
+    TRUE,
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    1,
+    'Airport Fast Charger',
+    '789 Airport Boulevard', 
+    'San Francisco',
+    'California',
+    'United States',
+    '94128',
+    ST_GeogFromText('POINT(-122.374447 37.615223)'),
+    '"amenity"=>"charging_station", "capacity"=>"6", "operator"=>"Tesla", "fast_charging"=>"true"',
+    555555555,
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+);
 
 
 

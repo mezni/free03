@@ -54,6 +54,37 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                         "/network/{network_id}",
                         web::get().to(crate::api::handlers::companies::get_company_by_network),
                     ),
+            )
+            .service(
+                web::scope("/stations")
+                    .route(
+                        "",
+                        web::post().to(crate::api::handlers::stations::create_station),
+                    )
+                    .route(
+                        "/{id}",
+                        web::get().to(crate::api::handlers::stations::get_station),
+                    )
+                    .route(
+                        "/{id}",
+                        web::put().to(crate::api::handlers::stations::update_station),
+                    )
+                    .route(
+                        "/{id}",
+                        web::delete().to(crate::api::handlers::stations::delete_station),
+                    )
+                    .route(
+                        "/network/{network_id}",
+                        web::get().to(crate::api::handlers::stations::get_stations_by_network),
+                    )
+                    .route(
+                        "/network/{network_id}/operational",
+                        web::get().to(crate::api::handlers::stations::get_operational_stations),
+                    )
+                    .route(
+                        "/search",
+                        web::get().to(crate::api::handlers::stations::search_stations),
+                    ),
             ),
     )
     .service(SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()));
