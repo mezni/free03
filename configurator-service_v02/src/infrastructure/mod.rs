@@ -1,3 +1,0 @@
-pub mod connector_type_repository_impl;
-
-pub use connector_type_repository_impl::ConnectorTypeRepositoryImpl;
