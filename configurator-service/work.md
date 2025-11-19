@@ -51,6 +51,251 @@ CREATE INDEX idx_stations_location ON stations USING GIST (location);
 CREATE INDEX idx_stations_network_id ON stations (network_id);
 CREATE INDEX idx_stations_operational ON stations (is_operational);
 
+
+
+-- Create connector_types table with TEXT instead of ENUM
+CREATE TABLE connector_types (
+    connector_type_id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    standard VARCHAR(100),
+    current_type TEXT NOT NULL CHECK (current_type IN ('AC', 'DC')),
+    typical_power_kw DECIMAL(6, 2),
+    pin_configuration VARCHAR(100),
+    is_public_standard BOOLEAN DEFAULT TRUE,
+    created_by UUID NOT NULL,
+    updated_by UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert common EV connector types
+INSERT INTO connector_types (
+    name, 
+    description, 
+    standard, 
+    current_type, 
+    typical_power_kw, 
+    pin_configuration, 
+    is_public_standard, 
+    created_by
+) VALUES 
+(
+    'Type 1 (J1772)', 
+    'Standard North American AC connector', 
+    'SAE J1772', 
+    'AC', 
+    7.2, 
+    '5-pin', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'Type 2 (Mennekes)', 
+    'Standard European AC connector', 
+    'IEC 62196-2', 
+    'AC', 
+    22.0, 
+    '7-pin', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'CCS1 (Combo 1)', 
+    'North American DC fast charging combo connector', 
+    'IEC 62196-3', 
+    'DC', 
+    350.0, 
+    'Combo (AC+DC)', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'CCS2 (Combo 2)', 
+    'European DC fast charging combo connector', 
+    'IEC 62196-3', 
+    'DC', 
+    350.0, 
+    'Combo (AC+DC)', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'CHAdeMO', 
+    'Japanese DC fast charging standard', 
+    'CHAdeMO', 
+    'DC', 
+    200.0, 
+    '10-pin', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'Tesla Supercharger', 
+    'Tesla proprietary DC fast charging connector', 
+    'Tesla', 
+    'DC', 
+    250.0, 
+    'Proprietary', 
+    FALSE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'GB/T AC', 
+    'Chinese standard AC connector', 
+    'GB/T 20234.2', 
+    'AC', 
+    7.0, 
+    '7-pin', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'GB/T DC', 
+    'Chinese standard DC fast charging connector', 
+    'GB/T 20234.3', 
+    'DC', 
+    237.5, 
+    '9-pin', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'Three-Phase AC', 
+    'High-power three-phase AC charging', 
+    'IEC 62196-2', 
+    'AC', 
+    43.0, 
+    '7-pin', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'NACS (Tesla)', 
+    'North American Charging Standard (formerly Tesla connector)', 
+    'SAE J3400', 
+    'DC', 
+    250.0, 
+    'Simple 2-pin', 
+    TRUE, 
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+);
+
+-- Optional: Create an index on current_type for better query performance
+CREATE INDEX idx_connector_types_current_type ON connector_types(current_type);
+
+-- Create connectors table with TEXT instead of ENUM
+CREATE TABLE connectors (
+    connector_id SERIAL PRIMARY KEY,
+    station_id INTEGER NOT NULL,
+    connector_type_id INTEGER NOT NULL,
+    power_level_kw DECIMAL(6, 2) NOT NULL,
+    status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'out_of_service', 'reserved')),
+    max_voltage INTEGER,
+    max_amperage INTEGER,
+    serial_number VARCHAR(100),
+    manufacturer VARCHAR(100),
+    model VARCHAR(100),
+    installation_date DATE,
+    last_maintenance_date DATE,
+    created_by UUID NOT NULL,
+    updated_by UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE,
+    FOREIGN KEY (connector_type_id) REFERENCES connector_types(connector_type_id)
+);
+
+-- Insert sample connectors for various stations
+-- Assuming station_id 1-5 exist and connector_type_id 1-10 exist from previous inserts
+INSERT INTO connectors (
+    station_id,
+    connector_type_id,
+    power_level_kw,
+    status,
+    max_voltage,
+    max_amperage,
+    serial_number,
+    manufacturer,
+    model,
+    installation_date,
+    last_maintenance_date,
+    created_by
+) VALUES 
+-- Station 1: Fast charging station with multiple connector types
+(
+    1, 3, 150.0, 'available', 1000, 150, 'CCS1-001-A', 'ABB', 'Terra HP', '2023-01-15', '2024-01-10', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    1, 5, 50.0, 'available', 500, 100, 'CHAD-001-A', 'Fuji Electric', 'CHAdeMO-50', '2023-01-15', '2024-01-10', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    1, 1, 7.2, 'occupied', 240, 32, 'J1772-001-A', 'ClipperCreek', 'HCS-40', '2023-01-15', '2024-01-10', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+
+-- Station 2: Urban charging hub
+(
+    2, 2, 22.0, 'available', 480, 32, 'TYPE2-002-A', 'Alfen', 'Eve Double', '2023-03-20', '2024-02-15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    2, 2, 22.0, 'available', 480, 32, 'TYPE2-002-B', 'Alfen', 'Eve Double', '2023-03-20', '2024-02-15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    2, 4, 50.0, 'out_of_service', 500, 100, 'CCS2-002-A', 'Siemens', 'SICHARGE D', '2023-03-20', '2024-02-15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+
+-- Station 3: Tesla Supercharger location
+(
+    3, 6, 250.0, 'available', 480, 525, 'TESLA-003-A', 'Tesla', 'V3 Supercharger', '2023-05-10', '2024-03-01', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    3, 6, 250.0, 'occupied', 480, 525, 'TESLA-003-B', 'Tesla', 'V3 Supercharger', '2023-05-10', '2024-03-01', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    3, 6, 250.0, 'available', 480, 525, 'TESLA-003-C', 'Tesla', 'V3 Supercharger', '2023-05-10', '2024-03-01', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+
+-- Station 4: Mixed-use station
+(
+    4, 1, 7.2, 'available', 240, 32, 'J1772-004-A', 'ChargePoint', 'CT4000', '2023-07-05', '2024-01-20', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    4, 3, 350.0, 'reserved', 1000, 350, 'CCS1-004-A', 'Delta', 'DC Wallbox', '2023-07-05', '2024-01-20', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+
+-- Station 5: High-power commercial station
+(
+    5, 4, 350.0, 'available', 1000, 350, 'CCS2-005-A', 'Alpitronic', 'Hypercharger', '2023-09-12', '2024-02-28', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    5, 4, 350.0, 'available', 1000, 350, 'CCS2-005-B', 'Alpitronic', 'Hypercharger', '2023-09-12', '2024-02-28', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    5, 9, 43.0, 'available', 480, 63, '3PH-005-A', 'Efacec', 'QC45', '2023-09-12', '2024-02-28', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+
+-- Station 6: Chinese market station
+(
+    6, 7, 7.0, 'available', 250, 32, 'GBTAC-006-A', 'NARI', 'AC Charger', '2023-11-08', '2024-03-10', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    6, 8, 120.0, 'available', 750, 160, 'GBTD-006-A', 'Star Charge', 'DC Charger', '2023-11-08', '2024-03-10', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+
+-- Station 7: NACS compatible station
+(
+    7, 10, 250.0, 'available', 500, 500, 'NACS-007-A', 'Tesla', 'Magic Dock', '2024-01-20', '2024-03-15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    7, 10, 250.0, 'available', 500, 500, 'NACS-007-B', 'Tesla', 'Magic Dock', '2024-01-20', '2024-03-15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+);
+
+-- Optional: Create indexes for better performance
+CREATE INDEX idx_connectors_station_id ON connectors(station_id);
+CREATE INDEX idx_connectors_connector_type_id ON connectors(connector_type_id);
+CREATE INDEX idx_connectors_status ON connectors(status);
+CREATE INDEX idx_connectors_manufacturer ON connectors(manufacturer);
+
 -----------------------------------------------------
 
 

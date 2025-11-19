@@ -1,0 +1,132 @@
+ev-station-management/
+├── Cargo.toml
+├── Cargo.lock
+├── .env
+├── .gitignore
+├── README.md
+├── src/
+│   ├── main.rs
+│   ├── lib.rs
+│   ├── domain/
+│   │   ├── mod.rs
+│   │   ├── models/
+│   │   │   ├── mod.rs
+│   │   │   ├── station.rs
+│   │   │   ├── connector.rs
+│   │   │   ├── connector_type.rs
+│   │   │   ├── network.rs
+│   │   │   ├── company.rs
+│   │   │   ├── individual.rs
+│   │   │   └── person.rs
+│   │   ├── value_objects/
+│   │   │   ├── mod.rs
+│   │   │   ├── location.rs
+│   │   │   ├── contact_info.rs
+│   │   │   ├── tags.rs
+│   │   │   ├── operational_status.rs
+│   │   │   ├── verification_status.rs
+│   │   │   ├── email.rs
+│   │   │   └── phone.rs
+│   │   ├── enums/
+│   │   │   ├── mod.rs
+│   │   │   ├── network_type.rs
+│   │   │   ├── company_type.rs
+│   │   │   ├── role_type.rs
+│   │   │   └── connector_status.rs
+│   │   ├── events/
+│   │   │   ├── mod.rs
+│   │   │   ├── station_events.rs
+│   │   │   ├── connector_events.rs
+│   │   │   └── network_events.rs
+│   │   └── services/
+│   │       ├── mod.rs
+│   │       ├── station_service.rs
+│   │       ├── network_service.rs
+│   │       └── verification_service.rs
+│   ├── application/
+│   │   ├── mod.rs
+│   │   ├── commands/
+│   │   │   ├── mod.rs
+│   │   │   ├── station_commands.rs
+│   │   │   ├── connector_commands.rs
+│   │   │   └── network_commands.rs
+│   │   ├── queries/
+│   │   │   ├── mod.rs
+│   │   │   ├── station_queries.rs
+│   │   │   ├── connector_queries.rs
+│   │   │   └── network_queries.rs
+│   │   ├── handlers/
+│   │   │   ├── mod.rs
+│   │   │   ├── command_handlers.rs
+│   │   │   └── query_handlers.rs
+│   │   └── dtos/
+│   │       ├── mod.rs
+│   │       ├── station_dtos.rs        # #[derive(ToSchema)]
+│   │       ├── connector_dtos.rs      # #[derive(ToSchema)]
+│   │       └── network_dtos.rs        # #[derive(ToSchema)]
+│   ├── infrastructure/
+│   │   ├── mod.rs
+│   │   ├── database/
+│   │   │   ├── mod.rs
+│   │   │   ├── connection.rs
+│   │   │   ├── repositories/
+│   │   │   │   ├── mod.rs
+│   │   │   │   ├── station_repository.rs
+│   │   │   │   ├── connector_repository.rs
+│   │   │   │   ├── network_repository.rs
+│   │   │   │   └── person_repository.rs
+│   │   │   └── migrations/
+│   │   │       ├── mod.rs
+│   │   │       └── 001_initial_schema.sql
+│   │   ├── config/
+│   │   │   ├── mod.rs
+│   │   │   └── settings.rs
+│   │   └── external/
+│   │       ├── mod.rs
+│   │       ├── email_service.rs
+│   │       └── sms_service.rs
+│   ├── api/
+│   │   ├── mod.rs
+│   │   ├── routes/
+│   │   │   ├── mod.rs
+│   │   │   ├── stations.rs           # Swagger route + handlers
+│   │   │   ├── connectors.rs
+│   │   │   ├── networks.rs
+│   │   │   └── persons.rs
+│   │   ├── handlers/
+│   │   │   ├── mod.rs
+│   │   │   ├── station_handlers.rs   # #[utoipa::path] annotated
+│   │   │   ├── connector_handlers.rs
+│   │   │   └── network_handlers.rs
+│   │   ├── middleware/
+│   │   │   ├── mod.rs
+│   │   │   ├── auth.rs
+│   │   │   ├── logging.rs
+│   │   │   └── error_handling.rs
+│   │   └── responses/
+│   │       ├── mod.rs
+│   │       ├── api_response.rs
+│   │       └── error_response.rs
+│   └── utils/
+│       ├── mod.rs
+│       ├── validators.rs
+│       ├── datetime.rs
+│       └── id_generator.rs
+├── tests/
+│   ├── mod.rs
+│   ├── unit/
+│   │   ├── mod.rs
+│   │   ├── domain_tests.rs
+│   │   └── service_tests.rs
+│   └── integration/
+│       ├── mod.rs
+│       ├── station_tests.rs
+│       └── network_tests.rs
+├── docs/
+│   ├── api.md
+│   ├── architecture.md
+│   └── deployment.md
+└── scripts/
+    ├── migrate.sh
+    ├── test.sh
+    └── deploy.sh
