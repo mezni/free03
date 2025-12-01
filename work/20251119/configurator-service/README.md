@@ -13,12 +13,7 @@ A comprehensive EV station management system built with Rust, Actix-web, and SQL
 
 ## Entities
 
-- station
-- connector
 - network
-- company
-- individual
-- person
 
 ## Getting Started
 

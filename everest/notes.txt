@@ -1,0 +1,761 @@
+https://github.com/Aditeya/utoipa-auto-docs-example/blob/main/src/main.rs
+
+
+
+# DDD Project Structure for Actix Web + utoipa
+
+## Directory Structure
+
+```
+src/
+├── main.rs                           # Application entry point
+├── lib.rs                            # Library root, exports public API
+│
+├── domain/                           # Domain Layer (Business Logic)
+│   ├── mod.rs
+│   ├── user/                         # User Aggregate
+│   │   ├── mod.rs
+│   │   ├── entity.rs                 # User entity
+│   │   ├── value_objects.rs          # Email, UserId, etc.
+│   │   ├── repository.rs             # Repository trait
+│   │   ├── service.rs                # Domain service
+│   │   └── errors.rs                 # Domain-specific errors
+│   │
+│   ├── auth/                         # Authentication Domain
+│   │   ├── mod.rs
+│   │   ├── entity.rs
+│   │   ├── value_objects.rs          # Token, Credentials
+│   │   ├── service.rs
+│   │   └── errors.rs
+│   │
+│   └── shared/                       # Shared domain concepts
+│       ├── mod.rs
+│       ├── value_objects.rs          # Common VOs
+│       └── errors.rs                 # Base domain errors
+│
+├── application/                      # Application Layer (Use Cases)
+│   ├── mod.rs
+│   ├── user/                         # User Use Cases
+│   │   ├── mod.rs
+│   │   ├── commands/                 # Write operations
+│   │   │   ├── mod.rs
+│   │   │   ├── create_user.rs
+│   │   │   └── delete_user.rs
+│   │   │
+│   │   ├── queries/                  # Read operations
+│   │   │   ├── mod.rs
+│   │   │   └── get_user.rs
+│   │   │
+│   │   └── dto/                      # Data Transfer Objects
+│   │       ├── mod.rs
+│   │       ├── create_user_dto.rs
+│   │       └── user_response_dto.rs
+│   │
+│   ├── auth/                         # Auth Use Cases
+│   │   ├── mod.rs
+│   │   ├── commands/
+│   │   │   ├── mod.rs
+│   │   │   └── authenticate.rs
+│   │   │
+│   │   └── dto/
+│   │       ├── mod.rs
+│   │       └── auth_response_dto.rs
+│   │
+│   └── shared/
+│       ├── mod.rs
+│       └── errors.rs                 # Application errors
+│
+├── infrastructure/                   # Infrastructure Layer
+│   ├── mod.rs
+│   ├── persistence/                  # Database implementations
+│   │   ├── mod.rs
+│   │   ├── user_repository_impl.rs   # User repository implementation
+│   │   ├── models.rs                 # Database models
+│   │   └── schema.rs                 # Database schema (if using Diesel)
+│   │
+│   ├── auth/                         # Auth infrastructure
+│   │   ├── mod.rs
+│   │   ├── jwt_service.rs            # JWT token handling
+│   │   └── middleware.rs             # Auth middleware
+│   │
+│   ├── config/                       # Configuration
+│   │   ├── mod.rs
+│   │   ├── database.rs
+│   │   └── server.rs
+│   │
+│   └── external/                     # External services
+│       ├── mod.rs
+│       └── email_service.rs
+│
+├── presentation/                     # Presentation Layer (API)
+│   ├── mod.rs
+│   ├── http/                         # HTTP handlers
+│   │   ├── mod.rs
+│   │   ├── user_handlers.rs          # User endpoint handlers
+│   │   ├── auth_handlers.rs          # Auth endpoint handlers
+│   │   └── health_handlers.rs        # Health check endpoints
+│   │
+│   ├── routes/                       # Route configuration
+│   │   ├── mod.rs
+│   │   ├── user_routes.rs
+│   │   └── auth_routes.rs
+│   │
+│   ├── middleware/                   # HTTP middleware
+│   │   ├── mod.rs
+│   │   ├── logging.rs
+│   │   └── error_handler.rs
+│   │
+│   └── openapi/                      # OpenAPI documentation
+│       ├── mod.rs
+│       └── api_doc.rs                # utoipa configuration
+│
+└── shared/                           # Shared utilities
+    ├── mod.rs
+    ├── error/                        # Error handling
+    │   ├── mod.rs
+    │   └── app_error.rs
+    │
+    └── utils/
+        ├── mod.rs
+        └── validators.rs
+```
+
+## File Templates
+
+### 1. `src/main.rs`
+
+```rust
+use actix_web::{middleware::Logger, web, App, HttpServer};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+
+mod application;
+mod domain;
+mod infrastructure;
+mod presentation;
+mod shared;
+
+use infrastructure::config::{database, server};
+use presentation::openapi::api_doc::ApiDoc;
+use presentation::routes::{auth_routes, user_routes};
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    // Initialize logger
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
+    // Load configuration
+    let config = server::Config::from_env();
+    let db_pool = database::create_pool(&config.database_url).await;
+
+    // Create application state
+    let app_state = web::Data::new(AppState {
+        db_pool,
+        config: config.clone(),
+    });
+
+    log::info!("Starting server at {}:{}", config.host, config.port);
+
+    HttpServer::new(move || {
+        let openapi = ApiDoc::openapi();
+
+        App::new()
+            .app_data(app_state.clone())
+            .wrap(Logger::default())
+            .service(
+                web::scope("/v1")
+                    .configure(user_routes::configure)
+                    .configure(auth_routes::configure),
+            )
+            .service(
+                SwaggerUi::new("/docs-v1/{_:.*}")
+                    .url("/api-docs/openapi.json", openapi.clone()),
+            )
+    })
+    .bind((config.host.as_str(), config.port))?
+    .run()
+    .await
+}
+
+pub struct AppState {
+    pub db_pool: sqlx::PgPool,
+    pub config: server::Config,
+}
+```
+
+### 2. `src/lib.rs`
+
+```rust
+pub mod application;
+pub mod domain;
+pub mod infrastructure;
+pub mod presentation;
+pub mod shared;
+
+pub use presentation::openapi::api_doc::ApiDoc;
+```
+
+### 3. `src/domain/user/entity.rs`
+
+```rust
+use super::value_objects::{Email, UserId};
+use chrono::{DateTime, Utc};
+
+#[derive(Debug, Clone)]
+pub struct User {
+    id: UserId,
+    email: Email,
+    name: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl User {
+    pub fn new(email: Email, name: String) -> Self {
+        let now = Utc::now();
+        Self {
+            id: UserId::new(),
+            email,
+            name,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    pub fn with_id(id: UserId, email: Email, name: String) -> Self {
+        let now = Utc::now();
+        Self {
+            id,
+            email,
+            name,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    // Getters
+    pub fn id(&self) -> &UserId {
+        &self.id
+    }
+
+    pub fn email(&self) -> &Email {
+        &self.email
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    // Business logic methods
+    pub fn update_name(&mut self, name: String) {
+        self.name = name;
+        self.updated_at = Utc::now();
+    }
+}
+```
+
+### 4. `src/domain/user/value_objects.rs`
+
+```rust
+use serde::{Deserialize, Serialize};
+use std::fmt;
+use uuid::Uuid;
+
+use super::errors::UserDomainError;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct UserId(Uuid);
+
+impl UserId {
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+
+    pub fn from_string(s: &str) -> Result<Self, UserDomainError> {
+        Uuid::parse_str(s)
+            .map(Self)
+            .map_err(|_| UserDomainError::InvalidUserId)
+    }
+
+    pub fn value(&self) -> &Uuid {
+        &self.0
+    }
+}
+
+impl fmt::Display for UserId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Email(String);
+
+impl Email {
+    pub fn new(email: String) -> Result<Self, UserDomainError> {
+        if Self::is_valid(&email) {
+            Ok(Self(email))
+        } else {
+            Err(UserDomainError::InvalidEmail)
+        }
+    }
+
+    fn is_valid(email: &str) -> bool {
+        // Simple validation - use a proper email validator in production
+        email.contains('@') && email.len() > 3
+    }
+
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for Email {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+```
+
+### 5. `src/domain/user/repository.rs`
+
+```rust
+use async_trait::async_trait;
+
+use super::{entity::User, errors::UserDomainError, value_objects::{Email, UserId}};
+
+#[async_trait]
+pub trait UserRepository: Send + Sync {
+    async fn find_by_id(&self, id: &UserId) -> Result<Option<User>, UserDomainError>;
+    async fn find_by_email(&self, email: &Email) -> Result<Option<User>, UserDomainError>;
+    async fn save(&self, user: &User) -> Result<(), UserDomainError>;
+    async fn delete(&self, id: &UserId) -> Result<(), UserDomainError>;
+}
+```
+
+### 6. `src/domain/user/errors.rs`
+
+```rust
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum UserDomainError {
+    #[error("Invalid email format")]
+    InvalidEmail,
+
+    #[error("Invalid user ID")]
+    InvalidUserId,
+
+    #[error("User not found")]
+    UserNotFound,
+
+    #[error("User already exists")]
+    UserAlreadyExists,
+
+    #[error("Repository error: {0}")]
+    RepositoryError(String),
+}
+```
+
+### 7. `src/application/user/commands/create_user.rs`
+
+```rust
+use std::sync::Arc;
+
+use crate::application::user::dto::create_user_dto::CreateUserDto;
+use crate::domain::user::{
+    entity::User, repository::UserRepository, value_objects::Email,
+};
+use crate::shared::error::app_error::AppError;
+
+pub struct CreateUserCommand {
+    repository: Arc<dyn UserRepository>,
+}
+
+impl CreateUserCommand {
+    pub fn new(repository: Arc<dyn UserRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(&self, dto: CreateUserDto) -> Result<User, AppError> {
+        let email = Email::new(dto.email)?;
+
+        // Check if user already exists
+        if self.repository.find_by_email(&email).await?.is_some() {
+            return Err(AppError::Conflict("User already exists".to_string()));
+        }
+
+        let user = User::new(email, dto.name);
+        self.repository.save(&user).await?;
+
+        Ok(user)
+    }
+}
+```
+
+### 8. `src/application/user/dto/create_user_dto.rs`
+
+```rust
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct CreateUserDto {
+    /// User's email address
+    #[schema(example = "user@example.com")]
+    pub email: String,
+
+    /// User's full name
+    #[schema(example = "John Doe")]
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct UserResponseDto {
+    /// User's unique identifier
+    pub id: String,
+
+    /// User's email address
+    pub email: String,
+
+    /// User's full name
+    pub name: String,
+
+    /// When the user was created
+    pub created_at: String,
+}
+```
+
+### 9. `src/infrastructure/persistence/user_repository_impl.rs`
+
+```rust
+use async_trait::async_trait;
+use sqlx::PgPool;
+
+use crate::domain::user::{
+    entity::User, errors::UserDomainError, repository::UserRepository,
+    value_objects::{Email, UserId},
+};
+
+pub struct UserRepositoryImpl {
+    pool: PgPool,
+}
+
+impl UserRepositoryImpl {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl UserRepository for UserRepositoryImpl {
+    async fn find_by_id(&self, id: &UserId) -> Result<Option<User>, UserDomainError> {
+        let result = sqlx::query_as!(
+            UserModel,
+            "SELECT * FROM users WHERE id = $1",
+            id.value()
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| UserDomainError::RepositoryError(e.to_string()))?;
+
+        Ok(result.map(|model| model.into_entity()))
+    }
+
+    async fn find_by_email(&self, email: &Email) -> Result<Option<User>, UserDomainError> {
+        let result = sqlx::query_as!(
+            UserModel,
+            "SELECT * FROM users WHERE email = $1",
+            email.value()
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| UserDomainError::RepositoryError(e.to_string()))?;
+
+        Ok(result.map(|model| model.into_entity()))
+    }
+
+    async fn save(&self, user: &User) -> Result<(), UserDomainError> {
+        sqlx::query!(
+            "INSERT INTO users (id, email, name) VALUES ($1, $2, $3)
+             ON CONFLICT (id) DO UPDATE SET email = $2, name = $3",
+            user.id().value(),
+            user.email().value(),
+            user.name()
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| UserDomainError::RepositoryError(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn delete(&self, id: &UserId) -> Result<(), UserDomainError> {
+        sqlx::query!("DELETE FROM users WHERE id = $1", id.value())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| UserDomainError::RepositoryError(e.to_string()))?;
+
+        Ok(())
+    }
+}
+
+#[derive(sqlx::FromRow)]
+struct UserModel {
+    id: uuid::Uuid,
+    email: String,
+    name: String,
+}
+
+impl UserModel {
+    fn into_entity(self) -> User {
+        let id = UserId::from_string(&self.id.to_string()).unwrap();
+        let email = Email::new(self.email).unwrap();
+        User::with_id(id, email, self.name)
+    }
+}
+```
+
+### 10. `src/presentation/http/user_handlers.rs`
+
+```rust
+use actix_web::{delete, get, post, web, HttpResponse};
+
+use crate::application::user::{
+    commands::create_user::CreateUserCommand,
+    dto::create_user_dto::{CreateUserDto, UserResponseDto},
+};
+use crate::shared::error::app_error::AppError;
+
+/// Get hello world message
+#[utoipa::path(
+    get,
+    path = "/v1/",
+    tag = "users",
+    responses(
+        (status = 200, description = "Hello world message", body = String)
+    )
+)]
+#[get("/")]
+pub async fn hello_world() -> Result<HttpResponse, AppError> {
+    Ok(HttpResponse::Ok().json("Hello, World!"))
+}
+
+/// Create a new user
+#[utoipa::path(
+    post,
+    path = "/v1/create",
+    tag = "users",
+    request_body = CreateUserDto,
+    responses(
+        (status = 201, description = "User created successfully", body = UserResponseDto),
+        (status = 409, description = "User already exists")
+    )
+)]
+#[post("/create")]
+pub async fn create_user(
+    dto: web::Json<CreateUserDto>,
+    command: web::Data<CreateUserCommand>,
+) -> Result<HttpResponse, AppError> {
+    let user = command.execute(dto.into_inner()).await?;
+
+    let response = UserResponseDto {
+        id: user.id().to_string(),
+        email: user.email().to_string(),
+        name: user.name().to_string(),
+        created_at: user.created_at.to_rfc3339(),
+    };
+
+    Ok(HttpResponse::Created().json(response))
+}
+
+/// Delete a user by email
+#[utoipa::path(
+    delete,
+    path = "/v1/delete/{email}",
+    tag = "users",
+    params(
+        ("email" = String, Path, description = "User email to delete")
+    ),
+    responses(
+        (status = 200, description = "User deleted successfully"),
+        (status = 404, description = "User not found")
+    )
+)]
+#[delete("/delete/{email}")]
+pub async fn delete_user(
+    email: web::Path<String>,
+    // Add command here
+) -> Result<HttpResponse, AppError> {
+    Ok(HttpResponse::Ok().json("User deleted"))
+}
+```
+
+### 11. `src/presentation/routes/user_routes.rs`
+
+```rust
+use actix_web::web;
+
+use crate::presentation::http::user_handlers::{create_user, delete_user, hello_world};
+
+pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(hello_world)
+        .service(create_user)
+        .service(delete_user);
+}
+```
+
+### 12. `src/presentation/openapi/api_doc.rs`
+
+```rust
+use utoipa::OpenApi;
+use utoipauto::utoipauto;
+
+use crate::application::user::dto::create_user_dto::{CreateUserDto, UserResponseDto};
+use crate::presentation::http::{auth_handlers, user_handlers};
+
+#[utoipauto(paths = "./src/presentation/http")]
+#[derive(OpenApi)]
+#[openapi(
+    info(
+        title = "Actix Web Auto Docs Example",
+        version = "1.0.0",
+        description = "API documentation with utoipa",
+    ),
+    components(
+        schemas(CreateUserDto, UserResponseDto)
+    ),
+    tags(
+        (name = "users", description = "User management endpoints"),
+        (name = "auth", description = "Authentication endpoints")
+    ),
+    modifiers(&SecurityAddon)
+)]
+pub struct ApiDoc;
+
+struct SecurityAddon;
+
+impl utoipa::Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "bearer_auth",
+                utoipa::openapi::security::SecurityScheme::Http(
+                    utoipa::openapi::security::HttpBuilder::new()
+                        .scheme(utoipa::openapi::security::HttpAuthScheme::Bearer)
+                        .bearer_format("JWT")
+                        .build(),
+                ),
+            )
+        }
+    }
+}
+```
+
+### 13. `src/shared/error/app_error.rs`
+
+```rust
+use actix_web::{error::ResponseError, http::StatusCode, HttpResponse};
+use serde::Serialize;
+use std::fmt;
+
+use crate::domain::user::errors::UserDomainError;
+
+#[derive(Debug)]
+pub enum AppError {
+    NotFound(String),
+    Conflict(String),
+    BadRequest(String),
+    Unauthorized(String),
+    InternalServerError(String),
+    DomainError(String),
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AppError::NotFound(msg) => write!(f, "Not Found: {}", msg),
+            AppError::Conflict(msg) => write!(f, "Conflict: {}", msg),
+            AppError::BadRequest(msg) => write!(f, "Bad Request: {}", msg),
+            AppError::Unauthorized(msg) => write!(f, "Unauthorized: {}", msg),
+            AppError::InternalServerError(msg) => write!(f, "Internal Server Error: {}", msg),
+            AppError::DomainError(msg) => write!(f, "Domain Error: {}", msg),
+        }
+    }
+}
+
+impl ResponseError for AppError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            AppError::NotFound(_) => StatusCode::NOT_FOUND,
+            AppError::Conflict(_) => StatusCode::CONFLICT,
+            AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
+            AppError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            AppError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::DomainError(_) => StatusCode::UNPROCESSABLE_ENTITY,
+        }
+    }
+
+    fn error_response(&self) -> HttpResponse {
+        let error_response = ErrorResponse {
+            error: self.to_string(),
+        };
+        HttpResponse::build(self.status_code()).json(error_response)
+    }
+}
+
+#[derive(Serialize)]
+struct ErrorResponse {
+    error: String,
+}
+
+// Conversions from domain errors
+impl From<UserDomainError> for AppError {
+    fn from(err: UserDomainError) -> Self {
+        match err {
+            UserDomainError::UserNotFound => AppError::NotFound("User not found".to_string()),
+            UserDomainError::UserAlreadyExists => {
+                AppError::Conflict("User already exists".to_string())
+            }
+            UserDomainError::InvalidEmail | UserDomainError::InvalidUserId => {
+                AppError::BadRequest(err.to_string())
+            }
+            UserDomainError::RepositoryError(msg) => {
+                AppError::InternalServerError(format!("Database error: {}", msg))
+            }
+        }
+    }
+}
+```
+
+## Key DDD Principles Applied
+
+1. **Separation of Concerns**: Each layer has clear responsibilities
+2. **Dependency Inversion**: Domain doesn't depend on infrastructure
+3. **Ubiquitous Language**: Domain models reflect business terminology
+4. **Aggregates**: User is a clear aggregate root
+5. **Value Objects**: Email, UserId are immutable value objects
+6. **Repository Pattern**: Abstract data access behind interfaces
+7. **Domain Services**: Complex business logic in services
+8. **Application Services**: Orchestrate use cases
+9. **DTOs**: Separate API contracts from domain models
+
+## Dependencies (Cargo.toml additions)
+
+```toml
+[dependencies]
+actix-web = "4"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls", "uuid", "chrono"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+async-trait = "0.1"
+thiserror = "1"
+env_logger = "0.11"
+log = "0.4"
+utoipa = { version = "4", features = ["actix_extras", "uuid", "chrono"] }
+utoipa-swagger-ui = { version = "6", features = ["actix-web"] }
+utoipauto = "0.1"
+```

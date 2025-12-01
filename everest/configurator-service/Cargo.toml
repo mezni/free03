@@ -1,0 +1,15 @@
+[package]
+name = "configurator-service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "4.12.1"
+anyhow = "1.0.100"
+dotenvy = "0.15.7"
+env_logger = "0.11.8"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+thiserror = "2.0.17"
+utoipa = { version = "5.4.0", features = ["chrono", "actix_extras"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["actix-web"] }
