@@ -1,0 +1,32 @@
+[
+  {
+    "ticket_id": "T001",
+    "customer_id": "C001",
+    "subject": "Internet connection is down",
+    "body": "My internet stopped working this morning. I restarted my router several times but it still does not work."
+  },
+  {
+    "ticket_id": "T002",
+    "customer_id": "C002",
+    "subject": "Unexpected charge",
+    "body": "I was charged $89.99 on my latest invoice but I don't recognize this charge."
+  },
+  {
+    "ticket_id": "T003",
+    "customer_id": "C003",
+    "subject": "Cannot log into account",
+    "body": "I forgot my password and the password reset email never arrives."
+  },
+  {
+    "ticket_id": "T004",
+    "customer_id": "C004",
+    "subject": "Package has not arrived",
+    "body": "My order was supposed to arrive three days ago but the tracking information has not changed."
+  },
+  {
+    "ticket_id": "T005",
+    "customer_id": "C005",
+    "subject": "Possible account compromise",
+    "body": "I received a notification about a login from a location I don't recognize."
+  }
+]
