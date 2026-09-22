@@ -3,6 +3,7 @@ from support_agent.agent import (
     TicketCategory,
     TicketPriority,
     TriageResult,
+    TOOL_REGISTRY,
 )
 
 
@@ -39,3 +40,7 @@ def test_valid_triage_result():
 
     assert result.category == TicketCategory.BILLING
     assert result.priority == TicketPriority.HIGH
+
+
+def test_customer_status_tool_exists():
+    assert "get_customer_status" in TOOL_REGISTRY

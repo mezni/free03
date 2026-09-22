@@ -7,6 +7,122 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 
 
+def get_customer_status(customer_id: str) -> str:
+    customers = {
+        "C001": "active",
+        "C002": "active",
+        "C003": "suspended",
+    }
+
+    return customers.get(customer_id, "unknown")
+
+
+CUSTOMER_STATUS_TOOL = {
+    "name": "get_customer_status",
+    "description": (
+        "Get the current account status of a customer. "
+        "Use this when you need to verify whether a customer "
+        "account is active, suspended, or unknown."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "customer_id": {
+                "type": "string",
+                "description": "The unique customer identifier.",
+            }
+        },
+        "required": ["customer_id"],
+    },
+}
+
+TOOL_SCHEMAS = [
+    CUSTOMER_STATUS_TOOL,
+]
+
+TOOL_REGISTRY = {
+    "get_customer_status": get_customer_status,
+}
+
+
+class SupportAgent:
+    def __init__(self, max_turns: int = 5):
+        self.max_turns = max_turns
+
+    def run(self, user_message: str):
+        messages = [
+            {
+                "role": "user",
+                "content": user_message,
+            }
+        ]
+
+        for turn in range(self.max_turns):
+            response = call_llm(
+                system_prompt=TRIAGE_SYSTEM_PROMPT,
+                messages=messages,
+                tools=TOOL_SCHEMAS,
+            )
+
+            print(f"\n--- Turn {turn + 1} ---")
+            print("Stop reason:", response.stop_reason)
+
+            if response.stop_reason == "end_turn":
+                return response
+
+            if response.stop_reason == "tool_use":
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": response.content,
+                    }
+                )
+
+                tool_results = []
+
+                for block in response.content:
+                    if block.type != "tool_use":
+                        continue
+
+                    result = self._execute_tool(
+                        block.name,
+                        block.input,
+                    )
+
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": result,
+                        }
+                    )
+
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": tool_results,
+                    }
+                )
+
+                continue
+
+            raise RuntimeError(f"Unexpected stop reason: {response.stop_reason}")
+
+        raise RuntimeError("Agent exceeded maximum number of turns.")
+
+    def _execute_tool(self, name: str, arguments: dict) -> str:
+        tool = TOOL_REGISTRY.get(name)
+
+        if tool is None:
+            return f"Unknown tool: {name}"
+
+        try:
+            result = tool(**arguments)
+            return str(result)
+        except Exception as exc:
+            return f"Tool execution failed: {exc}"
+
+
 class SupportTicket(BaseModel):
     ticket_id: str
     customer_id: str
@@ -53,57 +169,44 @@ You are a customer support triage assistant.
 
 Your job is to analyze a customer support ticket.
 
-Determine:
-1. The most appropriate category.
-2. The priority.
-3. A concise explanation of your reasoning.
-4. A helpful draft response to the customer.
+You can use available tools when additional information
+is required.
 
-Categories:
-- account
-- billing
-- technical
-- product
-- shipping
-- other
+Available capability:
 
-Priorities:
-- low
-- medium
-- high
-- urgent
+- get_customer_status: retrieve the current status of a customer account.
 
-Do not claim that you performed an action that you cannot perform.
-Do not invent information that is not present in the ticket.
+Use a tool when it provides information necessary to make
+a better decision.
 
-Return your answer as JSON with these fields:
+Do not claim that you performed an action that you did not perform.
 
-{
-  "category": "...",
-  "priority": "...",
-  "reasoning": "...",
-  "response": "..."
-}
+Do not invent information.
+
+When you have enough information, provide a final response
+to the customer.
 """
-
 
 client = Anthropic(api_key=ANTHROPIC_API_KEY)
 
 
-def ask_llm(system_prompt: str, user_message: str) -> str:
-    response = client.messages.create(
-        model=ANTHROPIC_MODEL,
-        max_tokens=1000,
-        system=system_prompt,
-        messages=[
-            {
-                "role": "user",
-                "content": user_message,
-            }
-        ],
-    )
+def call_llm(
+    *,
+    system_prompt: str,
+    messages: list[dict],
+    tools: list[dict] | None = None,
+):
+    kwargs = {
+        "model": ANTHROPIC_MODEL,
+        "max_tokens": 1000,
+        "system": system_prompt,
+        "messages": messages,
+    }
 
-    return response.content[0].text
+    if tools:
+        kwargs["tools"] = tools
+
+    return client.messages.create(**kwargs)
 
 
 def _extract_json(raw_response: str) -> dict:
@@ -111,7 +214,7 @@ def _extract_json(raw_response: str) -> dict:
     if cleaned.startswith("```"):
         cleaned = cleaned.strip("`")
         if cleaned.startswith("json"):
-            cleaned = cleaned[len("json"):]
+            cleaned = cleaned[len("json") :]
         cleaned = cleaned.strip()
 
     try:

@@ -1,25 +1,25 @@
 import json
 from pathlib import Path
 
-from support_agent.agent import SupportTicket, triage_ticket
+from support_agent.agent import SupportTicket, triage_ticket, SupportAgent
 
 
-def main() -> None:
-    tickets_path = Path("data/tickets.json")
+def main():
+    agent = SupportAgent()
 
-    tickets = json.loads(
-        tickets_path.read_text()
+    result = agent.run(
+        """
+        Customer C001 says:
+        I cannot log into my account.
+        Can you check whether my account is active?
+        """
     )
 
-    ticket = SupportTicket.model_validate(tickets[0])
+    print("\nFinal response:")
 
-    result = triage_ticket(ticket)
-
-    print("Ticket:")
-    print(ticket.message)
-
-    print("\nTriage result:")
-    print(result.model_dump_json(indent=2))
+    for block in result.content:
+        if block.type == "text":
+            print(block.text)
 
 
 if __name__ == "__main__":
