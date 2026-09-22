@@ -14,18 +14,18 @@ flowchart TD
     A[Start: uv run python -m support_agent.main] --> B[main.py: read data/tickets.json]
     B --> C[Load tickets JSON list]
     C --> D[Build SupportTicket from first ticket via pydantic model_validate]
-    D --> E[agent.py: triage_ticket&#40;ticket&#41;]
-    E --> F[ask_llm: send TRIAGE_SYSTEM_PROMPT + ticket.message to Anthropic]
+    D --> E[agent.py: run triage_ticket]
+    E --> F[ask_llm sends TRIAGE_SYSTEM_PROMPT plus ticket.message to Anthropic]
     F --> G{API key configured?}
-    G -- no --> ERR1["RuntimeError: ANTHROPIC_API_KEY not configured"] --> O[End]
+    G -- no --> ERR1[RuntimeError ANTHROPIC_API_KEY not configured] --> O[End]
     G -- yes --> H[Parse LLM JSON response via _extract_json]
     H --> I{Fenced or prose-wrapped JSON?}
-    I -- ```json fence --> J[Strip fence]
-    I -- prose/prefix --> K[Extract first {...} block]
+    I -- json fence --> J[Strip fence]
+    I -- prose prefix --> K[Extract first object block]
     J --> L[json.loads]
     K --> L
     L --> M[Validate into TriageResult via model_validate]
-    M --> N["Print Ticket + TriageResult (pretty JSON)"]
+    M --> N[Print Ticket plus TriageResult pretty JSON]
     N --> O
 ```
 
