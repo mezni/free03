@@ -13,7 +13,7 @@ resulting **category**, **priority**, **reasoning**, and a **draft response**.
 flowchart TD
     A[Start: uv run python -m support_agent.main] --> B[main.py: read data/tickets.json]
     B --> C[Load tickets JSON list]
-    C --> D[Build SupportTicket from tickets[0] via pydantic model_validate]
+    C --> D[Build SupportTicket from first ticket via pydantic model_validate]
     D --> E[agent.py: triage_ticket&#40;ticket&#41;]
     E --> F[ask_llm: send TRIAGE_SYSTEM_PROMPT + ticket.message to Anthropic]
     F --> G{API key configured?}
@@ -52,7 +52,7 @@ ticket-triage/
   (category: account/billing/technical/product/shipping/other; priority:
   low/medium/high/urgent).
 - **`TriageResult`** — validated LLM output (`category`, `priority`, `reasoning`, `response`).
-- **`task_llm` / `ask_llm`** — sends `TRIAGE_SYSTEM_PROMPT` + ticket message to
+- **`ask_llm`** — sends `TRIAGE_SYSTEM_PROMPT` + ticket message to
   `client.messages.create` on the Anthropic API.
 - **`_extract_json`** — robustly parses the LLM reply: handles raw JSON, markdown
   code fences, and prose-wrapped responses by extracting the first `{...}` block.
