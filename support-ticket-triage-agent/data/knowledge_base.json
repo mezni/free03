@@ -1,0 +1,27 @@
+[
+  {
+    "id": "KB001",
+    "title": "Internet connection troubleshooting",
+    "content": "If a customer's internet connection is unavailable, ask them to restart the router and check the physical network connections. If the problem continues, check whether there is a known service outage."
+  },
+  {
+    "id": "KB002",
+    "title": "Billing charge investigation",
+    "content": "For an unrecognized charge, verify the invoice and transaction details. Do not promise a refund before the charge has been investigated."
+  },
+  {
+    "id": "KB003",
+    "title": "Password reset",
+    "content": "Customers who cannot reset their password should verify that they are using the correct email address and check their spam or junk folder for the reset message."
+  },
+  {
+    "id": "KB004",
+    "title": "Delayed shipment",
+    "content": "For delayed shipments, check the latest tracking information and estimated delivery date. If the shipment has not moved for an extended period, the case may require investigation."
+  },
+  {
+    "id": "KB005",
+    "title": "Suspicious account activity",
+    "content": "Suspicious account activity should be treated as a security concern. Verify the customer's identity using approved procedures and escalate cases involving possible account compromise."
+  }
+]
