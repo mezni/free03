@@ -9,7 +9,11 @@ client = Anthropic()
 MODEL = "claude-haiku-4-5-20251001"
 
 
-def chat(messages: list[dict], system: str | None = None) -> str:
+def chat(
+    messages: list[dict],
+    system: str | None = None,
+) -> str:
+
     params = {
         "model": MODEL,
         "max_tokens": 1000,
@@ -22,3 +26,21 @@ def chat(messages: list[dict], system: str | None = None) -> str:
     response = client.messages.create(**params)
 
     return response.content[0].text
+
+
+def chat_with_tools(
+    messages: list[dict],
+    tools: list[dict],
+    system: str | None = None,
+):
+    params = {
+        "model": MODEL,
+        "max_tokens": 1000,
+        "messages": messages,
+        "tools": tools,
+    }
+
+    if system:
+        params["system"] = system
+
+    return client.messages.create(**params)
