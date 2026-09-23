@@ -55,3 +55,23 @@ class TriageResult(BaseModel):
     ]
 
     response: str
+
+class TriageDecision(BaseModel):
+    category: Literal[
+        "billing",
+        "technical_support",
+        "account",
+        "shipping",
+        "security",
+        "other",
+    ]
+
+    urgency: Literal[
+        "low",
+        "medium",
+        "high",
+        "critical",
+    ]
+
+    needs_knowledge_search: bool
+    needs_escalation: bool
