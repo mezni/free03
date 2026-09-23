@@ -28,5 +28,11 @@
     "customer_id": "C005",
     "subject": "Possible account compromise",
     "body": "I received a notification about a login from a location I don't recognize."
-  }
+  },
+{
+  "ticket_id": "T006",
+  "customer_id": "",
+  "subject": "",
+  "body": ""
+}  
 ]

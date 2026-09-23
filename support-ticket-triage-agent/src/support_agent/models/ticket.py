@@ -10,6 +10,33 @@ class SupportTicket(BaseModel):
     body: str
 
 
+class TicketExtraction(BaseModel):
+    customer_id: str | None
+
+    product: Literal[
+        "internet",
+        "mobile",
+        "billing",
+        "account",
+        "shipping",
+        "other",
+    ]
+
+    sentiment: Literal[
+        "positive",
+        "neutral",
+        "negative",
+        "frustrated",
+    ]
+
+    priority: Literal[
+        "low",
+        "medium",
+        "high",
+        "critical",
+    ]
+
+
 class TriageResult(BaseModel):
     category: Literal[
         "billing",
