@@ -21,3 +21,25 @@ def test_unknown_tool_raises_error():
             "does_not_exist",
             {},
         )
+
+
+def test_dispatch_create_ticket(tmp_path, monkeypatch):
+    store = tmp_path / "created_tickets.json"
+
+    monkeypatch.setattr(
+        "support_agent.tools.ticketing.TICKET_STORE",
+        store,
+    )
+
+    result = dispatch_tool(
+        "create_ticket",
+        {
+            "customer_id": "C100",
+            "subject": "Billing issue",
+            "description": "Customer needs billing investigation.",
+            "priority": "medium",
+        },
+    )
+
+    assert result["status"] == "created"
+    assert result["ticket_id"] == "CT001"

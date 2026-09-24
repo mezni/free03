@@ -24,3 +24,58 @@ KNOWLEDGE_BASE_SEARCH_TOOL = {
         "additionalProperties": False,
     },
 }
+
+
+CREATE_TICKET_TOOL = {
+    "name": "create_ticket",
+    "description": (
+        "Create a new customer support ticket when a "
+        "follow-up case needs to be recorded for support "
+        "handling. Use the customer's existing customer ID. "
+        "Do not create duplicate tickets for the same issue."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "customer_id": {
+                "type": "string",
+                "description": (
+                    "The customer ID from the support ticket."
+                ),
+            },
+            "subject": {
+                "type": "string",
+                "description": (
+                    "A concise subject describing the "
+                    "support issue."
+                ),
+            },
+            "description": {
+                "type": "string",
+                "description": (
+                    "A clear description of the issue "
+                    "that should be recorded in the new ticket."
+                ),
+            },
+            "priority": {
+                "type": "string",
+                "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "critical",
+                ],
+                "description": (
+                    "The priority assigned to the new ticket."
+                ),
+            },
+        },
+        "required": [
+            "customer_id",
+            "subject",
+            "description",
+            "priority",
+        ],
+        "additionalProperties": False,
+    },
+}

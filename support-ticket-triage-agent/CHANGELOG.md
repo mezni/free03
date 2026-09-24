@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Feature Domain | Key Objectives |
 | --- | --- | --- |
+| 0.1.10 | Create-Ticket Action Tool | Record follow-up tickets via a validated `create_ticket` tool writing to a JSON store. |
 | 0.1.9 | Tool Registry & Agent Loop Cleanup | Centralize schemas + functions in a registry; fix the loop to run all tool calls before answering. |
 | 0.1.8 | Agent with Triage Context | Feed extraction + triage into the agent; make triage an explicit constraint. |
 | 0.1.7 | Agent Loop | Run the `tool_use`/`tool_result` loop over the KB search tool with a maximum-iteration guard. |
@@ -18,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 0.1.3 | Structured Extraction | Extract `customer_id`, `product`, `sentiment`, and `priority` from free-form tickets into Pydantic models. |
 | 0.1.2 | First LLM Application | Wrap the Anthropic Messages API and parse model JSON output. |
 | 0.1.1 | Foundation | Set up the `uv` project, package layout, sample data, and experiment docs. |
+
+## [0.1.10] — Create-Ticket Action Tool
+
+- Added `CreateTicketInput` and `CreateTicketResult` models in `src/support_agent/models/tools.py` (priority enum-constrained, status `created`).
+- Added `data/created_tickets.json` JSON ticket store (initially `[]`).
+- Added `src/support_agent/tools/ticketing.py` `create_ticket()` — validates input via Pydantic, appends to the JSON store, assigns sequential `CT###` IDs, and persists.
+- Added `CREATE_TICKET_TOOL` schema in `src/support_agent/tools/schemas.py` with `customer_id`, `subject`, `description`, `priority` (enum) and `additionalProperties: false`.
+- Registered `create_ticket` in `src/support_agent/tools/registry.py` (`TOOL_FUNCTIONS` + `TOOL_SCHEMAS`).
+- Added `test_dispatch_create_ticket` (isolated via `tmp_path`/`monkeypatch`) and `test_create_ticket_tool_registered` (6 tests passing).
 
 ## [0.1.9] — Tool Registry & Agent Loop Cleanup
 
@@ -85,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```bash
 uv sync
-uv run pytest        # 4 passed
+uv run pytest        # 6 passed
 uv ruff check .
 uv run python src/support_agent/main.py                  # extract + triage pipeline
 uv run python src/support_agent/tool_experiment.py       # live tool-call demo

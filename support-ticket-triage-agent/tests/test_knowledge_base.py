@@ -19,3 +19,7 @@ def test_knowledge_base_search():
 
 def test_knowledge_base_tool_registered():
     assert "knowledge_base_search" in TOOL_FUNCTIONS
+
+
+def test_create_ticket_tool_registered():
+    assert "create_ticket" in TOOL_FUNCTIONS
