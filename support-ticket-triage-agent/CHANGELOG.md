@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Feature Domain | Key Objectives |
 | --- | --- | --- |
+| 0.1.9 | Tool Registry & Agent Loop Cleanup | Centralize schemas + functions in a registry; fix the loop to run all tool calls before answering. |
 | 0.1.8 | Agent with Triage Context | Feed extraction + triage into the agent; make triage an explicit constraint. |
 | 0.1.7 | Agent Loop | Run the `tool_use`/`tool_result` loop over the KB search tool with a maximum-iteration guard. |
 | 0.1.6 | Tool Schema Engineering | Replace a deliberately bad tool schema with a designed `knowledge_base_search` schema; add a tool dispatcher. |
@@ -17,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 0.1.3 | Structured Extraction | Extract `customer_id`, `product`, `sentiment`, and `priority` from free-form tickets into Pydantic models. |
 | 0.1.2 | First LLM Application | Wrap the Anthropic Messages API and parse model JSON output. |
 | 0.1.1 | Foundation | Set up the `uv` project, package layout, sample data, and experiment docs. |
+
+## [0.1.9] — Tool Registry & Agent Loop Cleanup
+
+- Consolidated `src/support_agent/tools/registry.py` into `TOOL_FUNCTIONS` (name → implementation) and `TOOL_SCHEMAS` (list of tool schemas); the registry now owns both sides of the tool contract.
+- Updated `src/support_agent/tools/dispatcher.py` to resolve tools from `TOOL_FUNCTIONS`.
+- Refactored `src/support_agent/agent.py` to import only `TOOL_SCHEMAS` (no direct tool imports), collect all `tool_use` blocks per turn, execute every requested tool, and return the joined text only when no tool calls remain — fixing the bug where the agent dropped its KB search and answered with just the preamble.
+- Added `test_unknown_tool_raises_error` to `tests/test_tool_dispatcher.py` asserting `ValueError` for unregistered tools; updated `tests/test_knowledge_base.py` to the renamed `TOOL_FUNCTIONS` (4 tests passing).
 
 ## [0.1.8] — Agent with Triage Context
 
@@ -77,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```bash
 uv sync
-uv run pytest        # 3 passed
+uv run pytest        # 4 passed
 uv ruff check .
 uv run python src/support_agent/main.py                  # extract + triage pipeline
 uv run python src/support_agent/tool_experiment.py       # live tool-call demo

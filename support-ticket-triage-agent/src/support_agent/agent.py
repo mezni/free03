@@ -4,14 +4,7 @@ from support_agent.models.ticket import (
     TriageDecision,
 )
 from support_agent.tools.dispatcher import dispatch_tool
-from support_agent.tools.schemas import (
-    KNOWLEDGE_BASE_SEARCH_TOOL,
-)
-
-
-TOOLS = [
-    KNOWLEDGE_BASE_SEARCH_TOOL,
-]
+from support_agent.tools.registry import TOOL_SCHEMAS
 
 
 def run_agent(
@@ -20,6 +13,7 @@ def run_agent(
     triage: TriageDecision,
     max_iterations: int = 5,
 ) -> str:
+
     messages = [
         {
             "role": "user",
@@ -60,9 +54,10 @@ Needs escalation:
     ]
 
     for _ in range(max_iterations):
+
         response = chat_with_tools(
             messages=messages,
-            tools=TOOLS,
+            tools=TOOL_SCHEMAS,
             system="""
 You are a customer support agent.
 
@@ -74,28 +69,13 @@ You have been given:
 
 Use this information when handling the ticket.
 
-You may use the knowledge base search tool when
-additional support information is required.
+Use available tools when they are necessary.
 
-If the triage decision indicates that escalation
-is required, do not attempt to resolve the issue
-without appropriate human involvement.
-
-Do not invent company policies, refunds, account
-changes, or other actions that have not been
-provided by the available tools or knowledge base.
+Do not invent company policies, account changes,
+refunds, or actions that have not been provided
+by the available tools or knowledge base.
 
 Provide a professional and helpful response.
-
-Follow the triage decision.
-
-If needs_knowledge_search is false, do not use
-the knowledge base search unless the ticket cannot
-be handled safely without it.
-
-If needs_escalation is true, the case requires
-human escalation and should not be presented as
-fully resolved by the AI.
 """,
         )
 
@@ -106,30 +86,59 @@ fully resolved by the AI.
             }
         )
 
-        for block in response.content:
+        tool_uses = [
+            block
+            for block in response.content
+            if block.type == "tool_use"
+        ]
 
-            if block.type == "text":
-                return block.text
+        if not tool_uses:
+            text_blocks = [
+                block.text
+                for block in response.content
+                if block.type == "text"
+            ]
 
-            if block.type == "tool_use":
+            return "\n".join(text_blocks)
 
-                tool_result = dispatch_tool(
-                    block.name,
-                    block.input,
-                )
+        tool_results = []
 
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": str(tool_result),
-                            }
-                        ],
-                    }
-                )
+        for tool_use in tool_uses:
+
+            print(
+                f"\n[AGENT] Tool requested: "
+                f"{tool_use.name}"
+            )
+
+            print(
+                f"[AGENT] Input: "
+                f"{tool_use.input}"
+            )
+
+            result = dispatch_tool(
+                tool_use.name,
+                tool_use.input,
+            )
+
+            print(
+                f"[AGENT] Result: "
+                f"{result}"
+            )
+
+            tool_results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tool_use.id,
+                    "content": str(result),
+                }
+            )
+
+        messages.append(
+            {
+                "role": "user",
+                "content": tool_results,
+            }
+        )
 
     raise RuntimeError(
         "Agent exceeded maximum iterations"

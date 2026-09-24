@@ -2,7 +2,7 @@ from support_agent.tools.knowledge_base import (
     knowledge_base_search,
 )
 
-from support_agent.tools.registry import TOOLS
+from support_agent.tools.registry import TOOL_FUNCTIONS
 
 def test_knowledge_base_search():
     results = knowledge_base_search(
@@ -18,4 +18,4 @@ def test_knowledge_base_search():
 
 
 def test_knowledge_base_tool_registered():
-    assert "knowledge_base_search" in TOOLS
+    assert "knowledge_base_search" in TOOL_FUNCTIONS
