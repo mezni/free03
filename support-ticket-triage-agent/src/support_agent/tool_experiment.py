@@ -1,6 +1,6 @@
 from support_agent.client import chat_with_tools
 from support_agent.tools.schemas import (
-    BAD_KNOWLEDGE_BASE_TOOL,
+    KNOWLEDGE_BASE_SEARCH_TOOL,
 )
 
 
@@ -22,7 +22,7 @@ What should I tell the customer?
 
     response = chat_with_tools(
         messages=messages,
-        tools=[BAD_KNOWLEDGE_BASE_TOOL],
+        tools=[KNOWLEDGE_BASE_SEARCH_TOOL],
         system="""
 You are a customer support assistant.
 
