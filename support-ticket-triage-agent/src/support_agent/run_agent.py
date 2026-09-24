@@ -35,7 +35,13 @@ def main():
         )
 
         response = run_agent(
-            user_message=ticket.body,
+            user_message=f"""
+Subject:
+{ticket.subject}
+
+Message:
+{ticket.body}
+""",
             extraction=extraction,
             triage=triage,
         )

@@ -23,3 +23,7 @@ def test_knowledge_base_tool_registered():
 
 def test_create_ticket_tool_registered():
     assert "create_ticket" in TOOL_FUNCTIONS
+
+
+def test_escalate_to_human_tool_registered():
+    assert "escalate_to_human" in TOOL_FUNCTIONS

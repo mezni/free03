@@ -79,3 +79,52 @@ CREATE_TICKET_TOOL = {
         "additionalProperties": False,
     },
 }
+
+
+ESCALATE_TO_HUMAN_TOOL = {
+    "name": "escalate_to_human",
+    "description": (
+        "Escalate a customer support case to a human "
+        "support agent when the issue requires human "
+        "intervention. Provide the ticket ID, a concise "
+        "reason for escalation, and the appropriate priority."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "ticket_id": {
+                "type": "string",
+                "description": (
+                    "The ID of the customer support ticket "
+                    "being escalated."
+                ),
+            },
+            "reason": {
+                "type": "string",
+                "description": (
+                    "A concise explanation of why human "
+                    "support intervention is required."
+                ),
+            },
+            "priority": {
+                "type": "string",
+                "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "critical",
+                ],
+                "description": (
+                    "The priority assigned to the "
+                    "escalation."
+                ),
+            },
+        },
+        "required": [
+            "ticket_id",
+            "reason",
+            "priority",
+        ],
+        "additionalProperties": False,
+    },
+}

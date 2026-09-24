@@ -43,3 +43,27 @@ def test_dispatch_create_ticket(tmp_path, monkeypatch):
 
     assert result["status"] == "created"
     assert result["ticket_id"] == "CT001"
+
+
+def test_dispatch_escalate_to_human(
+    tmp_path,
+    monkeypatch,
+):
+    store = tmp_path / "escalations.json"
+
+    monkeypatch.setattr(
+        "support_agent.tools.escalation.ESCALATION_STORE",
+        store,
+    )
+
+    result = dispatch_tool(
+        "escalate_to_human",
+        {
+            "ticket_id": "T005",
+            "reason": "Possible account compromise.",
+            "priority": "critical",
+        },
+    )
+
+    assert result["status"] == "escalated"
+    assert result["ticket_id"] == "T005"

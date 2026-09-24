@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Feature Domain | Key Objectives |
 | --- | --- | --- |
+| 0.1.11 | Escalate-to-Human Action Tool | Record human-intervention escalations via a validated `escalate_to_human` tool; advertise all three tools in the agent prompt. |
 | 0.1.10 | Create-Ticket Action Tool | Record follow-up tickets via a validated `create_ticket` tool writing to a JSON store. |
 | 0.1.9 | Tool Registry & Agent Loop Cleanup | Centralize schemas + functions in a registry; fix the loop to run all tool calls before answering. |
 | 0.1.8 | Agent with Triage Context | Feed extraction + triage into the agent; make triage an explicit constraint. |
@@ -19,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | 0.1.3 | Structured Extraction | Extract `customer_id`, `product`, `sentiment`, and `priority` from free-form tickets into Pydantic models. |
 | 0.1.2 | First LLM Application | Wrap the Anthropic Messages API and parse model JSON output. |
 | 0.1.1 | Foundation | Set up the `uv` project, package layout, sample data, and experiment docs. |
+
+## [0.1.11] — Escalate-to-Human Action Tool
+
+- Added `EscalateToHumanInput` and `EscalateToHumanResult` models in `src/support_agent/models/escalation.py` (priority enum-constrained, status `escalated`).
+- Added `data/escalations.json` escalation store (initially `[]`).
+- Added `src/support_agent/tools/escalation.py` `escalate_to_human()` — validates input via Pydantic, appends to the JSON store, assigns sequential `E###` escalation IDs, and persists.
+- Added `ESCALATE_TO_HUMAN_TOOL` schema in `src/support_agent/tools/schemas.py` with `ticket_id`, `reason`, `priority` (enum) and `additionalProperties: false`.
+- Registered `escalate_to_human` in `src/support_agent/tools/registry.py` — registry now exposes all three tools.
+- Added `tests/test_escalation.py`, `test_dispatch_escalate_to_human`, and `test_escalate_to_human_tool_registered` (9 tests passing).
+- Reworked the agent system prompt to advertise all three tools with usage rules (no duplicate tickets, use existing customer ID, concise escalation reason, never claim an action unless the tool returned a result).
+- Updated `run_agent.py` to pass `Subject:` + `Message:` (including the ticket subject) to the agent instead of the body alone.
 
 ## [0.1.10] — Create-Ticket Action Tool
 
@@ -95,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```bash
 uv sync
-uv run pytest        # 6 passed
+uv run pytest        # 9 passed
 uv ruff check .
 uv run python src/support_agent/main.py                  # extract + triage pipeline
 uv run python src/support_agent/tool_experiment.py       # live tool-call demo
