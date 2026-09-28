@@ -131,6 +131,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `src/support_agent/client.py` with `chat()` and `chat_with_tools()` wrappers around the Anthropic Messages API (model `claude-haiku-4-5-20251001`).
 - Added `src/support_agent/json_utils.py` for robust JSON parsing of model output.
 
+## [0.1.16] — Evaluation
+
+- Added `src/support_agent/models/evaluation.py` `EvaluationCase`, `EvaluationResult`, and `EvaluationSummary` Pydantic models for structured evaluation.
+- Added `data/evaluation_cases.json` with 5 evaluation cases covering extraction and triage checks.
+- Added `src/support_agent/evaluation.py` with `load_evaluation_cases()`, `evaluate_extraction()`, `evaluate_triage()`, and `evaluate_case()` functions.
+- Added `scripts/run_evaluation.py` evaluation runner script that compares actual extraction/triage results against expected evaluation cases and reports pass/fail checks and overall pass rate.
+
 ## [0.1.1] — Foundation
 
 - Initialized `uv` project (`pyproject.toml`, `uv.lock`, virtualenv) with a `src` layout.

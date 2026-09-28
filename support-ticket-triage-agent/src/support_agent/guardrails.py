@@ -1,3 +1,7 @@
+import json
+import re
+
+
 class GuardrailViolation(Exception):
     """Raised when an agent violates an application rule."""
 
@@ -6,12 +10,14 @@ def validate_extraction_output(
     raw_response: str,
 ) -> "TicketExtraction":
 
-    import json
+    text = raw_response.strip()
 
-    from support_agent.models.ticket import TicketExtraction
+    fence = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+    if fence:
+        text = fence.group(1)
 
     try:
-        data = json.loads(raw_response)
+        data = json.loads(text)
 
     except json.JSONDecodeError as exc:
         raise GuardrailViolation(
@@ -19,6 +25,8 @@ def validate_extraction_output(
         ) from exc
 
     try:
+        from support_agent.models.ticket import TicketExtraction
+
         return TicketExtraction.model_validate(data)
 
     except Exception as exc:
@@ -35,8 +43,14 @@ def validate_triage_output(
 
     from support_agent.models.ticket import TriageDecision
 
+    text = raw_response.strip()
+
+    fence = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+    if fence:
+        text = fence.group(1)
+
     try:
-        data = json.loads(raw_response)
+        data = json.loads(text)
 
     except json.JSONDecodeError as exc:
         raise GuardrailViolation(
