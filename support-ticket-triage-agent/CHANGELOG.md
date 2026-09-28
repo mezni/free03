@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added reliability rules in the system prompt: check tool results before claiming success, distinguish read-only vs state-changing tool retry policies, do not repeatedly call failed tools without reason.
 - Updated `tests/test_tool_dispatcher.py` with `test_tool_failure_is_returned_as_result` and adjusted existing tests for the new `ToolExecutionResult` return type.
 
+## [0.1.14] — Historical Ticket Search
+
+- Added `data/historical_tickets.json` with 5 sample tickets across technical_support, billing, account, and security categories.
+- Added `src/support_agent/models/research.py` `HistoricalTicket` and `SimilarTicket` Pydantic models.
+- Added `src/support_agent/tools/historical_tickets.py` `search_similar_tickets()` — keyword-matching search against historical ticket store.
+- Added `tests/test_historical_tickets.py` with `test_search_similar_tickets()` asserting results return the correct category.
+- Added `src/support_agent/tools/schemas.py` `SEARCH_SIMILAR_TICKETS_TOOL` schema.
+- Updated `src/support_agent/tools/registry.py` to register `search_similar_tickets` in `TOOL_FUNCTIONS` and `TOOL_SCHEMAS`.
+- Added `src/support_agent/research_agent.py` `run_research_agent()` — research agent loop that uses `search_similar_tickets` tool and returns concise findings without making decisions about refunds, account changes, or escalation.
+
 ## [0.1.13] — Conversation Memory
 
 - Added `src/support_agent/memory/conversation.py` `ConversationMemory` dataclass for persistent conversation state.
@@ -23,8 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-provided memory enables shared context across multiple `run_agent()` calls; a fresh `ConversationMemory()` starts a new conversation.
 - Conversation history is preserved in `memory.messages` and retrieved via `memory.get_messages()` each iteration.
 - Added `docs/experiments/09_memory.md` documenting memory experiment goals, implementation, and limitations.
-
-## Version Summary
 
 | Version | Feature Domain | Key Objectives |
 | --- | --- | --- |

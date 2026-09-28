@@ -128,3 +128,29 @@ ESCALATE_TO_HUMAN_TOOL = {
         "additionalProperties": False,
     },
 }
+
+
+SEARCH_SIMILAR_TICKETS_TOOL = {
+    "name": "search_similar_tickets",
+    "description": (
+        "Search historical support tickets for cases "
+        "similar to the current customer issue. Use this "
+        "to identify previous cases, categories, and "
+        "resolutions that may provide useful context."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": (
+                    "A concise description of the current "
+                    "customer issue to use when searching "
+                    "historical tickets."
+                ),
+            }
+        },
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+}
