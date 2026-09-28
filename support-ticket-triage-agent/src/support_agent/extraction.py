@@ -1,15 +1,15 @@
 import json
 
 from support_agent.client import chat
-from support_agent.json_utils import parse_json
-from support_agent.models.ticket import (
-    SupportTicket,
-    TicketExtraction,
-)
+from support_agent.guardrails import validate_extraction_output
+from support_agent.models.ticket import SupportTicket
 from support_agent.prompts import EXTRACTION_SYSTEM_PROMPT
 
 
-def extract_ticket(ticket: SupportTicket) -> TicketExtraction:
+def extract_ticket(
+    ticket: SupportTicket,
+):
+
     user_message = f"""
 Extract information from this support ticket.
 
@@ -38,6 +38,6 @@ Message:
         system=EXTRACTION_SYSTEM_PROMPT,
     )
 
-    data = parse_json(raw_response)
-
-    return TicketExtraction.model_validate(data)
+    return validate_extraction_output(
+        raw_response,
+    )

@@ -5,6 +5,7 @@ from support_agent.models.escalation import (
     EscalateToHumanInput,
     EscalateToHumanResult,
 )
+from support_agent.guardrails import validate_escalation
 
 
 ESCALATION_STORE = Path("data/escalations.json")
@@ -20,6 +21,11 @@ def escalate_to_human(
         ticket_id=ticket_id,
         reason=reason,
         priority=priority,
+    )
+
+    validate_escalation(
+        priority=priority,
+        reason=reason,
     )
 
     ESCALATION_STORE.parent.mkdir(

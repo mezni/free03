@@ -116,6 +116,9 @@ Research question:
             result = dispatch_tool(
                 tool_use.name,
                 tool_use.input,
+                allowed_tools={
+                    "search_similar_tickets",
+                },
             )
 
             tool_results.append(

@@ -9,6 +9,7 @@ from support_agent.models.tool_result import (
 from support_agent.tools.agent_tools import (
     SUPPORT_AGENT_TOOLS,
 )
+from support_agent.guardrails import validate_escalation
 from support_agent.memory.conversation import ConversationMemory
 
 
@@ -41,6 +42,15 @@ messages you receive. Use it when relevant.
 
 Provide a professional and helpful response.
 """
+
+READ_ONLY_TOOLS: set = {
+    "knowledge_base_search",
+}
+
+STATE_CHANGING_TOOLS: set = {
+    "create_ticket",
+    "escalate_to_human",
+}
 
 
 def run_agent(
@@ -146,6 +156,7 @@ Needs escalation:
             result = dispatch_tool(
                 tool_use.name,
                 tool_use.input,
+                allowed_tools=SUPPORT_AGENT_TOOLS,
             )
 
             tool_results.append(

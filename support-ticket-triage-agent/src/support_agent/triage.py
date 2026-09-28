@@ -1,11 +1,8 @@
 import json
 
 from support_agent.client import chat
-from support_agent.json_utils import parse_json
-from support_agent.models.ticket import (
-    TicketExtraction,
-    TriageDecision,
-)
+from support_agent.guardrails import validate_triage_output, validate_triage_decision
+from support_agent.models.ticket import TriageDecision
 from support_agent.prompts import TRIAGE_DECISION_SYSTEM_PROMPT
 
 
@@ -41,6 +38,10 @@ Priority:
         system=TRIAGE_DECISION_SYSTEM_PROMPT,
     )
 
-    data = parse_json(raw_response)
+    decision = validate_triage_output(
+        raw_response,
+    )
 
-    return TriageDecision.model_validate(data)
+    return validate_triage_decision(
+        decision,
+    )
