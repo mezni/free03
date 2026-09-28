@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `src/support_agent/tools/registry.py` to register `search_similar_tickets` in `TOOL_FUNCTIONS` and `TOOL_SCHEMAS`.
 - Added `src/support_agent/research_agent.py` `run_research_agent()` — research agent loop that uses `search_similar_tickets` tool and returns concise findings without making decisions about refunds, account changes, or escalation.
 
+## [0.1.15] — Multi-Agent Handoff
+
+- Added `src/support_agent/models/handoff.py` `ResearchRequest`, `ResearchResult`, and `SimilarTicket` Pydantic models for explicit handoff contracts.
+- Added `src/support_agent/tools/agent_tools.py` `RESEARCH_AGENT_TOOLS` and `SUPPORT_AGENT_TOOLS` — agent-specific tool sets to prevent redundant tool calls.
+- Added `src/support_agent/orchestrator.py` `build_research_request()` and `research_ticket()` — orchestrates the workflow between research and support agents.
+- Added `src/support_agent/agent.py` `research` parameter; research findings injected as context into the support agent loop.
+- Added `tests/test_handoff.py` — 3 tests verifying research request context, exclusive tool sets for research and support agents.
+- Added `docs/experiments/11_multi_agent_handoff.md` documenting the multi-agent handoff experiment, agent responsibilities, handoff contract, and lessons learned.
+
 ## [0.1.13] — Conversation Memory
 
 - Added `src/support_agent/memory/conversation.py` `ConversationMemory` dataclass for persistent conversation state.

@@ -6,8 +6,9 @@ from support_agent.models.ticket import (
 from support_agent.models.tool_result import (
     ToolExecutionResult,
 )
-from support_agent.tools.dispatcher import dispatch_tool
-from support_agent.tools.registry import TOOL_SCHEMAS
+from support_agent.tools.agent_tools import (
+    SUPPORT_AGENT_TOOLS,
+)
 from support_agent.memory.conversation import ConversationMemory
 
 
@@ -46,6 +47,7 @@ def run_agent(
     user_message: str,
     extraction: TicketExtraction,
     triage: TriageDecision,
+    research: str | None = None,
     memory: ConversationMemory | None = None,
     max_iterations: int = 5,
     max_tool_calls: int = 10,
@@ -53,6 +55,15 @@ def run_agent(
 
     if memory is None:
         memory = ConversationMemory()
+
+    research_context = ""
+
+    if research:
+        research_context = f"""
+Research findings:
+
+{research}
+"""
 
     context = f"""
 Customer support ticket:
@@ -86,6 +97,8 @@ Needs knowledge search:
 
 Needs escalation:
 {triage.needs_escalation}
+
+{research_context}
 """
 
     memory.add_user_message(context)
@@ -96,7 +109,7 @@ Needs escalation:
 
         response = chat_with_tools(
             messages=memory.get_messages(),
-            tools=TOOL_SCHEMAS,
+            tools=SUPPORT_AGENT_TOOLS,
             system=SYSTEM_PROMPT,
         )
 

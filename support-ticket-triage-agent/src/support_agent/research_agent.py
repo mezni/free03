@@ -1,8 +1,13 @@
 from support_agent.client import chat_with_tools
-from support_agent.tools.dispatcher import dispatch_tool
-from support_agent.tools.schemas import (
-    SEARCH_SIMILAR_TICKETS_TOOL,
+from support_agent.models.handoff import (
+    ResearchRequest,
+    ResearchResult,
 )
+from support_agent.models.research import SimilarTicket
+from support_agent.tools.agent_tools import (
+    RESEARCH_AGENT_TOOLS,
+)
+from support_agent.tools.dispatcher import dispatch_tool
 
 
 RESEARCH_SYSTEM_PROMPT = """
@@ -11,35 +16,58 @@ You are a customer support research agent.
 Your responsibility is to research historical support
 tickets that may be similar to the current customer issue.
 
-Use the search_similar_tickets tool when useful.
+You have exactly one capability:
 
-Do not make decisions about refunds, account changes,
-ticket creation, or escalation.
+- search_similar_tickets
 
-Your job is only to produce research findings.
+You must not:
+- create tickets
+- escalate customers
+- modify customer accounts
+- make support decisions
+- promise refunds
 
-Return a concise research summary containing:
-
-1. Similar historical cases.
-2. Relevant previous resolutions.
-3. Useful observations for the support agent.
+Your job is to provide research findings to another
+support agent.
 
 Do not invent historical cases or resolutions.
 """
 
 
 def run_research_agent(
-    ticket_text: str,
+    request: ResearchRequest,
     max_iterations: int = 3,
-) -> str:
+) -> ResearchResult:
 
     messages = [
         {
             "role": "user",
             "content": f"""
-Research this customer support issue:
+Research this support case.
 
-{ticket_text}
+Ticket ID:
+{request.ticket_id}
+
+Customer ID:
+{request.customer_id}
+
+Issue:
+{request.issue_summary}
+
+Category:
+{request.category}
+
+Urgency:
+{request.urgency}
+
+Product:
+{request.product}
+
+Priority:
+{request.priority}
+
+Research question:
+{request.research_question}
 """,
         }
     ]
@@ -48,9 +76,7 @@ Research this customer support issue:
 
         response = chat_with_tools(
             messages=messages,
-            tools=[
-                SEARCH_SIMILAR_TICKETS_TOOL
-            ],
+            tools=RESEARCH_AGENT_TOOLS,
             system=RESEARCH_SYSTEM_PROMPT,
         )
 
@@ -75,7 +101,13 @@ Research this customer support issue:
                 if block.type == "text"
             ]
 
-            return "\n".join(text_blocks)
+            findings = "\n".join(text_blocks)
+
+            return ResearchResult(
+                ticket_id=request.ticket_id,
+                findings=findings,
+                similar_tickets=[],
+            )
 
         tool_results = []
 
