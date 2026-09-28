@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12] — Reliability
+
+- Added `ToolExecutionResult` model in `src/support_agent/models/tool_result.py` — structured success/failure data for all tool calls.
+- Rewrote `src/support_agent/tools/dispatcher.py` to return `ToolExecutionResult` instead of raising exceptions, providing an error boundary between tools and the agent loop.
+- Added `src/support_agent/reliability.py` with `retry()` helper for read-only operation retries.
+- Added `docs/experiments/08_reliability.md` documenting reliability experiment goals, failure cases, and observations.
+- Updated `src/support_agent/agent.py` to use `result.model_dump_json()` for structured tool results, and added `max_tool_calls = 10` budget tracking.
+- Added reliability rules in the system prompt: check tool results before claiming success, distinguish read-only vs state-changing tool retry policies, do not repeatedly call failed tools without reason.
+- Updated `tests/test_tool_dispatcher.py` with `test_tool_failure_is_returned_as_result` and adjusted existing tests for the new `ToolExecutionResult` return type.
+
 ## Version Summary
 
 | Version | Feature Domain | Key Objectives |

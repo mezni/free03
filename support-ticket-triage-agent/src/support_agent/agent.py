@@ -3,6 +3,9 @@ from support_agent.models.ticket import (
     TicketExtraction,
     TriageDecision,
 )
+from support_agent.models.tool_result import (
+    ToolExecutionResult,
+)
 from support_agent.tools.dispatcher import dispatch_tool
 from support_agent.tools.registry import TOOL_SCHEMAS
 
@@ -52,6 +55,9 @@ Needs escalation:
 """,
         }
     ]
+
+    tool_call_count = 0
+    max_tool_calls = 10
 
     for _ in range(max_iterations):
 
@@ -127,6 +133,13 @@ Rules:
 
         for tool_use in tool_uses:
 
+            tool_call_count += 1
+
+            if tool_call_count >= max_tool_calls:
+                raise RuntimeError(
+                    "Agent exceeded maximum tool calls"
+                )
+
             print(
                 f"\n[AGENT] Tool requested: "
                 f"{tool_use.name}"
@@ -143,15 +156,14 @@ Rules:
             )
 
             print(
-                f"[AGENT] Result: "
-                f"{result}"
+                f"[AGENT] Result: {result}"
             )
 
             tool_results.append(
                 {
                     "type": "tool_result",
                     "tool_use_id": tool_use.id,
-                    "content": str(result),
+                    "content": result.model_dump_json(),
                 }
             )
 

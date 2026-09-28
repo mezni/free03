@@ -1,26 +1,58 @@
 import pytest
 
+from support_agent.models.tool_result import (
+    ToolExecutionResult,
+)
 from support_agent.tools.dispatcher import dispatch_tool
+from support_agent.tools.registry import TOOL_FUNCTIONS
 
 
 def test_dispatch_knowledge_base_search():
-    results = dispatch_tool(
+    result = dispatch_tool(
         "knowledge_base_search",
         {
             "query": "internet connection router"
         },
     )
 
-    assert len(results) > 0
-    assert results[0]["id"] == "KB001"
+    assert result.success is True
+    assert len(result.data) > 0
+    assert result.data[0]["id"] == "KB001"
 
 
 def test_unknown_tool_raises_error():
-    with pytest.raises(ValueError, match="Unknown tool"):
-        dispatch_tool(
-            "does_not_exist",
-            {},
-        )
+    result = dispatch_tool(
+        "does_not_exist",
+        {},
+    )
+
+    assert result.success is False
+    assert result.error == f"Unknown tool: does_not_exist"
+    assert result.error_type == "UnknownTool"
+
+
+def test_tool_failure_is_returned_as_result(
+    monkeypatch,
+):
+    def broken_tool(query: str):
+        raise RuntimeError("Service unavailable")
+
+    monkeypatch.setitem(
+        TOOL_FUNCTIONS,
+        "broken_tool",
+        broken_tool,
+    )
+
+    result = dispatch_tool(
+        "broken_tool",
+        {
+            "query": "test",
+        },
+    )
+
+    assert result.success is False
+    assert result.error == "Service unavailable"
+    assert result.error_type == "RuntimeError"
 
 
 def test_dispatch_create_ticket(tmp_path, monkeypatch):
@@ -41,8 +73,9 @@ def test_dispatch_create_ticket(tmp_path, monkeypatch):
         },
     )
 
-    assert result["status"] == "created"
-    assert result["ticket_id"] == "CT001"
+    assert result.success is True
+    assert result.data["status"] == "created"
+    assert result.data["ticket_id"] == "CT001"
 
 
 def test_dispatch_escalate_to_human(
@@ -65,5 +98,6 @@ def test_dispatch_escalate_to_human(
         },
     )
 
-    assert result["status"] == "escalated"
-    assert result["ticket_id"] == "T005"
+    assert result.success is True
+    assert result.data["status"] == "escalated"
+    assert result.data["ticket_id"] == "T005"
