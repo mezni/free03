@@ -15,10 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added reliability rules in the system prompt: check tool results before claiming success, distinguish read-only vs state-changing tool retry policies, do not repeatedly call failed tools without reason.
 - Updated `tests/test_tool_dispatcher.py` with `test_tool_failure_is_returned_as_result` and adjusted existing tests for the new `ToolExecutionResult` return type.
 
+## [0.1.13] — Conversation Memory
+
+- Added `src/support_agent/memory/conversation.py` `ConversationMemory` dataclass for persistent conversation state.
+- Updated `src/support_agent/agent.py` to accept optional `memory` parameter; memory is the source of truth for `chat_with_tools()`.
+- Added `add_user_message()`, `add_assistant_message()`, `add_message()`, `get_messages()`, and `clear()` methods.
+- User-provided memory enables shared context across multiple `run_agent()` calls; a fresh `ConversationMemory()` starts a new conversation.
+- Conversation history is preserved in `memory.messages` and retrieved via `memory.get_messages()` each iteration.
+- Added `docs/experiments/09_memory.md` documenting memory experiment goals, implementation, and limitations.
+
 ## Version Summary
 
 | Version | Feature Domain | Key Objectives |
 | --- | --- | --- |
+| 0.1.13 | Conversation Memory | Inject `ConversationMemory` into `run_agent()`; message history persists across calls; caller owns memory lifetime for shared or fresh contexts. |
 | 0.1.11 | Escalate-to-Human Action Tool | Record human-intervention escalations via a validated `escalate_to_human` tool; advertise all three tools in the agent prompt. |
 | 0.1.10 | Create-Ticket Action Tool | Record follow-up tickets via a validated `create_ticket` tool writing to a JSON store. |
 | 0.1.9 | Tool Registry & Agent Loop Cleanup | Centralize schemas + functions in a registry; fix the loop to run all tool calls before answering. |

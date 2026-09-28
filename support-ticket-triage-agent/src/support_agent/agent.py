@@ -8,19 +8,53 @@ from support_agent.models.tool_result import (
 )
 from support_agent.tools.dispatcher import dispatch_tool
 from support_agent.tools.registry import TOOL_SCHEMAS
+from support_agent.memory.conversation import ConversationMemory
+
+
+SYSTEM_PROMPT = """
+You are a customer support agent.
+
+You have been given:
+
+1. The original customer support ticket.
+2. Structured ticket information.
+3. A triage decision.
+
+Use this information when handling the ticket.
+
+Available tools:
+
+1. knowledge_base_search
+2. create_ticket
+3. escalate_to_human
+
+Tool reliability rules:
+
+- A tool may fail.
+- Check tool results before claiming an action succeeded.
+- Do not invent information.
+- Do not repeatedly call a failed tool without a reason.
+
+Customer conversation history may be present in the
+messages you receive. Use it when relevant.
+
+Provide a professional and helpful response.
+"""
 
 
 def run_agent(
     user_message: str,
     extraction: TicketExtraction,
     triage: TriageDecision,
+    memory: ConversationMemory | None = None,
     max_iterations: int = 5,
+    max_tool_calls: int = 10,
 ) -> str:
 
-    messages = [
-        {
-            "role": "user",
-            "content": f"""
+    if memory is None:
+        memory = ConversationMemory()
+
+    context = f"""
 Customer support ticket:
 
 {user_message}
@@ -52,66 +86,22 @@ Needs knowledge search:
 
 Needs escalation:
 {triage.needs_escalation}
-""",
-        }
-    ]
+"""
+
+    memory.add_user_message(context)
 
     tool_call_count = 0
-    max_tool_calls = 10
 
     for _ in range(max_iterations):
 
         response = chat_with_tools(
-            messages=messages,
+            messages=memory.get_messages(),
             tools=TOOL_SCHEMAS,
-            system="""
-You are a customer support agent.
-
-You have been given:
-
-1. The original customer support ticket.
-2. Structured ticket information.
-3. A triage decision.
-
-Available tools:
-
-1. knowledge_base_search
-
-   Use this when you need information from the
-   customer support knowledge base.
-
-2. create_ticket
-
-   Use this when a new support case needs to be
-   recorded for follow-up handling.
-
-3. escalate_to_human
-
-   Use this when the issue requires human support
-   intervention.
-
-Rules:
-
-- Do not invent company policies.
-- Do not invent refunds or account changes.
-- Do not create duplicate tickets.
-- Use the existing customer ID when creating a ticket.
-- Only create a ticket when there is a clear reason
-  to record a follow-up case.
-- Only escalate when there is a clear reason that
-  human intervention is required.
-- When escalating, provide a concise reason.
-- Do not claim that an action was completed unless
-  the corresponding tool successfully returned a result.
-- Provide a professional and helpful response.
-""",
+            system=SYSTEM_PROMPT,
         )
 
-        messages.append(
-            {
-                "role": "assistant",
-                "content": response.content,
-            }
+        memory.add_assistant_message(
+            response.content
         )
 
         tool_uses = [
@@ -140,23 +130,9 @@ Rules:
                     "Agent exceeded maximum tool calls"
                 )
 
-            print(
-                f"\n[AGENT] Tool requested: "
-                f"{tool_use.name}"
-            )
-
-            print(
-                f"[AGENT] Input: "
-                f"{tool_use.input}"
-            )
-
             result = dispatch_tool(
                 tool_use.name,
                 tool_use.input,
-            )
-
-            print(
-                f"[AGENT] Result: {result}"
             )
 
             tool_results.append(
@@ -167,11 +143,9 @@ Rules:
                 }
             )
 
-        messages.append(
-            {
-                "role": "user",
-                "content": tool_results,
-            }
+        memory.add_message(
+            "user",
+            tool_results,
         )
 
     raise RuntimeError(
