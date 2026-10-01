@@ -17,6 +17,25 @@ class FakeRetrievalService:
         return self.results
 
 
+class FakeReranker:
+    def __init__(self):
+        self.query = None
+        self.candidates = None
+        self.top_k = None
+
+    def rerank(
+        self,
+        query,
+        candidates,
+        top_k,
+    ):
+        self.query = query
+        self.candidates = candidates
+        self.top_k = top_k
+
+        return candidates[:top_k]
+
+
 def test_pipeline_delegates_to_retrieval_service():
     chunk_id = uuid4()
     document_id = uuid4()
@@ -45,3 +64,46 @@ def test_pipeline_delegates_to_retrieval_service():
 
     assert results == expected_results
     assert service.received_request == request
+
+
+def test_pipeline_reranks_results():
+    results = [
+        RetrievalResult(
+            chunk_id=uuid4(),
+            document_id=uuid4(),
+            index_version_id=uuid4(),
+            content="result 1",
+            chunk_index=0,
+            score=0.1,
+        ),
+        RetrievalResult(
+            chunk_id=uuid4(),
+            document_id=uuid4(),
+            index_version_id=uuid4(),
+            content="result 2",
+            chunk_index=1,
+            score=0.2,
+        ),
+    ]
+
+    service = FakeRetrievalService(results)
+    reranker = FakeReranker()
+
+    pipeline = RetrievalPipeline(
+        retrieval_service=service,
+        reranker=reranker,
+    )
+
+    request = RetrievalQuery(
+        query="refund policy",
+        top_k=1,
+    )
+
+    final_results = pipeline.execute(request)
+
+    assert len(final_results) == 1
+    assert final_results[0].content == "result 1"
+
+    assert reranker.query == "refund policy"
+    assert len(reranker.candidates) == 2
+    assert reranker.top_k == 1

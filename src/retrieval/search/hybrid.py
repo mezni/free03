@@ -37,7 +37,9 @@ class HybridSearchStrategy(SearchStrategy):
         self,
         request: RetrievalQuery,
     ) -> list[RetrievalResult]:
-        candidate_count = request.top_k * self.candidate_multiplier
+        candidate_count = request.candidate_k or (
+            request.top_k * self.candidate_multiplier
+        )
 
         candidate_request = request.model_copy(
             update={"top_k": candidate_count},
@@ -59,4 +61,4 @@ class HybridSearchStrategy(SearchStrategy):
             k=self.fusion_k,
         )
 
-        return fused_results[: request.top_k]
+        return fused_results[:candidate_count]

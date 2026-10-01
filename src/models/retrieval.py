@@ -34,6 +34,12 @@ class RetrievalQuery(BaseModel):
 
     top_k: int = Field(default=5, ge=1, le=100)
 
+    candidate_k: int | None = Field(
+        default=None,
+        ge=1,
+        le=500,
+    )
+
     filters: RetrievalFilter | None = None
 
 

@@ -51,16 +51,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 | 0.1.2   | Infrastructure | Docker Compose, Makefile, .env.example with DATABASE_URL |
 | 0.1.1   | Core          | Initial release with config, errors, ids, clock |
 
-## [0.2.2] - 2026-09-23
+## [0.2.3] - 2026-09-25
 
 ### Added
-- **Retrieval filtering:** `RetrievalQuery` now carries optional `source` (min 1 / max 100 chars) and `document_id` filters
-- **Vector search repository:** `VectorSearchRepository.search()` now joins `documents` and applies `source`/`document_id` filters in SQL (still scoped to a single index version); no document metadata is duplicated onto chunks
-- **Testing:** service-level filter tests (`source=billing` returns only billing chunks, `document_id` filter, and no-filter returning every document); `tests/integration/test_vector_search_repository.py` verifying the SQL-side filters (`source=billing`, `source=hr`, `document_id=A`, all rows tied to the ACTIVE version); shared `embedded_document_factory` fixture promoted to root `conftest.py`
+- **Reranking:** `Reranker` abstract base class (`src/retrieval/rerank/base.py`) with `rerank()` contract; `SimpleReranker` development implementation (`src/retrieval/rerank/simple.py`) that preserves incoming ranking
+- **RetrievalPipeline:** `RetrievalPipeline` now optionally accepts a `Reranker` and applies reranking after retrieval (`src/retrieval/pipeline.py`)
+- **`candidate_k` field:** `RetrievalQuery` now carries optional `candidate_k` (`int | None`, 1–500) controlling the candidate pool size before reranking/fusion; when `None`, falls back to `top_k * candidate_multiplier` (`src/models/retrieval.py`)
+- **Hybrid search candidate sizing:** `HybridSearchStrategy.search()` uses `request.candidate_k` or falls back to `top_k * candidate_multiplier` for the candidate pool before RRF, returning `candidate_count` results instead of immediately truncating to `top_k` (`src/retrieval/search/hybrid.py`)
+- **Testing:** `tests/retrieval/rerank/test_simple.py` — simple reranker order/top_k/validation tests; `tests/retrieval/test_pipeline.py` — pipeline reranking test with `FakeReranker`
 
 ### Changed
-- `RetrievalService.search()` forwards `request.source` and `request.document_id` to the repository
-- `document_type` is intentionally **not** implemented yet — the model field is deferred until document metadata is persisted on chunks/documents; this is a deliberate architectural checkpoint before wiring retrieval metadata
+- `RetrievalService.search()` unchanged — still returns candidates; pipeline layer applies reranking
+- `HybridSearchStrategy` candidate counting now respects `candidate_k` before truncation
 
 ## [0.2.3] - 2026-09-25
 
