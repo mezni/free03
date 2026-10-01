@@ -4,7 +4,10 @@ from src.models.retrieval_evaluation import (
     RetrievalEvaluationResult,
 )
 from src.models.retrieval_metrics import RetrievalMetrics
-from src.services.retrieval_metrics_service import RetrievalMetricsService
+from src.services.evaluation_resolver import EvaluationResolver
+from src.services.retrieval_metrics_service import (
+    RetrievalMetricsService,
+)
 
 
 class RetrievalEvaluationRunner:
@@ -14,9 +17,11 @@ class RetrievalEvaluationRunner:
         self,
         retrieval_pipeline,
         metrics_service: RetrievalMetricsService,
+        evaluation_resolver: EvaluationResolver,
     ) -> None:
         self._retrieval_pipeline = retrieval_pipeline
         self._metrics_service = metrics_service
+        self._evaluation_resolver = evaluation_resolver
 
     def evaluate(
         self,
@@ -48,11 +53,17 @@ class RetrievalEvaluationRunner:
 
         results = self._retrieval_pipeline.execute(request)
 
+        relevant_chunk_ids = (
+            self._evaluation_resolver.resolve_all(
+                case.relevant_chunks
+            )
+        )
+
         return RetrievalEvaluationResult(
             case_id=case.case_id,
             retrieved_chunk_ids=[
                 result.chunk_id
                 for result in results
             ],
-            relevant_chunks=case.relevant_chunks,
+            relevant_chunk_ids=relevant_chunk_ids,
         )

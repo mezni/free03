@@ -20,6 +20,16 @@ def make_reference(
     )
 
 
+class FakeEvaluationResolver:
+    def __init__(self, resolved_ids):
+        self.resolved_ids = resolved_ids
+        self.references = []
+
+    def resolve_all(self, references):
+        self.references.append(references)
+        return self.resolved_ids
+
+
 def make_result(chunk_id):
     return RetrievalResult(
         chunk_id=chunk_id,
@@ -40,6 +50,7 @@ def test_evaluate_case():
 
     chunk_a = uuid4()
     chunk_b = uuid4()
+    resolved_id = uuid4()
 
     case = RetrievalEvaluationCase(
         case_id="refund-001",
@@ -54,7 +65,13 @@ def test_evaluate_case():
         make_result(chunk_b),
     ]
 
-    service = RetrievalEvaluationService()
+    resolver = FakeEvaluationResolver(
+        resolved_ids=[resolved_id],
+    )
+
+    service = RetrievalEvaluationService(
+        evaluation_resolver=resolver,
+    )
 
     evaluation = service.evaluate_case(
         case=case,
@@ -68,6 +85,10 @@ def test_evaluate_case():
         chunk_b,
     ]
 
-    assert evaluation.relevant_chunks == [
-        relevant_reference,
+    assert evaluation.relevant_chunk_ids == [
+        resolved_id,
+    ]
+
+    assert resolver.references == [
+        [relevant_reference],
     ]

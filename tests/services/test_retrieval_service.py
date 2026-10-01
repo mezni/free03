@@ -14,7 +14,7 @@ from src.ingestion.context import (
     DocumentMetadata,
     EmbeddedDocument,
 )
-from src.models.retrieval import RetrievalQuery
+from src.models.retrieval import RetrievalFilter, RetrievalQuery
 from src.services.indexing_service import IndexingService
 from src.services.retrieval_service import RetrievalService
 from src.services.versioning_service import VersioningService
@@ -194,7 +194,9 @@ def test_search_filters_by_source(database_session) -> None:
         RetrievalQuery(
             query="policy",
             top_k=5,
-            source="billing",
+            filters=RetrievalFilter(
+                source="billing",
+            ),
         )
     )
 
@@ -237,7 +239,9 @@ def test_search_filters_by_document_id(
         RetrievalQuery(
             query="policy",
             top_k=5,
-            document_id=document.id,
+            filters=RetrievalFilter(
+                document_id=document.id,
+            ),
         )
     )
 

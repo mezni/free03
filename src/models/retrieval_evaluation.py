@@ -40,4 +40,4 @@ class RetrievalEvaluationResult(BaseModel):
 
     retrieved_chunk_ids: list[UUID]
 
-    relevant_chunks: list[EvaluationChunkReference]
+    relevant_chunk_ids: list[UUID]
