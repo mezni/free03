@@ -8,7 +8,6 @@ from src.api.dependencies import get_db_session
 
 logger = logging.getLogger("rag-system.health")
 
-
 router = APIRouter(
     prefix="/health",
     tags=["health"],
@@ -17,6 +16,7 @@ router = APIRouter(
 
 @router.get("")
 def health() -> dict[str, str]:
+    """Liveness only: no dependency is touched, so nothing can hang here."""
     return {
         "status": "ok",
     }
@@ -26,6 +26,7 @@ def health() -> dict[str, str]:
 def readiness(
     session: Session = Depends(get_db_session),
 ) -> dict[str, str]:
+    """Readiness: PostgreSQL must answer, the LLM is never called."""
     try:
         session.execute(text("SELECT 1"))
     except Exception as exc:

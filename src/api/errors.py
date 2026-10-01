@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Union, cast
+from typing import cast
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -18,7 +18,7 @@ logger = logging.getLogger("rag-system.api")
 
 ExceptionHandler = Callable[
     [Request, Exception],
-    Union[Response, Awaitable[Response]],
+    Response | Awaitable[Response],
 ]
 
 

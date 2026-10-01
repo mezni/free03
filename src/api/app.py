@@ -3,6 +3,10 @@ import logging
 from fastapi import FastAPI, Request
 
 from src.api.errors import register_exception_handlers
+from src.api.lifespan import lifespan
+from src.api.middleware.security_headers import (
+    SecurityHeadersMiddleware,
+)
 from src.api.routes.health import router as health_router
 from src.api.routes.metrics import router as metrics_router
 from src.api.routes.rag import router as rag_router
@@ -21,9 +25,15 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="rag-system",
-        description="Production-oriented RAG API",
+        description=(
+            "Production-oriented Retrieval-Augmented "
+            "Generation API"
+        ),
         version="1.0.0",
+        lifespan=lifespan,
     )
+
+    app.add_middleware(SecurityHeadersMiddleware)
 
     @app.middleware("http")
     async def observability_middleware(

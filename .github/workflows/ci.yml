@@ -58,3 +58,6 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+
+      - name: Build production image
+        run: docker build -t rag-system:ci .
