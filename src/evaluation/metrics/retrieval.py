@@ -21,3 +21,25 @@ class RecallAtK:
         retrieved_relevant = relevant_ids & retrieved_ids
 
         return len(retrieved_relevant) / len(relevant_ids)
+
+
+class PrecisionAtK:
+    """Calculate Precision@K for a retrieval evaluation result."""
+
+    def calculate(
+        self,
+        evaluation: RetrievalEvaluationResult,
+        k: int,
+    ) -> float:
+        if k <= 0:
+            raise ValueError("k must be greater than 0")
+
+        retrieved_ids = evaluation.retrieved_chunk_ids[:k]
+
+        if not retrieved_ids:
+            return 0.0
+
+        relevant_ids = set(evaluation.relevant_chunk_ids)
+        retrieved_relevant = set(retrieved_ids) & relevant_ids
+
+        return len(retrieved_relevant) / len(retrieved_ids)
