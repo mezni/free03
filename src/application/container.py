@@ -7,6 +7,7 @@ from src.db.repositories.embeddings import EmbeddingRepository
 from src.db.repositories.index_versions import IndexVersionRepository
 from src.db.repositories.keyword_search import KeywordSearchRepository
 from src.db.repositories.llm_usage import LLMUsageRepository
+from src.db.repositories.ingestion_jobs import IngestionJobRepository
 from src.db.repositories.vector_search import VectorSearchRepository
 from src.evaluation.answer.semantic import SimpleAnswerEvaluator
 from src.evaluation.citation.evaluator import CitationEvaluator
@@ -38,7 +39,7 @@ from src.services.document_service import DocumentService
 from src.services.evaluation_resolver import EvaluationResolver
 from src.services.generation_service import GenerationService
 from src.services.grounding_service import GroundingService
-from src.services.ingestion_service import IngestionService
+from src.services.ingestion_job_service import IngestionJobService
 from src.services.rag_evaluation_service import RAGEvaluationService
 from src.services.rag_service import RAGService
 from src.services.retrieval_evaluation_runner import RetrievalEvaluationRunner
@@ -91,6 +92,9 @@ class ApplicationContainer:
 
     def llm_usage_repository(self) -> LLMUsageRepository:
         return LLMUsageRepository(self._session)
+
+    def ingestion_job_repository(self) -> IngestionJobRepository:
+        return IngestionJobRepository(self._session)
 
     def cost_calculator(self) -> CostCalculator:
         return CostCalculator(self._settings.finops)

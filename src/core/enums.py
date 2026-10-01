@@ -39,6 +39,14 @@ class IngestionRunStatus(StrEnum):
     FAILED = "failed"
 
 
+class IngestionJobStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
 class DocumentProcessingStatus(StrEnum):
     SUCCESS = "success"
     SKIPPED = "skipped"

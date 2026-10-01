@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
+| 0.2.14  | Document Management | `GET /documents`, `GET /documents/{id}`, `POST /documents/ingest`, `DELETE /documents/{id}`, `DocumentService`, `DocumentRepository`, `IngestionService`, `IngestionPipeline`, API tests, product documentation, security boundary |
+
 | 0.2.13  | Reliability | `reliability.yaml` + bounded config models, `src/core/exceptions.py` hierarchy, `RetryPolicy` retrying only transient failures, hardened OpenRouter classification and response validation, sanitized API error handlers with `request_id`, `/health/ready`, prompt-injection boundary, `.env.example` |
 | 0.2.12  | Observability | `ContextVar` request ID + `X-Request-ID` header, JSON log formatter with token usage, `Timer`, thread-safe `MetricsCollector` shared via a registry singleton, `GET /metrics`, instrumentation of retrieval/generation/RAG |
 | 0.2.11  | HTTP API | FastAPI + uvicorn, `create_app()`, `/health` and `POST /rag/query`, request-scoped session dependency, `RAGAPIError` handler, dependency-overridden tests with no network |
@@ -80,6 +82,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 - **Retry tests:** `tests/providers/test_retry.py` (11 — eventual success, immediate success, exhaustion, zero retries, timeouts retried, client errors not retried, transient errors retried, unrelated exceptions not retried, custom retryable sets, and the default set contents)
 - **Input-limit tests:** `tests/security/test_input_limits.py` (17 — query length at and beyond the 5000-character limit, empty query, `top_k` bounds, rejection of client-supplied `candidate_k` and `filters`, and two tests proving rejected requests never reach the service)
 - **Error-sanitization tests:** `tests/api/test_errors.py` covers readiness success, database failure returning 503, database exception details not leaking, each application exception mapping to its status code, provider error messages not reaching the client, and the error `request_id` matching the response header
+- **Phase 14: Document Management API** — administrative capabilities for managing documents via product API
+
+### Changed
+- (none for this release)
+
+### Known Limitations
+- (unchanged from previous)
 
 ### Changed
 - **BREAKING:** `LLMConfig.timeout_seconds` is removed. The transport timeout now lives only in `reliability.llm.timeout_seconds`, eliminating two competing sources for the same value. `config/llm.yaml` no longer sets it
