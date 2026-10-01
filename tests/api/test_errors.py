@@ -5,7 +5,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.api.app import create_app
 from src.api.dependencies import get_db_session
-from src.api.routes.health import readiness
 from src.core.exceptions import (
     GenerationError,
     ProviderTimeoutError,

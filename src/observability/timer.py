@@ -17,6 +17,9 @@ class Timer:
         exc_value,
         traceback,
     ) -> None:
+        if self._started_at is None:
+            return
+
         self.duration_ms = (
             perf_counter() - self._started_at
         ) * 1000

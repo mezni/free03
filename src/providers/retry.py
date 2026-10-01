@@ -7,7 +7,6 @@ from src.core.exceptions import (
     TransientProviderError,
 )
 
-
 T = TypeVar("T")
 
 

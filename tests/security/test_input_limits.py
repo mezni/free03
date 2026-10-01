@@ -17,6 +17,8 @@ class RecordingRAGService:
     """Fails loudly if the endpoint lets an invalid request through."""
 
     def __init__(self) -> None:
+        # Instance attribute, not a class attribute: a class-level list
+        # would be shared across tests and hide the real call count.
         self.calls: list = []
 
     def answer(self, query):
@@ -39,18 +41,16 @@ class RecordingRAGService:
 
 
 @pytest.fixture
-def client() -> TestClient:
-    app = create_app()
-    app.dependency_overrides[
-        get_rag_service
-    ] = RecordingRAGService
-
-    return TestClient(app)
+def service() -> RecordingRAGService:
+    return RecordingRAGService()
 
 
 @pytest.fixture
-def calls() -> list:
-    return []
+def client(service: RecordingRAGService) -> TestClient:
+    app = create_app()
+    app.dependency_overrides[get_rag_service] = lambda: service
+
+    return TestClient(app)
 
 
 def _post(client: TestClient, payload: dict):
@@ -150,19 +150,33 @@ class TestRejectedRequestsDoNoWork:
     def test_oversized_query_never_reaches_service(
         self,
         client: TestClient,
+        service: RecordingRAGService,
     ) -> None:
         _post(client, {"query": "x" * 5001})
 
-        assert client.app.dependency_overrides[
-            get_rag_service
-        ].calls == []
+        assert service.calls == []
 
     def test_oversized_top_k_never_reaches_service(
         self,
         client: TestClient,
+        service: RecordingRAGService,
     ) -> None:
         _post(client, {"query": "test", "top_k": 999})
 
-        service = client.app.dependency_overrides[get_rag_service]
-
         assert service.calls == []
+
+    def test_valid_request_does_reach_service(
+        self,
+        client: TestClient,
+        service: RecordingRAGService,
+    ) -> None:
+        """Guards the tests above from passing because the service is
+        never invoked at all."""
+        response = _post(
+            client,
+            {"query": "test", "top_k": 5},
+        )
+
+        assert response.status_code == 200
+        assert len(service.calls) == 1
+        assert service.calls[0].top_k == 5

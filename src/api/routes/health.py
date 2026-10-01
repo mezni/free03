@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_db_session
 
-
 logger = logging.getLogger("rag-system.health")
 
 

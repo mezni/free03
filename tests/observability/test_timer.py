@@ -34,18 +34,21 @@ class TestTimer:
         assert total == 499500
         assert timer.duration_ms >= 0
 
-    @pytest.mark.parametrize("sleep_ms", [0.1, 0.01, 0.005])
-    def test_timer_scales_with_duration(
-        self,
-        sleep_ms: float,
-    ) -> None:
-        with Timer() as t1:
-            sleep(sleep_ms)
+    def test_longer_work_yields_longer_duration(self) -> None:
+        """Compares clearly separated durations.
 
-        with Timer() as t2:
-            sleep(sleep_ms / 2)
+        An earlier version slept 5ms against 2.5ms and failed
+        intermittently: `sleep` guarantees a minimum, not an exact
+        duration, so scheduler noise could invert the comparison. The
+        20ms gap here is wide enough to survive that noise.
+        """
+        with Timer() as short:
+            sleep(0.01)
 
-        assert t1.duration_ms > t2.duration_ms
+        with Timer() as long:
+            sleep(0.03)
+
+        assert long.duration_ms > short.duration_ms
 
     def test_exit_records_even_if_exception(self) -> None:
         with pytest.raises(ValueError):

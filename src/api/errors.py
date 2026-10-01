@@ -1,7 +1,10 @@
 import logging
+from collections.abc import Awaitable, Callable
+from typing import Union, cast
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.responses import Response
 
 from src.core.exceptions import (
     ConfigurationError,
@@ -11,8 +14,12 @@ from src.core.exceptions import (
 )
 from src.observability.context import get_request_id
 
-
 logger = logging.getLogger("rag-system.api")
+
+ExceptionHandler = Callable[
+    [Request, Exception],
+    Union[Response, Awaitable[Response]],
+]
 
 
 class RAGAPIError(Exception):
@@ -127,23 +134,20 @@ async def rag_api_error_handler(
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    app.add_exception_handler(
-        RAGAPIError,
-        rag_api_error_handler,
-    )
-    app.add_exception_handler(
-        ProviderTimeoutError,
-        provider_timeout_handler,
-    )
-    app.add_exception_handler(
-        RetrievalError,
-        retrieval_error_handler,
-    )
-    app.add_exception_handler(
-        GenerationError,
-        generation_error_handler,
-    )
-    app.add_exception_handler(
-        ConfigurationError,
-        configuration_error_handler,
-    )
+    # Each handler is bound to a specific exception type, which
+    # Starlette's signature types as `Exception`. Registration is
+    # wrapped in a helper so the cast happens in one place.
+    def register(
+        exception_type: type[Exception],
+        handler: Callable[..., Awaitable[Response]],
+    ) -> None:
+        app.add_exception_handler(
+            exception_type,
+            cast(ExceptionHandler, handler),
+        )
+
+    register(RAGAPIError, rag_api_error_handler)
+    register(ProviderTimeoutError, provider_timeout_handler)
+    register(RetrievalError, retrieval_error_handler)
+    register(GenerationError, generation_error_handler)
+    register(ConfigurationError, configuration_error_handler)

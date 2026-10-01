@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
+| 0.2.13  | Reliability | `reliability.yaml` + bounded config models, `src/core/exceptions.py` hierarchy, `RetryPolicy` retrying only transient failures, hardened OpenRouter classification and response validation, sanitized API error handlers with `request_id`, `/health/ready`, prompt-injection boundary, `.env.example` |
 | 0.2.12  | Observability | `ContextVar` request ID + `X-Request-ID` header, JSON log formatter with token usage, `Timer`, thread-safe `MetricsCollector` shared via a registry singleton, `GET /metrics`, instrumentation of retrieval/generation/RAG |
 | 0.2.11  | HTTP API | FastAPI + uvicorn, `create_app()`, `/health` and `POST /rag/query`, request-scoped session dependency, `RAGAPIError` handler, dependency-overridden tests with no network |
 | 0.2.10  | RAG Evaluation | `RAGEvaluationCase`/`Result`/`Metrics`, YAML dataset + loader, deterministic `CitationEvaluator`/`GroundingEvaluator`/`SimpleAnswerEvaluator` behind an `AnswerEvaluator` boundary, `RAGEvaluationService`/`Runner`, container wiring, `evaluate_rag` CLI |
@@ -60,6 +61,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 | 0.1.3   | Database      | SQLAlchemy `src/db` module, Alembic migrations |
 | 0.1.2   | Infrastructure | Docker Compose, Makefile, .env.example with DATABASE_URL |
 | 0.1.1   | Core          | Initial release with config, errors, ids, clock |
+
+## [0.2.13] - 2026-10-01
+
+### Added
+- **Reliability configuration:** `config/reliability.yaml` with `llm` (`timeout_seconds`, `max_retries`, `retry_delay_seconds`), `retrieval` (`timeout_seconds`), and `api` (`max_query_length`, `max_top_k`) sections
+- **`ReliabilityConfig` models:** `src/config/settings.py` — `LLMReliabilityConfig`, `RetrievalReliabilityConfig`, `APIReliabilityConfig`, and `ReliabilityConfig`, all `extra="forbid"` with bounded fields; exposed as `Settings.reliability` and loaded from `config/reliability.yaml`
+- **Application exceptions:** `src/core/exceptions.py` — `RAGSystemError` base with `RetrievalError`, `GenerationError`, `ConfigurationError`, and a `ProviderError` subclass of `GenerationError` covering `ProviderTimeoutError`, `ProviderResponseError`, and `TransientProviderError`. Callers no longer see raw `httpx` or database exceptions
+- **`RetryPolicy`:** `src/providers/retry.py` — `execute(operation)` retries a callable up to `max_retries` times with `delay_seconds` between attempts, retrying only `DEFAULT_RETRYABLE` (`ProviderTimeoutError`, `TransientProviderError`). Every other exception propagates on the first attempt
+- **OpenRouter failure classification:** `src/providers/llm/openrouter.py` splits the request into `_post` and `_parse`. `_post` maps `httpx.TimeoutException` to `ProviderTimeoutError` and other `httpx.HTTPError` to `TransientProviderError`; HTTP 5xx raises `TransientProviderError` and HTTP 4xx raises `ProviderResponseError`. The response body is never inspected or included in the raised message
+- **OpenRouter response validation:** `_parse` rejects non-dict JSON, missing/empty/non-list `choices`, non-dict `message`, and non-string `content` with `ProviderResponseError`, replacing the previous unchecked `data["choices"][0]["message"]["content"]` indexing and `raise_for_status()`
+- **Provider retries wired through configuration:** `LLMProviderFactory.create()` accepts an optional `ReliabilityConfig` and builds a `RetryPolicy` from `reliability.llm`; `ApplicationContainer.llm_provider()` passes `self._settings.reliability`. Without a config argument the factory falls back to no retries, so direct construction in tests stays deterministic
+- **Prompt-injection boundary:** `PromptBuilder.build_system_prompt()` now instructs the model to treat source content as untrusted data and never to follow instructions contained inside retrieved documents
+- **Sanitized API error handlers:** `src/api/errors.py` registers handlers for `ProviderTimeoutError` (504), `RetrievalError` (503), `GenerationError` (502), and `ConfigurationError` (500), each logging a structured event and returning a fixed message. Because provider exceptions subclass `GenerationError`, every provider failure is handled without a handler per class
+- **Request IDs in error responses:** all error bodies now include `request_id` from the Phase 6 `ContextVar`, matching the `X-Request-ID` response header
+- **Readiness endpoint:** `GET /health/ready` in `src/api/routes/health.py` executes `SELECT 1` through the request-scoped session and returns `{"status": "ready"}`, or `503` with `"Database is unavailable."` on failure. It checks infrastructure only and deliberately makes no LLM call, since a readiness probe would otherwise consume tokens on every check
+- **Secret hygiene:** `.gitignore` now ignores `.env.*` while un-ignoring `.env.example`, and a new `.env.example` contains an empty `OPENROUTER_API_KEY=` placeholder
+- **Retry tests:** `tests/providers/test_retry.py` (11 — eventual success, immediate success, exhaustion, zero retries, timeouts retried, client errors not retried, transient errors retried, unrelated exceptions not retried, custom retryable sets, and the default set contents)
+- **Input-limit tests:** `tests/security/test_input_limits.py` (17 — query length at and beyond the 5000-character limit, empty query, `top_k` bounds, rejection of client-supplied `candidate_k` and `filters`, and two tests proving rejected requests never reach the service)
+- **Error-sanitization tests:** `tests/api/test_errors.py` covers readiness success, database failure returning 503, database exception details not leaking, each application exception mapping to its status code, provider error messages not reaching the client, and the error `request_id` matching the response header
+
+### Changed
+- **BREAKING:** `LLMConfig.timeout_seconds` is removed. The transport timeout now lives only in `reliability.llm.timeout_seconds`, eliminating two competing sources for the same value. `config/llm.yaml` no longer sets it
+- **BREAKING:** `OpenRouterProvider` no longer raises `httpx.HTTPStatusError`. Callers must catch `RAGSystemError` subclasses; `tests/providers/llm/test_openrouter.py` was rewritten with explicit status codes on its mocks and 30 new cases covering classification, redaction, malformed payloads, and retry integration
+- `Timer.__exit__` returns early when the context was never entered, keeping `duration_ms` at `0.0` instead of subtracting `None`
+- `register_exception_handlers` routes registration through a helper that casts handlers to Starlette's `ExceptionHandler` type at one call site, resolving the five `arg-type` errors mypy reported against `add_exception_handler`
+- `OpenRouterProvider` accepts an optional `retry_policy` defaulting to no retries
+- **Dependency:** `types-PyYAML` added to the dev group so `mypy src` type-checks the three YAML loader modules instead of reporting missing stubs
+
+### Known Limitations
+- **`reliability.api` and `reliability.retrieval` are configured but unused.** `max_query_length` and `max_top_k` duplicate the bounds already hardcoded on `RAGQueryRequest`, and `retrieval.timeout_seconds` is never applied — retrieval has no timeout at all. Two sources of truth that can silently diverge
+- **The caches in the performance specification are not implemented.** No `src/cache/` package, no `config/performance.yaml`, no cache keys, no `retrieval.cache_hits`/`generation.cache_hits` counters, and no `tests/performance/`. The database indexes and latency targets from that phase are also outstanding
+- **`RetryPolicy` is synchronous and blocking.** `sleep` occupies the request thread, so a 2-retry policy with a 1-second delay can add 2 seconds to a request that already timed out. Retry-After headers are ignored entirely
+- **There is no circuit breaker.** Once a provider starts failing, every request still pays the full retry budget; the failure mode is a uniformly slow service rather than a fast one
+- **Retries are not idempotency-aware.** A timeout after the provider accepted the request causes a duplicate LLM call, doubling cost for that query with no way to deduplicate
+- **Error handlers log at WARNING with the exception type but not the message.** Provider URLs and response bodies are correctly withheld from clients, but the underlying cause is also absent from logs, so diagnosing a repeated failure requires reproducing it
+- **`RAGAPIError` remains unraised.** Nothing in the application raises it, so its handler is exercised only by tests
+- **`/health/ready` depends on a real database session.** It cannot be tested without a reachable PostgreSQL, and it will fail readiness during a database blip even when the LLM path is healthy — appropriate for a strict probe, but worth knowing before wiring it to a load balancer
+- **`test_timer_scales_with_duration` was flaky and was rewritten.** Sleeping 5ms against 2.5ms could invert under scheduler load, since `sleep` guarantees a minimum rather than an exact duration; the replacement compares 10ms against 30ms. This also means the suite currently has no deterministic way to test expiry, since `MemoryCache` reads `monotonic()` directly with no clock seam
+- **`mypy src` still reports 3 errors**, all pre-existing and outside this work: two in `src/services/ingestion_persistence_service.py` and one `EnvironmentSettings()` call-arg in `src/config/settings.py`. Verified against a stashed tree
 
 ## [0.2.12] - 2026-10-01
 
