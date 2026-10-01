@@ -1,10 +1,10 @@
-from src.embeddings.base import EmbeddingProvider
 from src.ingestion.context import (
-    ChunkEmbedding,
     ChunkedDocument,
+    ChunkEmbedding,
     EmbeddedDocument,
 )
 from src.ingestion.stages.base import PipelineStage
+from src.providers.embeddings.base import EmbeddingProvider
 
 
 class EmbedStage(PipelineStage[ChunkedDocument, EmbeddedDocument]):

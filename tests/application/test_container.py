@@ -82,6 +82,7 @@ def test_container_creates_embedding_provider():
     provider = container.embedding_provider()
 
     assert provider is not None
+    assert provider.model_name == "local-dev"
     assert provider.dimensions == 8
 
 

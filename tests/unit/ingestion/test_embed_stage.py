@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from src.embeddings.local import LocalEmbeddingProvider
 from src.ingestion.context import (
     ChunkedDocument,
     DocumentChunk,
@@ -8,6 +7,7 @@ from src.ingestion.context import (
     DocumentMetadata,
 )
 from src.ingestion.stages.embed import EmbedStage
+from src.providers.embeddings.local import LocalEmbeddingProvider
 
 
 def test_embed_stage(tmp_path: Path) -> None:
@@ -60,6 +60,6 @@ def test_embed_stage(tmp_path: Path) -> None:
 
     assert len(result.embeddings) == 1
     assert result.embeddings[0].chunk_id == "chunk-1"
-    assert result.embeddings[0].model_name == "local-deterministic"
+    assert result.embeddings[0].model_name == "local-dev"
     assert result.embeddings[0].dimensions == 8
     assert len(result.embeddings[0].vector) == 8

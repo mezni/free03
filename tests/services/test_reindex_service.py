@@ -8,8 +8,6 @@ from src.db.models.index_version import IndexVersionDB
 from src.db.repositories.chunks import ChunkRepository
 from src.db.repositories.embeddings import EmbeddingRepository
 from src.db.repositories.index_versions import IndexVersionRepository
-from src.embeddings.base import EmbeddingProvider
-from src.embeddings.local import LocalEmbeddingProvider
 from src.ingestion.chunkers.text import CharacterTextChunker
 from src.ingestion.cleaners.text import TextDocumentCleaner
 from src.ingestion.loaders.filesystem import FilesystemLoader
@@ -18,6 +16,8 @@ from src.ingestion.parsers.markdown import MarkdownParser
 from src.ingestion.parsers.registry import ParserRegistry
 from src.ingestion.parsers.text import TextParser
 from src.ingestion.sources.filesystem import FilesystemSource
+from src.providers.embeddings.base import EmbeddingProvider
+from src.providers.embeddings.local import LocalEmbeddingProvider
 from src.services.index_validation_service import IndexValidationService
 from src.services.indexing_service import IndexingService
 from src.services.reindex_service import ReindexService
@@ -43,6 +43,9 @@ class _FlakyEmbeddingProvider(EmbeddingProvider):
     @property
     def dimensions(self) -> int:
         return self.provider.dimensions
+
+    def embed_query(self, query: str) -> list[float]:
+        return self.provider.embed_query(query)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         self.calls += 1

@@ -1,5 +1,5 @@
-from src.embeddings.base import EmbeddingProvider
-from src.embeddings.local import LocalEmbeddingProvider
+from src.providers.embeddings.base import EmbeddingProvider
+from src.providers.embeddings.local import LocalEmbeddingProvider
 
 __all__ = [
     "EmbeddingProvider",

@@ -8,7 +8,6 @@ from src.core.enums import (
     DocumentProcessingStatus,
 )
 from src.db.repositories.documents import DocumentRepository
-from src.embeddings.base import EmbeddingProvider
 from src.ingestion.change_detection import ChangeDetector
 from src.ingestion.chunking import DocumentChunker
 from src.ingestion.cleaning import DocumentCleaner
@@ -26,6 +25,7 @@ from src.ingestion.stages.finalizer import FileFinalizer
 from src.ingestion.stages.load import LoadStage
 from src.ingestion.stages.parse import ParseStage
 from src.models.ingestion import DocumentProcessingResult
+from src.providers.embeddings.base import EmbeddingProvider
 from src.services.document_processing_service import (
     DocumentProcessingService,
 )

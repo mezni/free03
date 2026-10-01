@@ -18,5 +18,6 @@ class EmbeddingProvider(ABC):
     def embed(self, texts: list[str]) -> list[list[float]]:
         raise NotImplementedError
 
-    def embed_query(self, text: str) -> list[float]:
-        return self.embed([text])[0]
+    @abstractmethod
+    def embed_query(self, query: str) -> list[float]:
+        raise NotImplementedError

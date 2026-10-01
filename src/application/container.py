@@ -7,7 +7,8 @@ from src.db.repositories.embeddings import EmbeddingRepository
 from src.db.repositories.index_versions import IndexVersionRepository
 from src.db.repositories.keyword_search import KeywordSearchRepository
 from src.db.repositories.vector_search import VectorSearchRepository
-from src.embeddings.local import LocalEmbeddingProvider
+from src.providers.embeddings.base import EmbeddingProvider
+from src.providers.embeddings.factory import EmbeddingProviderFactory
 from src.retrieval.pipeline import RetrievalPipeline
 from src.retrieval.rerank.simple import SimpleReranker
 from src.retrieval.search.hybrid import HybridSearchStrategy
@@ -29,6 +30,7 @@ class ApplicationContainer:
     ) -> None:
         self._session = session
         self._settings = settings
+        self._embedding_factory = EmbeddingProviderFactory()
 
     def document_repository(self) -> DocumentRepository:
         return DocumentRepository(self._session)
@@ -48,17 +50,9 @@ class ApplicationContainer:
     def keyword_search_repository(self) -> KeywordSearchRepository:
         return KeywordSearchRepository(self._session)
 
-    def embedding_provider(self) -> LocalEmbeddingProvider:
-        config = self._settings.embedding
-
-        if config.provider != "local":
-            raise ValueError(
-                "Unsupported embedding provider: "
-                f"{config.provider}"
-            )
-
-        return LocalEmbeddingProvider(
-            dimensions=config.dimensions,
+    def embedding_provider(self) -> EmbeddingProvider:
+        return self._embedding_factory.create(
+            self._settings.embedding,
         )
 
     def retrieval_service(self) -> RetrievalService:

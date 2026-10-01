@@ -1,4 +1,4 @@
-from src.embeddings.local import LocalEmbeddingProvider
+from src.providers.embeddings.local import LocalEmbeddingProvider
 
 
 def test_local_embedding_provider() -> None:
@@ -28,5 +28,5 @@ def test_embedding_is_deterministic() -> None:
 def test_embedding_model_metadata() -> None:
     provider = LocalEmbeddingProvider(dimensions=8)
 
-    assert provider.model_name == "local-deterministic"
+    assert provider.model_name == "local-dev"
     assert provider.dimensions == 8

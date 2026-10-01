@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from src.core.enums import DocumentChangeType
 from src.core.hashing import calculate_file_hash
 from src.db.models.index_version import IndexVersionDB
-from src.embeddings.base import EmbeddingProvider
 from src.ingestion.chunking import DocumentChunker
 from src.ingestion.cleaning import DocumentCleaner
 from src.ingestion.context import DocumentChange
@@ -20,6 +19,7 @@ from src.ingestion.stages.enrich import EnrichStage
 from src.ingestion.stages.load import LoadStage
 from src.ingestion.stages.parse import ParseStage
 from src.models.indexing import IndexVersion
+from src.providers.embeddings.base import EmbeddingProvider
 from src.services.index_validation_service import IndexValidationService
 from src.services.indexing_service import IndexingService
 from src.services.versioning_service import VersioningService

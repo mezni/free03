@@ -1,21 +1,26 @@
 import hashlib
 import math
 
-from src.embeddings.base import EmbeddingProvider
+from src.providers.embeddings.base import EmbeddingProvider
 
 
 class LocalEmbeddingProvider(EmbeddingProvider):
     """Small deterministic embedding provider for development and tests."""
 
-    def __init__(self, dimensions: int = 8) -> None:
+    def __init__(
+        self,
+        dimensions: int = 8,
+        model_name: str = "local-dev",
+    ) -> None:
         if dimensions <= 0:
             raise ValueError("dimensions must be greater than zero")
 
         self._dimensions = dimensions
+        self._model_name = model_name
 
     @property
     def model_name(self) -> str:
-        return "local-deterministic"
+        return self._model_name
 
     @property
     def dimensions(self) -> int:
@@ -23,6 +28,9 @@ class LocalEmbeddingProvider(EmbeddingProvider):
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [self._embed_text(text) for text in texts]
+
+    def embed_query(self, query: str) -> list[float]:
+        return self.embed([query])[0]
 
     def _embed_text(self, text: str) -> list[float]:
         values: list[float] = []

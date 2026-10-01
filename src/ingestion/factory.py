@@ -2,7 +2,6 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from src.embeddings.local import LocalEmbeddingProvider
 from src.ingestion.chunkers.text import CharacterTextChunker
 from src.ingestion.cleaners.text import TextDocumentCleaner
 from src.ingestion.loaders.filesystem import FilesystemLoader
@@ -13,6 +12,7 @@ from src.ingestion.parsers.text import TextParser
 from src.ingestion.pipeline import IngestionPipeline
 from src.ingestion.sources.filesystem import FilesystemSource
 from src.ingestion.stages.finalizer import FileFinalizer
+from src.providers.embeddings.local import LocalEmbeddingProvider
 
 
 def create_filesystem_ingestion_pipeline(

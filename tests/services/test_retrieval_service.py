@@ -6,7 +6,6 @@ import pytest
 
 from src.db.repositories.index_versions import IndexVersionRepository
 from src.db.repositories.vector_search import VectorSearchRepository
-from src.embeddings.local import LocalEmbeddingProvider
 from src.ingestion.context import (
     ChunkEmbedding,
     DocumentChunk,
@@ -15,6 +14,7 @@ from src.ingestion.context import (
     EmbeddedDocument,
 )
 from src.models.retrieval import RetrievalFilter, RetrievalQuery
+from src.providers.embeddings.local import LocalEmbeddingProvider
 from src.services.indexing_service import IndexingService
 from src.services.retrieval_service import RetrievalService
 from src.services.versioning_service import VersioningService

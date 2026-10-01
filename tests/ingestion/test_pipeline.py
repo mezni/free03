@@ -7,7 +7,6 @@ from src.core.enums import (
     DocumentProcessingStatus,
 )
 from src.core.hashing import calculate_file_hash
-from src.embeddings.local import LocalEmbeddingProvider
 from src.ingestion.chunkers.text import CharacterTextChunker
 from src.ingestion.cleaners.text import TextDocumentCleaner
 from src.ingestion.context import DocumentInput
@@ -19,6 +18,7 @@ from src.ingestion.parsers.text import TextParser
 from src.ingestion.pipeline import IngestionPipeline
 from src.ingestion.sources.filesystem import FilesystemSource
 from src.ingestion.stages.finalizer import FileFinalizer
+from src.providers.embeddings.local import LocalEmbeddingProvider
 
 
 class _FakeSession:
