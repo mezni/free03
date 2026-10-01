@@ -1,47 +1,130 @@
 # rag-system
 
-A RAG (Retrieval-Augmented Generation) system.
+Enterprise Knowledge RAG API
 
-## Requirements
+## Overview
+
+Enterprise knowledge retrieval and question-answering platform. Allows applications to ingest organizational documents and answer questions using those documents with source citations.
+
+## Features
+
+- Document ingestion (discover, parse, clean, chunk, embed, index)
+- Change detection and incremental processing
+- Vector, keyword, and hybrid retrieval
+- Reranking and context expansion
+- LLM answer generation with citations
+- Index versioning (BUILDING → ACTIVE → RETIRED)
+- Retrieval and RAG evaluation
+- Observability and cost tracking
+- API authentication and health checks
+
+## Architecture
+
+Layered object-oriented architecture with separation of concerns:
+
+- **API** – HTTP requests, authentication, validation, error mapping
+- **Application** – service composition, use-case orchestration
+- **Services** – ingestion, indexing, retrieval, generation, evaluation, observability, FinOps
+- **Domain Models** – Pydantic models defining application contracts
+- **Persistence** – SQLAlchemy models and repositories
+- **Providers** – external infrastructure (embedding, LLM) behind interfaces
+- **Infrastructure** – PostgreSQL with pgvector, OpenRouter, Docker
+
+## Product Workflows
+
+### Workflow A — Ingestion
+Documents → Discover → Change Detection → Load → Parse → Clean → Metadata → Chunk → Embed → Index → Document becomes ACTIVE
+
+### Workflow B — Question answering
+User Question → API → Query Analysis → Retrieval → Reranking → Context Selection → LLM → Citation Extraction → Grounding Validation → RAGResponse
+
+### Workflow C — Reindex
+Existing ACTIVE index → Create BUILDING index → Process documents → Generate embeddings → Validate → Activate new index → Retire previous index
+
+## Technology Stack
 
 - Python >= 3.12
-- [uv](https://docs.astral.sh/uv/)
-- PostgreSQL 17 (via Docker Compose)
+- FastAPI
+- PostgreSQL with pgvector
+- OpenRouter LLM provider
+- Alembic for migrations
+- uv for packaging
+- ruff for linting
+- mypy for type checking
+- pytest for testing
 
-## Setup
+## Quick Start
 
 ```bash
 cp .env.example .env
 docker compose up -d
 uv sync
 uv run alembic upgrade head
+uv run uvicorn src.api.app:create_app --factory --reload
 ```
+
+## Configuration
+
+Environment variables via `.env` file and YAML settings in `src/config/`. Key settings include database connection, embedding provider, LLM provider, chunking parameters, and retrieval configuration.
+
+## API
+
+- `GET /health` – reports liveness
+- `GET /health/ready` – verifies database readiness
+- `POST /rag/query` – accepts a question and returns an answer with citations
+
+## Ingestion
+
+Documents are discovered from the filesystem, processed through a pipeline (load, parse, clean, extract metadata, chunk, embed), and indexed into PostgreSQL/pgvector. Change detection ensures incremental updates. New documents become ACTIVE; modified documents are reprocessed; unchanged documents are skipped.
+
+## Retrieval
+
+Queries search only the ACTIVE index. Supports vector search, keyword search, and hybrid search with metadata filtering. Results can be reranked and context can be expanded. Answers contain citations when supporting sources exist.
+
+## Evaluation
+
+Retrieval metrics (recall@k, precision@k, MRR, nDCG@k) and RAG answer metrics can be calculated. Quality gates can fail CI when configured thresholds are not met. Evaluation datasets and results are persisted for regression tracking.
+
+## Observability
+
+Requests have correlation IDs. Retrieval and generation operations are measured. LLM usage is tracked. Audit events can be persisted for compliance.
+
+## Reliability
+
+Transient provider failures can be retried with backoff. Circuit breaker prevents repeated calls to an unavailable provider. Request timeouts are enforced. Errors contain a request ID; internal implementation details are not exposed.
+
+## FinOps
+
+Cost tracking for LLM token usage and embedding generation. Metrics are persisted and can be queried for optimization.
+
+## Production Deployment
+
+Docker-based deployment with docker-compose for development and docker-compose.prod.yml for production. Health checks and readiness endpoints are available. Migrations are run via `alembic upgrade head`.
 
 ## Development
 
 ```bash
-uv run pytest
-uv run ruff check .
-uv run mypy src
+uv run pytest        # Run tests
+uv run ruff check .  # Lint
+uv run mypy src      # Type check
 ```
 
-## Layout
+## Testing
 
-- `config/` – YAML application settings (`settings.yaml`, `ingestion.yaml`)
-- `src/config/` – layered settings (`.env` environment + YAML file)
-- `src/core/` – errors, ids, clock, enums (`DocumentChangeType`, `DocumentLifecycleStatus`, `IndexOperation`, `IndexVersionStatus`, `IngestionRunStatus`, `DocumentProcessingStatus`, `DocumentProcessingOperation`), hashing primitives
-- `src/db/` – SQLAlchemy engine, session, models (`documents`, `chunks`, `embeddings` with pgvector, `index_versions`, `ingestion_runs`, `document_processing`), Alembic migrations
-- `src/models/` – Pydantic application/domain models (`Document`/`DocumentCreate`, `IngestionRun`, `DocumentProcessingResult`, `IndexValidationResult`, `RetrievalQuery`/`RetrievalResult`)
-- `src/services/` – application services (`DocumentService`, `IndexingService`, `VersioningService`, `ReindexService`, `IndexValidationService`, `RetrievalService`, `IngestionRunService`, `DocumentProcessingService`); version-aware indexing: `VersioningService` manages the BUILDING/ACTIVE/RETIRED/FAILED lifecycle while `ReindexService` builds a new version, ingests every discovered document into it, validates it structurally (`IndexValidationService` — chunk/embedding counts, dimensions, duplicates, missing embeddings; activation is blocked on an invalid or empty index), then activates it and retires the previous ACTIVE version; `IndexingService.update()` never touches other versions (chunks are version-scoped via `delete_by_document_id(document_id, index_version_id)`, and `uq_chunks_document_version_index` enforces `unique(document_id, index_version_id, chunk_index)`); `RetrievalService` embeds a query (via the provider's `embed_query`), dimension-checks it against the ACTIVE version, and returns the closest chunks ranked by cosine distance
-- `src/embeddings/` – embedding providers (`LocalEmbeddingProvider`; base `EmbeddingProvider` also exposes a default `embed_query()`)
-- Retrieval (no dedicated package yet): `src/db/repositories/vector_search.py` (`VectorSearchRepository`, pgvector cosine-distance search over one index version with SQL-side `source`/`document_id` filtering via the `documents` join), `src/models/retrieval.py` (`RetrievalQuery`, `RetrievalResult`), `src/services/retrieval_service.py` (`RetrievalService.search()` against the ACTIVE index version — raises on missing version or embedding-dimension mismatch)
-- `src/ingestion/` – document ingestion pipeline
-  - `sources/` – document discovery (`FilesystemSource`)
-  - `stages/` – pipeline stages (discover, load, parse, clean, enrich, chunk, embed, finalize)
-  - `loaders/` – raw content loading (`FilesystemLoader`)
-  - `parsers/` – format-specific parsing (Markdown, Text) via `ParserRegistry`
-  - `cleaners/` – text normalization (`TextDocumentCleaner`)
-  - `chunkers/` – chunk splitting (`CharacterTextChunker`)
-  - `pipeline.py` / `factory.py` – pipeline orchestration and wiring; `run()` returns an `IngestionResult` with per-document failure isolation via `_process_document`, mapping change type to an operation (NEW→ADD, MODIFIED→UPDATE, UNCHANGED→SKIP) and recording success/skip/failure into `ingestion_runs` and `document_processing` (each record commits immediately so it survives later rollbacks); sources are finalized by `FileFinalizer` (archive to `data/processed` or delete) only after a SUCCESS, never on FAILED/SKIPPED
-- `tests/unit/` – unit tests
-- `tests/integration/` – integration tests (require the running database)
+Unit tests and integration tests are available. Evaluation can be run via `src.cli.evaluate` and `src.cli.evaluate_rag`. All tests must pass before deployment.
+
+## Known Limitations
+
+- Initial product does not support authentication providers (OAuth/OIDC)
+- No multi-tenancy
+- No web crawling
+- No autonomous agents
+- Single-primary database architecture
+
+## Roadmap
+
+- Phase 1: Core ingestion, retrieval, and generation
+- Phase 2: Advanced retrieval (reranking, context expansion)
+- Phase 3: Evaluation and quality gates
+- Phase 4: Cost tracking and FinOps
+- Phase 5: Production hardening and deployment automation
