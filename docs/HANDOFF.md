@@ -33,7 +33,8 @@ Document ingestion
 
 Implementation preferences:
 
-- Python 3.13
+- Python 3.12 (`pyproject.toml` says `requires-python = ">=3.12"`; the venv is
+  3.12.13 — earlier notes said 3.13, which is wrong)
 - `uv` for dependency/project management
 - Pydantic/Pydantic Settings for application models and configuration
 - SQLAlchemy for persistence
@@ -121,10 +122,32 @@ Cross-cutting:
 - RAGOps
 - Observability
 - Evaluation
-- FinOps
+- FinOps (partial)
 - Versioning
 - Security
-- CI/CD
+- CI/CD (not started)
+
+Request path today:
+
+```
+POST /rag/query
+   ↓
+RAGService.answer()
+   ↓
+RetrievalPipeline.execute()        metrics, timing, rerank
+   ↓
+RetrievalService.search()          resolve ACTIVE version, embed, dimension check
+   ↓
+SearchStrategy                     vector | keyword | hybrid(RRF)
+   ↓
+GenerationService.generate()       prompt + [SOURCE-n] markers
+   ↓
+LLMProvider (OpenRouter)
+   ↓
+CitationExtractor + GroundingService
+   ↓
+RAGResponse (answer + citations)
+```
 
 ## 3. Project foundation — FINISHED
 
@@ -132,19 +155,14 @@ We created the project with `uv`.
 
 Current technology stack:
 
-- Python 3.13
+- Python 3.12
 - uv
-- Pydantic
-- pydantic-settings
+- Pydantic / pydantic-settings
 - PyYAML
 - python-dotenv
-- pytest
-- ruff
-- mypy
-- SQLAlchemy
-- psycopg
-- Alembic
-- pgvector
+- FastAPI + uvicorn + httpx
+- pytest / ruff / mypy (+ `types-pyyaml`, `pytest-cov`)
+- SQLAlchemy / psycopg / Alembic / pgvector
 
 Basic project configuration is in place.
 
@@ -156,16 +174,20 @@ DATABASE_URL=postgresql+psycopg://rag:rag_dev_password@localhost:5432/rag_system
 OPENROUTER_API_KEY=
 ```
 
+`.gitignore` also excludes `.env.*` while keeping `.env.example` tracked.
+
 Configuration is separated:
 
 ```
 .env
     ↓
 secrets/environment-specific values
+(APP_ENV, DATABASE_URL, OPENROUTER_API_KEY)
 
 config/*.yaml
     ↓
 application/model/pipeline configuration
+(settings, embedding, llm, ingestion, reliability)
 ```
 
 ## 4. Docker + PostgreSQL — FINISHED
@@ -806,7 +828,7 @@ This is now **fixed**:
 
 - `IndexingService.update()` resolves the active index version and deletes only that version's chunks (plus their embeddings) for the document, then re-persists into the same version.
 - `ChunkRepository.delete_by_document_id(document_id, index_version_id)` scopes the deletion to one version.
-- `ChunkRepository.get_by_document_id_and_version(document_id, index_version_id)` gives version-scoped chunk lookup (used by retrieval filtering by active version later).
+- `ChunkRepository.get_by_document_id_and_version(document_id, index_version_id)` gives version-scoped chunk lookup. Note: retrieval's *search* path does **not** currently use version scoping — that is the open defect in §42.
 - A uniqueness constraint `uq_chunks_document_version_index` on `(document_id, index_version_id, chunk_index)` prevents duplicate chunk positions inside one version.
 
 Diagram of the invariant:
@@ -1027,129 +1049,148 @@ tests/
     └── ...
 ```
 
-Existing tests cover things such as:
+76 test files, 360 collected tests. Current status: **357 passed, 3 failed**
+(the 3 failures are one defect — see §42).
 
-- document repository
-- document mapping
-- filesystem discovery
-- hashing/change detection
-- loading
-- parsing
-- cleaning
-- metadata
-- chunking
-- embedding
-- database persistence
-- indexing
-- index versions
-- reindexing
+Covered layers:
+
+- document repository / mapping
+- filesystem discovery, hashing/change detection
+- loading, parsing, cleaning, metadata, chunking, embedding
+- database persistence, indexing, index versions, reindexing
 - index validation (`tests/services/test_index_validation_service.py`)
-- retrieval (`tests/services/test_retrieval_service.py`, `tests/integration/test_vector_search_repository.py`)
-- ingestion runs
-- document processing
+- retrieval: vector, keyword, hybrid/RRF, reranking, filters
+  (`tests/services/test_retrieval_service.py`,
+  `tests/integration/test_vector_search_repository.py`)
+- retrieval evaluation: Recall@K/Precision@K/RR/MRR/NDCG
+  (`tests/services/test_retrieval_metrics_service.py`)
+- ingestion runs, per-document processing, pipeline isolation, finalization
+- generation: prompt building, citations, grounding, provider contract
+- RAG evaluation: dataset loader, citation/grounding/answer evaluators,
+  service + runner (`tests/evaluation/`)
+- observability: request context, JSON logging, `Timer`, metrics, registry
+  (`tests/observability/`)
+- API: health, readiness, `/rag/query`, `/metrics`, error handlers
+  (`tests/api/`) — dependency-overridden, never touches the network
+- reliability: retry policy, OpenRouter classification/validation,
+  exception hierarchy (`tests/providers/`, `tests/security/`)
 
 ## 33. Current project architecture
 
 The important implemented portion currently looks like:
 
+149 Python modules under `src/`. Implemented tree:
+
 ```
 src/
 ├── core/
-│   ├── enums.py
-│   ├── errors.py
-│   ├── hashing.py
-│   ├── ids.py
-│   └── clock.py
+│   ├── enums.py, errors.py, hashing.py, ids.py, clock.py, exceptions.py
 │
 ├── models/
-│   ├── document.py
-│   ├── chunk.py
-│   ├── embedding.py
-│   ├── indexing.py
-│   ├── ingestion.py
-│   ├── index_validation.py
-│   └── retrieval.py
+│   ├── document.py, chunk.py, embedding.py, indexing.py, ingestion.py
+│   ├── index_validation.py, retrieval.py, rag.py, api.py
 │
 ├── config/
-│   ├── loader.py
-│   └── settings.py
+│   ├── loader.py, settings.py
 │
 ├── db/
-│   ├── base.py
-│   ├── engine.py
-│   ├── session.py
-│   ├── models/
-│   │   ├── document.py
-│   │   ├── chunk.py
-│   │   ├── embedding.py
-│   │   ├── index_version.py
-│   │   ├── run.py
-│   │   └── document_processing.py
-│   │
-│   └── repositories/
-│       ├── documents.py
-│       ├── chunks.py
-│       ├── embeddings.py
-│       ├── index_versions.py
-│       ├── vector_search.py
-│       ├── runs.py
-│       └── document_processing.py
+│   ├── base.py, engine.py, session.py
+│   ├── models/          document, chunk, embedding, index_version,
+│   │                    run, document_processing
+│   └── repositories/    documents, chunks, embeddings, index_versions,
+│                        vector_search, keyword_search, runs,
+│                        document_processing
 │
 ├── services/
-│   ├── document_service.py
-│   ├── indexing_service.py
-│   ├── versioning_service.py
-│   ├── reindex_service.py
-│   ├── index_validation_service.py
-│   ├── retrieval_service.py
-│   ├── ingestion_run_service.py
-│   └── document_processing_service.py
+│   ├── document_service.py, indexing_service.py, versioning_service.py
+│   ├── reindex_service.py, index_validation_service.py
+│   ├── retrieval_service.py, ingestion_run_service.py
+│   ├── document_processing_service.py
+│   ├── generation_service.py, rag_service.py
+│   ├── rag_evaluation_service.py, rag_evaluation_runner.py
+│   ├── retrieval_metrics_service.py, retrieval_evaluation_runner.py
+│   └── ingestion_persistence_service.py   (dead code, see §37)
 │
 ├── ingestion/
-│   ├── context.py
-│   ├── pipeline.py
-│   ├── change_detection.py
-│   ├── metadata.py
-│   ├── metadata_extractor.py
-│   ├── chunking.py
-│   ├── sources/
-│   │   ├── base.py
-│   │   └── filesystem.py
-│   ├── loaders/
-│   │   ├── base.py
-│   │   └── filesystem.py
-│   ├── parsers/
-│   │   ├── base.py
-│   │   ├── markdown.py
-│   │   ├── text.py
-│   │   └── registry.py
-│   ├── chunkers/
-│   │   └── text.py
-│   └── stages/
-│       ├── base.py
-│       ├── discover.py
-│       ├── load.py
-│       ├── parse.py
-│       ├── clean.py
-│       ├── enrich.py
-│       ├── chunk.py
-│       ├── embed.py
-│       └── finalizer.py
+│   ├── context.py, pipeline.py, change_detection.py
+│   ├── metadata.py, metadata_extractor.py, chunking.py, cleaners/
+│   ├── sources/, loaders/, parsers/, chunkers/, stages/
+│   │   (discover, load, parse, clean, enrich, chunk, embed, finalizer)
 │
-└── embeddings/
-    ├── base.py
-    └── local.py
+├── embeddings/            deprecated re-export shim
+│
+├── providers/
+│   ├── embeddings/        base.py, local.py, factory.py
+│   ├── llm/               base.py, openrouter.py, factory.py
+│   └── retry.py
+│
+├── retrieval/
+│   ├── pipeline.py        RetrievalPipeline (rerank stage + metrics)
+│   ├── search/            base.py (+ reciprocal_rank_fusion),
+│   │                      vector.py, keyword.py, hybrid.py
+│   └── rerank/            base.py, simple.py
+│
+├── generation/
+│   ├── context_builder.py, prompt_builder.py,
+│   ├── citation_extractor.py, grounding.py
+│
+├── evaluation/
+│   ├── rag_dataset_loader.py
+│   ├── metrics/           recall_at_k, precision_at_k, reciprocal_rank,
+│   │                      mrr, ndcg, aggregate
+│   ├── citation/evaluator.py
+│   ├── grounding/evaluator.py
+│   └── answer/semantic.py  (SimpleAnswerEvaluator + AnswerEvaluator boundary)
+│
+├── observability/
+│   ├── context.py          ContextVar request_id
+│   ├── logging.py          JSON formatter + configure_logging
+│   ├── metrics.py          thread-safe MetricsCollector
+│   ├── registry.py         process-wide singleton
+│   └── timer.py            monotonic Timer
+│
+├── application/
+│   └── container.py        ApplicationContainer — the composition root
+│
+├── api/
+│   ├── app.py              create_app(), middleware, routers
+│   ├── dependencies.py     get_db_session, get_rag_service
+│   ├── errors.py           exception handlers
+│   └── routes/             health.py, rag.py, metrics.py
+│
+└── cli/
+    └── evaluate_rag.py     uv run python -m src.cli.evaluate_rag
 ```
 
-Config also includes:
+Not yet present (planned): `src/cache/` (performance phase).
+
+Config:
 
 ```
 config/
-├── settings.yaml
-└── ingestion.yaml
+├── settings.yaml       application.name, application.environment, logging.level
+├── embedding.yaml      provider, model, dimensions
+├── llm.yaml            provider, model, temperature, max_tokens
+├── ingestion.yaml      filesystem.input_dir / processed_dir / archive_flag
+├── reliability.yaml    llm (timeout/retries/delay), retrieval.timeout_seconds,
+│                       api.max_query_length / max_top_k
+└── profiles/           empty
 ```
 
-`ingestion.yaml` keeps operational/archive behavior (`filesystem.input_dir`, `processed_dir`, `archive_flag`) out of Python code; loading it through the config system is a later step.
+Configuration resolution:
+
+```
+config/*.yaml ──► Pydantic models in src/config/settings.py
+                        │
+.env ───────────────────► EnvironmentSettings (pydantic-settings)
+                        │
+                        ▼
+                    Settings
+```
+
+`ingestion.yaml` keeps operational/archive behavior out of Python code, but is
+still **not** loaded through the config system — the factory hardcodes
+`FileFinalizer(processed_dir=Path("data/processed"), archive_flag=True)`.
 
 ## 34. Pipeline per-document isolation — FINISHED
 
@@ -1363,371 +1404,259 @@ activate  ──►  retire old ACTIVE version
 
 Add index validation before activation (detail in §40).
 
-### Phase C — Retrieval
+### Phase C — Retrieval — MOSTLY FINISHED (one known defect)
 
-Implement:
-
-```
-query embedding
-     ↓
-vector search
-     ↓
-metadata filtering
-     ↓
-top-k
-     ↓
-reranking
-     ↓
-context builder
-```
-
-Components:
+Implemented:
 
 ```
-src/retrieval/
-├── pipeline.py
-├── query_transform.py
-├── rerank.py
-├── context.py
-├── generate.py
-└── search/
-    ├── base.py
-    ├── vector.py
-    ├── keyword.py
-    └── hybrid.py
+query
+  ↓
+RetrievalService.search()      resolves ACTIVE index version, embeds query,
+  ↓                           dimension-checks against that version
+RetrievalPipeline.execute()    metrics + timing
+  ↓
+SearchStrategy.search()
+  ├── VectorSearchStrategy     pgvector cosine_distance (src/db/repositories/vector_search.py)
+  ├── KeywordSearchStrategy    PostgreSQL FTS: websearch_to_tsquery + ts_rank_cd
+  │                           (search_vector TSVECTOR + GIN + trigger)
+  └── HybridSearchStrategy     RRF over vector + keyword, candidate_k pool
+  ↓
+RetrievalFilter                source / document_id / document_type, SQL-side
+  ↓
+SimpleReranker                 rerank to top_k
 ```
 
-#### Step 40 — FINISHED
+Models: `RetrievalQuery` (`query`, `top_k` 1–100, optional `candidate_k`
+1–500, optional `filters`), `RetrievalFilter`, `RetrievalResult`
+(frozen, `extra="forbid"`).
 
-Initial vector retrieval + metadata filtering (detail in §41). The search
-half of Phase C is in place; reranking and context building are next.
+Retrieval metrics implemented in `src/services/retrieval_metrics_service.py`:
+Recall@K, Precision@K, RR, MRR, NDCG@K, using stable
+`(document_id, chunk_index)` references resolved to chunk IDs against the
+ACTIVE version (`src/evaluation/metrics/`).
 
-Metrics:
+**Not finished:** active-version SQL scoping (§42), reranking beyond
+`SimpleReranker`, and no semantic/learned reranker.
 
-- Recall@K
-- Precision@K
-- MRR
-- NDCG
-- latency
-- chunk count
-- score distribution
+### Phase D — LLM generation — FINISHED (changelog 0.2.9, 0.2.8)
 
-### Phase D — LLM generation
-
-Implement:
-
-- LLM client
-- LLM factory
-- usage tracking
-- prompt management
-
-Provider configuration should eventually live in YAML rather than `.env`.
-
-Likely architecture:
+Implemented:
 
 ```
-Retrieval
-   ↓
-Context
-   ↓
-Prompt
-   ↓
-LLM
-   ↓
-Answer
-   ↓
-Citations
+src/providers/llm/base.py       LLMProvider contract (transport only)
+src/providers/llm/openrouter.py  OpenRouterProvider over httpx
+src/providers/llm/factory.py    LLMProviderFactory (key from .env)
+src/generation/prompt_builder.py  system prompt + [SOURCE-n] markers,
+                                  prompt-injection boundary
+src/generation/context_builder.py  provenance formatting (INJECTED BUT UNUSED, §37)
+src/generation/citation_extractor.py
+src/generation/grounding.py     GroundingService.validate()
+src/services/generation_service.py  usage/token tracking, metrics, errors
+src/services/rag_service.py     retrieval → generation, returns RAGResponse
 ```
 
-Generation should have an explicit fallback:
+`config/llm.yaml`: provider, model (`openai/gpt-oss-20b:free`),
+temperature, max_tokens. The key stays in `.env` (`OPENROUTER_API_KEY`).
+
+### Phase E — Guardrails — PARTIAL
+
+Implemented: grounding validation (`GroundingService.validate()`) and a
+prompt-injection boundary in the system prompt.
+
+**Not implemented:** input rules, output rules, PII detection. Also
+`GroundingService.validate()`'s result is **discarded** in
+`GenerationService.generate()` — grounding does not yet gate the answer (§37).
+
+### Phase F — Observability — FINISHED (changelog 0.2.12)
+
+Implemented in `src/observability/`:
+
+- `context.py` — `ContextVar` request ID, `X-Request-ID` response header
+- `logging.py` — `JsonFormatter` allow-listed fields, `configure_logging()`
+- `timer.py` — monotonic `Timer` context manager
+- `metrics.py` — thread-safe `MetricsCollector` (counters, durations)
+- `registry.py` — process-wide singleton (`get_metrics()`), needed because
+  `ApplicationContainer` is built per request
+- `GET /metrics`
+
+Metrics emitted: `rag.requests`, `retrieval.requests`,
+`retrieval.empty_results`, `generation.requests`, `generation.errors`,
+plus latency and token-usage fields in structured logs.
+
+`user_id`, `trace_id`, `retrieval_id` correlation are **not** implemented.
+
+### Phase G — Evaluation — FINISHED (changelog 0.2.3–0.2.6, 0.2.10)
+
+Two independent evaluators exist:
+
+1. **Retrieval metrics** (`src/evaluation/metrics/`, 0.2.6) — Recall@K,
+   Precision@K, RR, MRR, NDCG@K against stable chunk references.
+2. **RAG evaluation** (0.2.10) — dataset → retrieval → generation → score:
 
 ```
-"I don't know"
+data/evaluation/retrieval_v1.yaml   retrieval dataset (18 cases)
+data/evaluation/rag_v1.yaml         3 RAG cases (query, expected answer, expected citations)
+
+RAGEvaluationService → CitationEvaluator + GroundingEvaluator + SimpleAnswerEvaluator
+RAGEvaluationRunner  → uv run python -m src.cli.evaluate_rag
 ```
 
-when sufficient evidence is not available.
+`expected_citations` are positional (`SOURCE-1`), so citation scores depend on
+retrieval ranking. `SimpleAnswerEvaluator` is unfiltered reference-token recall,
+not semantic correctness. Both shipped datasets are example data, not a
+human-reviewed benchmark.
 
-### Phase E — Guardrails
+### Phase H — FinOps — PARTIAL
 
-Implement:
+Implemented: token usage and model name are tracked in generation and logged.
+**Not implemented:** embedding token counts, cost estimation, cost-per-query /
+cost-per-document business metrics.
 
-- input rules
-- output rules
-- PII detection
-- grounding validation
+### Phase I — API — STARTED (changelog 0.2.11–0.2.13)
 
-Architecture:
-
-```
-User Query
-    ↓
-Input Guardrails
-    ↓
-Retrieval
-    ↓
-Generation
-    ↓
-Output Guardrails
-    ↓
-Answer
-```
-
-### Phase F — Observability
-
-We want correlation IDs:
-
-- `request_id`
-- `user_id`
-- `document_id`
-- `run_id`
-- `retrieval_id`
-- `trace_id`
-
-Observability should cover:
-
-- logs
-- traces
-- metrics
-- query traces
-- retrieval traces
-- LLM usage
-- errors
-- latency
-
-### Phase G — Evaluation
-
-Evaluation pipeline:
+Implemented in `src/api/`:
 
 ```
-Dataset
-   ↓
-Retrieval
-   ↓
-Generation
-   ↓
-Evaluation
+GET  /health          liveness
+GET  /health/ready    database-only readiness
+POST /rag/query       RAGQueryRequest → RAGQueryResponse
+GET  /metrics
 ```
 
-Metrics planned:
+- `create_app()` in `app.py`, module-level `app = create_app()`
+- `get_db_session` (request-scoped) and `get_rag_service` dependencies
+- `X-Request-ID` middleware, sanitized exception handlers with `request_id`
+- FastAPI + uvicorn in `pyproject.toml`
+- Tests use `app.dependency_overrides` — never the network or a real DB
 
-Retrieval:
+**Not implemented:** authn/authz, rate limiting, request-size limiting,
+CORS configuration, OpenAPI metadata (title/description/version).
+Run manually with `uv run uvicorn src.api.app:app`.
 
-- Recall@K
-- Precision@K
-- MRR
-- NDCG
+### Phase J — CLI — PARTIAL
 
-Generation:
+Only `src/cli/evaluate_rag.py` exists (not a packaged entry point).
+Missing: `ingest`, `retrieve`, `index`, `db` subcommands.
 
-- Faithfulness
-- Answer relevance
-- Context relevance
-- Citation correctness
+### Phase K — Streamlit — NOT STARTED
 
-Operational:
+### Phase L — Testing — PARTIAL
 
-- latency
-- failures
-- tokens
-- cost
+`tests/` has 76 files / 360 tests across `unit/`, `integration/`, `api/`,
+`services/`, `evaluation/`, `generation/`, `ingestion/`, `observability/`,
+`providers/`, `retrieval/`, `security/`, `models/`, `application/`.
 
-### Phase H — FinOps
+Missing: `golden/` and `fixtures/` directories, E2E tests, regression suites.
 
-Track:
+### Phase M — CI/CD — NOT STARTED
 
-- LLM input tokens
-- LLM output tokens
-- embedding tokens
-- model names
-- request counts
-- latency
-- estimated cost
+No `.github/`. Target pipeline: lint → typecheck → unit → integration →
+security → build → deploy.
 
-Business metrics:
+### Phase N — Production hardening — STARTED (changelog 0.2.13)
 
-- cost/document
-- cost/ingestion
-- cost/query
-- cost/1000 queries
-- cost/successful answer
+Implemented: reliability config + bounded models, exception hierarchy,
+selective `RetryPolicy`, hardened OpenRouter transport, sanitized API errors,
+readiness probe, prompt-injection boundary, `.env.example`, `.gitignore`
+secrets rules.
 
-### Phase I — API
-
-Eventually build:
-
-- FastAPI
-
-Routers:
-
-- health
-- search
-- documents
-- ingestion
-- indexes
-- evaluations
-- runs
-
-### Phase J — CLI
-
-Build:
-
-- `rag-system ingest`
-- `rag-system retrieve`
-- `rag-system evaluate`
-- `rag-system index`
-- `rag-system db`
-
-### Phase K — Streamlit
-
-UI:
-
-- Home
-- Search
-- Documents
-- Runs
-- Chunk Explorer
-- Index Versions
-- Evaluations
-- Observability
-
-### Phase L — Testing
-
-Expand:
-
-- unit tests
-- integration tests
-- E2E tests
-- golden datasets
-- regression tests
-
-Eventually:
-
-```
-tests/
-├── unit/
-├── integration/
-├── golden/
-└── fixtures/
-```
-
-### Phase M — CI/CD
-
-GitHub Actions:
-
-- `ci.yml`
-- `cd.yml`
-- `security.yml`
-
-Pipeline:
-
-```
-lint
-↓
-type check
-↓
-unit tests
-↓
-integration tests
-↓
-security checks
-↓
-build
-↓
-deploy
-```
-
-### Phase N — Production hardening
-
-Eventually cover:
-
-- security
-- secrets
-- authentication
-- authorization
-- rate limiting
-- database backups
-- failure recovery
-- index recovery
-- monitoring
-- alerting
-- runbooks
-- troubleshooting
+Not implemented: authentication, authorization, rate limiting, database
+backups, alerting, runbooks, monitoring/alerting integration.
 
 ## 37. Important known technical debt
 
 Keep these in mind when continuing.
 
-1. **Hard-coded embedding dimension**
+1. **Retrieval is not scoped to the ACTIVE index version — OPEN DEFECT**
 
-Currently `8` because of the local development embedding provider.
+   `RetrievalService.search()` resolves the ACTIVE version but then **discards
+   its id** and delegates to `search_strategy.search(request)`. Neither
+   `VectorSearchRepository` nor `KeywordSearchRepository` filters on
+   `chunks.index_version_id`, so both return chunks from **every** index
+   version. `RetrievalResult.index_version_id` is populated only for
+   reporting. This is why 3 tests fail (§42).
 
-Eventually:
+   Also note the old repository call signature is gone:
+   `search(query_vector, top_k, filters=...)` — there is no `index_version_id`,
+   `source`, or `document_id` kwarg anymore (those last two moved into
+   `RetrievalFilter`).
 
-```
-config/embedding.yaml
-```
+2. **Hard-coded embedding dimension**
 
-or equivalent configuration.
+   `EmbeddingDB.vector` is `Vector(8)` and `config/embedding.yaml` declares
+   `dimensions: 8`, matching `LocalEmbeddingProvider`. Both config and column
+   are 8-dimensional today, but the column still needs a migration before a
+   real provider (OpenAI/Voyage) is used. Also: local config says
+   `model: local-dev` while some older fixtures still assume
+   `local-deterministic`.
 
-2. **Character chunking is temporary**
+3. **Character chunking is temporary**
 
-Current `500` characters, `50` overlap.
+   `CharacterTextChunker`, `500` chars, `50` overlap. Needs evaluation
+   (`data/evaluation/retrieval_v1.yaml` exists for this) before production.
 
-This needs evaluation before production.
+4. **`ContextBuilder` is injected but never called**
 
-3. **PDF is not implemented**
+   `GenerationService` takes a `ContextBuilder` and does not use it, so the
+   provenance it formats (source URI, chunk index, positions) never reaches
+   the LLM prompt. The prompt gets raw chunk text plus `[SOURCE-n]` markers
+   built by `PromptBuilder` instead.
 
-Although the architecture anticipates PDF:
+5. **Grounding validation result is discarded**
 
-- PDF parser
-- PDF loader
+   `GroundingService.validate()` exists and is unit-tested, but
+   `GenerationService.generate()` does not use its result. Grounding does not
+   gate answers, and `GroundingEvaluator` (evaluation) is a separate concern
+   from `GroundingService` (production). No "I don't know" fallback path is
+   wired into generation yet.
 
-they haven't been implemented yet.
+6. **`reliability.retrieval.timeout_seconds` and `reliability.api.*` are unused**
 
-4. ~~**Index version update issue**~~ — RESOLVED
+   Both are parsed and bounded, but nothing reads them: API limits are
+   hardcoded in `RAGQueryRequest` (5000 / 20) and retrieval has no timeout.
 
-`IndexingService.update()` is now version-aware (see §26), so multiple simultaneously stored index versions are safe.
+7. **Non-domain exceptions still leak**
 
-5. ~~**Reindex failure tracking**~~ — RESOLVED
+   API error handlers cover the new exception hierarchy, but
+   `RetrievalService` and factory/config code still raise raw `ValueError`
+   (e.g. `ValueError("No active index version exists")`). `ConfigurationError`
+   and `RAGAPIError` handlers exist but those paths are never reached.
 
-A failed reindex is now durably recorded: `ReindexService` rolls back,
-re-adds the version to the session, and marks it FAILED (committed), so the
-FAILED row survives even though the transaction rolled back. No
-`reindex_runs` table is needed yet.
+8. **`get_next_version_number()` races**
 
-6. **`get_next_version_number()`**
+   `MAX(version_number) + 1`. Acceptable for dev; concurrent reindexes would
+   collide in production.
 
-Currently uses `MAX(version_number) + 1`.
+9. **`src/services/ingestion_persistence_service.py` is dead code**
 
-This is acceptable for learning/dev, but concurrent production reindex operations could race.
+   It produces a mypy error (`status` str vs enum, and a missing positional
+   `index_version_id` on `ChunkRepository.create`). Superseded by
+   `IndexingService`; delete it.
 
-7. **Database constraints**
+10. **`config/ingestion.yaml` is not loaded**
 
-`unique(document_id, index_version_id, chunk_index)` — **DONE** (`uq_chunks_document_version_index`).
+    `FileFinalizer` is constructed with hardcoded defaults in the container
+    rather than from YAML.
 
-Still potential future work:
+11. **`get_next_version_number()` / lifecycle constraints**
 
-- stronger lifecycle/status constraints
+    See item 8. `uq_chunks_document_version_index` is in place; stronger
+    lifecycle/status CHECK constraints are still future work.
 
-8. **Document metadata is not persisted for retrieval**
+12. **`embeddings.vector` hard-coded `Vector(8)`**
 
-`documents` only has `source`, `source_uri`, `title`, `content_hash`, status
-columns. `DocumentMetadata.document_type` exists only transiently during
-ingestion, so `RetrievalQuery.document_type` is deliberately not implemented.
-Deciding where persistent document metadata lives is the designed next step
-(see §41).
+    Same as item 2.
 
-9. **Duplicate-chunk validation is application-level only**
+13. **PDF is not implemented**
 
-The DB unique constraint guarantees no real duplicates can exist, so the
-`IndexValidationService._count_duplicate_chunks` check is unit-tested
-directly against fabricated chunk objects rather than through persisted rows.
+    The parser registry and source pattern list anticipate PDF, but there is
+    no PDF parser or loader. The pipeline factory intentionally uses only
+    `("*.md", "*.txt")`.
 
-10. **`embeddings.vector` is hard-coded `Vector(8)`**
+14. **CI, auth, rate limiting, backups**
 
-The column type is fixed at 8 dimensions in `EmbeddingDB`, matching the
-`LocalEmbeddingProvider`. Real providers with different dimensions require
-making this configuration/column driven (migration) before production.
+    No `.github/` workflows, no authentication/authorization, no rate
+    limiting, no backup or alerting story.
 
 ## 38. Current RAGOps foundation
 
@@ -1788,49 +1717,56 @@ source finalization (archive/delete on SUCCESS)
 
 ## 39. Current stopping point
 
-We are at the start of Phase C (Retrieval): the **write** side
-(ingestion → indexing → validation → activation) is complete, and the first
-**read**-side pieces (vector search + metadata filtering) now exist.
+The write side is complete and the read side is built end to end: the API
+accepts a query, retrieval searches the index, generation calls the LLM with
+cited sources, and evaluation can score the result. The project is at
+changelog **0.2.13** (Reliability).
 
-**Completed**
+**Completed, in changelog order**
 
-- Step 31 — transaction-safe `document_processing`
-- Step 33 — explicit document operation records (`DocumentProcessingOperation`, run correlation)
-- Step 34 — pipeline per-document isolation (§34)
-- Step 35 — source finalization / archive-delete (§35)
-- Step 36 — version-aware `IndexingService.update()` + chunk uniqueness constraint (§26)
-- Step 37 — version-aware ADD/UPDATE/DELETE/REINDEX (changelog 0.1.37)
-- Step 38 — end-to-end coordinated reindex (§25, changelog 0.1.38)
-- Step 39 — index validation before activation (§40, changelog 0.1.39)
-- Step 40 — initial retrieval: vector search + `source`/`document_id` filters (§41, changelog 0.2.1 / 0.2.2)
+- 0.1.24–0.1.39 — index version lifecycle, reindex, validation, version-aware
+  writes, ingestion runs, per-document processing, pipeline isolation,
+  finalization (§25, §26, §34, §35, §40)
+- 0.2.1–0.2.2 — vector retrieval + `RetrievalFilter` (source, document_id,
+  document_type) with SQL-side filtering (§41)
+- 0.2.3 — keyword retrieval (PostgreSQL FTS: `search_vector` TSVECTOR + GIN +
+  trigger, `websearch_to_tsquery` + `ts_rank_cd`)
+- 0.2.4 — hybrid retrieval (`reciprocal_rank_fusion`, `HybridSearchStrategy`)
+- 0.2.5 — reranking (`Reranker` contract, `SimpleReranker`, `candidate_k`)
+- 0.2.6 — retrieval evaluation metrics (Recall@K, Precision@K, RR, MRR, NDCG@K
+  over stable `(document_id, chunk_index)` references)
+- 0.2.7 — `ApplicationContainer` composition root, `config/embedding.yaml`,
+  pytest `importlib` import mode
+- 0.2.8 — provider packages under `src/providers/embeddings/`
+- 0.2.9 — RAG generation: LLM contract, OpenRouter provider, prompt building,
+  citations, grounding, `RAGService`, `config/llm.yaml`
+- 0.2.10 — RAG evaluation: dataset loader, citation/grounding/answer
+  evaluators, service + runner, `evaluate_rag` CLI
+- 0.2.11 — FastAPI app: `/health`, `POST /rag/query`, request-scoped session
+- 0.2.12 — observability: request context, JSON logs, `Timer`, metrics
+  registry, `/metrics`
+- 0.2.13 — reliability: config, exception hierarchy, `RetryPolicy`, hardened
+  OpenRouter, sanitized errors, `/health/ready`
 
-**Remaining / Next**
+**Not started**
 
-- Step 32 — improve document lifecycle/error handling (still outstanding from Phase A; not touched this session)
-- Step 41 (suggested) — persist document metadata so `document_type` (and richer filters) can be implemented — architectural checkpoint, see §41
-- Phase C continues — reranking, context building
-- then generation, guardrails, evaluation, observability, FinOps, API, CLI, Streamlit, CI/CD, hardening
+- **Performance phase (the immediate next task).** No `src/cache/`,
+  no `config/performance.yaml`, no `tests/performance/`, no cache metrics, no
+  latency benchmark, no reviewed DB indexes/migration.
+- Step 32 — document lifecycle/error handling (outstanding since Phase A).
+- FinOps cost accounting, Streamlit, CI/CD, auth, rate limiting.
 
-The immediate next task:
+**Open defect to fix first** — see §42. Retrieval is not scoped to the ACTIVE
+index version; this is the cause of all 3 test failures.
 
-```
-STEP 41 (suggested)
-Persist document metadata for retrieval filtering
-(e.g. document_type on documents/chunks), then enable
-RetrievalQuery.document_type
-```
-
-The next session should not restart the project.
-
-Start from:
+The next session should not restart the project. Start from:
 
 ```
 rag-system
-Steps 31, 33, 34, 35, 36, 37, 38, 39, 40 completed
-Next: document metadata persistence → retrieval filter expansion
+changelog 0.2.13; 357 passed / 3 failed (one defect: active-version scoping)
+Next: fix ACTIVE index-version scoping in retrieval
+     → then the performance/caching phase (0.2.14)
 ```
-
-and continue incrementally.
 
 ## 40. Index Validation Service — FINISHED
 
@@ -1865,58 +1801,104 @@ marked FAILED through the existing rollback path, never activated.
 - **Testing:** `tests/services/test_index_validation_service.py` (valid,
   missing embedding, wrong dimensions, empty index, duplicate positions)
 
-## 41. Retrieval — FINISHED (initial vector search + filters)
+## 41. Retrieval — MOSTLY FINISHED (vector + keyword + hybrid + rerank; version scoping open)
 
 Created this session (changelog 0.2.1 and 0.2.2). This is the
 "query embedding → vector search → metadata filtering → top-k" segment of
-Phase C.
+Phase C, later extended by 0.2.3–0.2.5.
 
-**Models** — `src/models/retrieval.py`: `RetrievalQuery` (`query`, `top_k`
-1–100, optional `source`, optional `document_id`) and `RetrievalResult`
-(chunk/document/version ids, `content`, `chunk_index`, cosine-distance
-`score`), both frozen with `extra="forbid"`.
+**Models** — `src/models/retrieval.py`:
+
+- `RetrievalQuery` — `query`, `top_k` (1–100), optional `candidate_k` (1–500),
+  optional `filters`
+- `RetrievalFilter` — `source`, `document_id`, `document_type`; frozen,
+  `extra="forbid"`
+- `RetrievalResult` — chunk/document/version ids, `content`, `chunk_index`,
+  `score`, `retrieval_method`; frozen, `extra="forbid"`
 
 **Vector search** — `src/db/repositories/vector_search.py`:
-`VectorSearchRepository.search(query_vector, index_version_id, top_k,
-source=None, document_id=None)` — pgvector `cosine_distance` over
-`embeddings → chunks → documents`; `source`/`document_id` are applied as
-SQL-side filters on `documents`; results ordered by distance, limited to
-`top_k`.
+`VectorSearchRepository.search(query_vector, top_k, filters=None)` —
+pgvector `cosine_distance` over `embeddings → chunks → documents`, filters
+applied SQL-side on `documents`, ordered by distance, limited to `top_k`.
+
+**Keyword search** — `src/db/repositories/keyword_search.py`:
+`search(query, top_k, filters=None)` — `websearch_to_tsquery('english', q)`
+matched against `chunks.search_vector` with `ts_rank_cd`, same filter handling
+(added 0.2.3).
+
+**Strategies** — `src/retrieval/search/`: `VectorSearchStrategy`,
+`KeywordSearchStrategy`, `HybridSearchStrategy` (RRF over both, `fusion_k=60`,
+`candidate_multiplier=4`), plus `reciprocal_rank_fusion()` in `base.py`.
+Strategies embed the query and map rows to `RetrievalResult`.
 
 **Retrieval service** — `src/services/retrieval_service.py`:
 `search(request)` resolves the ACTIVE index version (raises `ValueError` if
 none), embeds the query via `embedding_provider.embed_query(...)`, raises
-`ValueError` if the query-vector dimension does not match the ACTIVE version,
-then returns the top-`k` `RetrievalResult`s.
+`ValueError` on a dimension mismatch against the ACTIVE version, then delegates
+to `search_strategy.search(request)`.
 
-**Embedding API** — `EmbeddingProvider.embed_query(text)` now exists as a
-default on the base class (delegates to `embed([text])`), so every provider
-can embed a single query for free.
+⚠ **The resolved `active_version.id` is dropped** and no repository filters on
+it — see §42. This is a regression from the original 0.2.1 signature
+`search(query_vector, index_version_id, top_k, ...)`.
 
-**Metadata filtering decision (important checkpoint):** document metadata is
-**not** duplicated onto chunks. Retrieval filters by joining
-`chunks → documents` and filtering on `documents.source` / `documents.id`.
-`RetrievalQuery.document_type` is deliberately **not** implemented:
-`DocumentMetadata.document_type` exists only transiently during ingestion and
-is not yet persisted. Enabling it requires deciding where persistent document
-metadata lives (documents.columns vs a metadata table) — that is the designed
-next step.
+**Embedding API** — `EmbeddingProvider.embed_query(text)` is a default method
+on the base class delegating to `embed([text])`.
+
+**Metadata filtering decision:** document metadata is **not** duplicated onto
+chunks; retrieval joins `chunks → documents` and filters on `documents.source` /
+`documents.id` / `documents.document_type`. `document_type` **is** now
+persisted (`documents.document_type`, migrations `209814ea8e64` /
+`236278f35c80`), so the `RetrievalFilter.document_type` filter is live (0.2.2).
 
 **Testing:**
 
-- `tests/services/test_retrieval_service.py` — version isolation (only the
-  ACTIVE version's chunks are ever returned), `source` filter, `document_id`
-  filter, no-filter returns both documents, no-active-version → `ValueError`,
-  query-dimension mismatch → `ValueError`
-- `tests/integration/test_vector_search_repository.py` — SQL-side filters
-  (`source=billing`, `source=hr`, `document_id=A`) with every row tied to the
-  ACTIVE version
-- `tests/conftest.py` — shared `embedded_document_factory` fixture
-  (source/content/dimensions) so test files stop duplicating the
-  `EmbeddedDocument` builder
+- `tests/services/test_retrieval_service.py` — 2 of 3 pass: `source` filter,
+  `document_id` filter, no-active-version → `ValueError`, dimension mismatch →
+  `ValueError`. The version-isolation test **fails** (§42).
+- `tests/integration/test_vector_search_repository.py` — the two SQL-side
+  filter tests **fail** (§42); they still call the removed
+  `index_version_id=`/`source=`/`document_id=` kwargs.
+- `tests/conftest.py` — shared `embedded_document_factory` fixture.
+
+## 42. Open defect — retrieval is not scoped to the ACTIVE index version
+
+This is the single highest-priority fix and the cause of all 3 test failures.
+
+**What happens**
+
+1. `RetrievalService.search()` resolves the ACTIVE version, uses it only for the
+   dimension check, then throws the id away and calls
+   `self.search_strategy.search(request)`.
+2. `VectorSearchRepository.search()` and `KeywordSearchRepository.search()` have
+   no `index_version_id` parameter and no `ChunkDB.index_version_id` predicate.
+3. Both return chunks from **every** index version that still holds embeddings.
+
+`RetrievalResult.index_version_id` is populated, but only for reporting — no
+caller filters on it.
+
+**Why the tests fail**
+
+- `tests/services/test_retrieval_service.py::test_search_only_returns_chunks_from_active_version`
+  — real assertion failure: retired-version chunks come back.
+- `tests/integration/test_vector_search_repository.py::test_search_filters_by_source_in_sql`
+- `tests/integration/test_vector_search_repository.py::test_search_filters_by_document_id_in_sql`
+  — `TypeError: search() got an unexpected keyword argument 'index_version_id'`.
+  These two tests were written against the old signature and still pass
+  `index_version_id=` / `source=` / `document_id=`.
+
+**Fix direction**
+
+Thread the ACTIVE version id through the search path and add the SQL
+predicate — e.g. `RetrievalService` passes `active_version.id` into
+`RetrievalQuery` (or a new `index_version_id` argument on
+`SearchStrategy.search`), each repository adds
+`.where(ChunkDB.index_version_id == index_version_id)`, and the two integration
+tests are updated to the `filters=` signature. Watch out for
+`HybridSearchStrategy`, which delegates to both sub-strategies and must keep
+the version constraint through fusion.
 
 ---
 
 **One-line handoff**
 
-> rag-system is a Python 3.13 + uv + Pydantic + SQLAlchemy + Alembic + PostgreSQL/pgvector RAG platform. The write side is complete: ingestion through embedding, version-aware indexing (`IndexRequest.index_version_id`; ADD/UPDATE/DELETE/REINDEX scoped to one version, RETIRED/FAILED writes rejected), coordinated end-to-end `ReindexService` (source → shared PipelineStages → BUILDING version → `IndexValidationService` gate → activate/retire; invalid or empty indexes become FAILED while the previous ACTIVE survives — `_mark_failed` must re-add the version to the session after rollback), and index validation (changelog 0.1.37–0.1.39; the unit-tested-at-app-level duplicate check and the `documents`-join filtering are the two design gotchas). The read side has begun (0.2.1/0.2.2): `RetrievalService.search()` embeds the query via `embed_query`, dimension-checks against the ACTIVE version, and `VectorSearchRepository` runs pgvector cosine search with SQL-side `source`/`document_id` filters. 89 tests pass; ruff and mypy are clean on changed files (47 pre-existing repo-wide ruff errors; 5 pre-existing mypy errors including the dead `IngestionPersistenceService`). Next: persist document metadata so `RetrievalQuery.document_type` filtering can be enabled, then retrieval reranking/context building, then Phase D generation.
+> rag-system is a Python 3.12 + uv + Pydantic + SQLAlchemy + Alembic + PostgreSQL/pgvector RAG platform at changelog 0.2.13 (Reliability), with 149 source modules and 76 test files. Write side complete: ingestion → chunking → embedding, version-aware indexing, coordinated `ReindexService` (BUILDING → `IndexValidationService` → activate/retire), index validation, RAGOps run/processing tracking. Read side complete end to end: FastAPI `/health`, `/health/ready`, `POST /rag/query`, `/metrics` → `RetrievalPipeline` → vector/keyword/hybrid(RRF) search + `RetrievalFilter` + `SimpleReranker` → `GenerationService` → OpenRouter LLM with `[SOURCE-n]` prompts and citations. Evaluation (retrieval metrics + RAG citation/grounding/answer) and observability (request context, JSON logs, `Timer`, process-wide metrics registry) are in place; reliability adds bounded config, an exception hierarchy, selective `RetryPolicy`, and sanitized API errors. **Current state: 357 tests pass, 3 fail — all three are one defect (§42): retrieval resolves the ACTIVE index version but discards its id, and neither search repository filters `ChunkDB.index_version_id`, so retired-version chunks leak into results.** Tooling: 75 pre-existing ruff findings, 3 pre-existing mypy errors (`settings.py:115`, `ingestion_persistence_service.py:31/41`), 1 Starlette `httpx2` deprecation warning. `.env` has an empty `OPENROUTER_API_KEY` and the DB is empty (0 documents/chunks/versions), so live `/rag/query` fails at `ValueError: No active index version exists`. Next: fix ACTIVE-version scoping, then the not-yet-started performance/caching phase (`src/cache/`, `config/performance.yaml`, cache metrics, latency benchmark, DB indexes/migration) as changelog 0.2.14.
