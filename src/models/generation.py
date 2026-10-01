@@ -8,7 +8,8 @@ class GenerationRequest(BaseModel):
     )
 
     query: str = Field(min_length=1)
-    context: str = Field(min_length=1)
+    system_prompt: str = Field(min_length=1)
+    user_prompt: str = Field(min_length=1)
 
 
 class GenerationResponse(BaseModel):

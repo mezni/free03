@@ -7,7 +7,9 @@ from src.db.repositories.embeddings import EmbeddingRepository
 from src.db.repositories.index_versions import IndexVersionRepository
 from src.db.repositories.keyword_search import KeywordSearchRepository
 from src.db.repositories.vector_search import VectorSearchRepository
+from src.generation.citations import CitationExtractor
 from src.generation.context_builder import ContextBuilder
+from src.generation.prompt_builder import PromptBuilder
 from src.providers.embeddings.base import EmbeddingProvider
 from src.providers.embeddings.factory import EmbeddingProviderFactory
 from src.providers.llm.base import LLMProvider
@@ -19,6 +21,7 @@ from src.retrieval.search.keyword import KeywordSearchStrategy
 from src.retrieval.search.vector import VectorSearchStrategy
 from src.services.evaluation_resolver import EvaluationResolver
 from src.services.generation_service import GenerationService
+from src.services.grounding_service import GroundingService
 from src.services.rag_service import RAGService
 from src.services.retrieval_evaluation_runner import RetrievalEvaluationRunner
 from src.services.retrieval_metrics_service import RetrievalMetricsService
@@ -111,6 +114,9 @@ class ApplicationContainer:
         return GenerationService(
             llm_provider=self.llm_provider(),
             context_builder=ContextBuilder(),
+            prompt_builder=PromptBuilder(),
+            citation_extractor=CitationExtractor(),
+            grounding_service=GroundingService(),
         )
 
     def rag_service(self) -> RAGService:

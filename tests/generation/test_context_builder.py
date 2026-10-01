@@ -20,32 +20,37 @@ def test_build_returns_empty_string_for_no_results():
     assert ContextBuilder().build([]) == ""
 
 
-def test_build_includes_provenance_and_content():
+def test_build_includes_source_marker_and_provenance():
     result = make_result(3, "Refunds are issued within 5 days.")
 
     context = ContextBuilder().build([result])
 
-    assert str(result.document_id) in context
-    assert "Chunk: 3" in context
+    assert "[SOURCE-1]" in context
+    assert f"Document ID: {result.document_id}" in context
+    assert f"Chunk ID: {result.chunk_id}" in context
+    assert "Chunk Index: 3" in context
     assert "Refunds are issued within 5 days." in context
 
 
-def test_build_preserves_result_order():
+def test_build_numbers_sources_in_result_order():
     first = make_result(0, "first content")
     second = make_result(1, "second content")
 
     context = ContextBuilder().build([first, second])
 
+    assert context.index("[SOURCE-1]") < context.index("[SOURCE-2]")
     assert context.index("first content") < context.index(
         "second content"
     )
 
 
 def test_build_separates_sections():
-    first = make_result(0, "first content")
-    second = make_result(1, "second content")
-
-    context = ContextBuilder().build([first, second])
+    context = ContextBuilder().build(
+        [
+            make_result(0, "first content"),
+            make_result(1, "second content"),
+        ]
+    )
 
     assert "\n\n" in context
-    assert context.count("Chunk:") == 2
+    assert context.count("[SOURCE-") == 2

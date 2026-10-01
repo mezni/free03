@@ -1,4 +1,4 @@
-from src.models.generation import GenerationResponse
+from src.models.rag import RAGResponse
 from src.models.retrieval import RetrievalQuery
 from src.retrieval.pipeline import RetrievalPipeline
 from src.services.generation_service import GenerationService
@@ -18,7 +18,7 @@ class RAGService:
     def answer(
         self,
         query: RetrievalQuery,
-    ) -> GenerationResponse:
+    ) -> RAGResponse:
         results = self._retrieval_pipeline.execute(query)
 
         return self._generation_service.generate(

@@ -1,12 +1,29 @@
 from uuid import uuid4
 
+from src.generation.citations import CitationExtractor
+from src.generation.context_builder import ContextBuilder
+from src.generation.prompt_builder import PromptBuilder
 from src.models.generation import GenerationResponse
 from src.models.retrieval import RetrievalQuery, RetrievalResult
+from src.services.generation_service import GenerationService
+from src.services.grounding_service import GroundingService
 from src.services.rag_service import RAGService
 
 
+def make_result(content: str = "content") -> RetrievalResult:
+    return RetrievalResult(
+        chunk_id=uuid4(),
+        document_id=uuid4(),
+        index_version_id=uuid4(),
+        content=content,
+        chunk_index=0,
+        score=0.5,
+        retrieval_method="vector",
+    )
+
+
 class FakeRetrievalPipeline:
-    def __init__(self, results):
+    def __init__(self, results) -> None:
         self.results = results
         self.queries = []
 
@@ -16,69 +33,125 @@ class FakeRetrievalPipeline:
         return self.results
 
 
-class FakeGenerationService:
-    def __init__(self, answer: str) -> None:
-        self.answer_text = answer
-        self.calls = []
+class FakeLLMProvider:
+    model_name = "fake-model"
 
-    def generate(self, query, results):
-        self.calls.append((query, results))
+    def __init__(self, answer: str) -> None:
+        self.answer = answer
+        self.requests = []
+
+    def generate(self, request):
+        self.requests.append(request)
 
         return GenerationResponse(
-            answer=self.answer_text,
-            model_name="fake-model",
+            answer=self.answer,
+            model_name=self.model_name,
         )
 
 
-def make_result() -> RetrievalResult:
-    return RetrievalResult(
-        chunk_id=uuid4(),
-        document_id=uuid4(),
-        index_version_id=uuid4(),
-        content="Refunds are issued within 5 days.",
-        chunk_index=0,
-        score=0.5,
-        retrieval_method="vector",
+def make_rag_service(
+    results,
+    answer: str,
+):
+    pipeline = FakeRetrievalPipeline(results)
+    provider = FakeLLMProvider(answer)
+
+    generation = GenerationService(
+        llm_provider=provider,
+        context_builder=ContextBuilder(),
+        prompt_builder=PromptBuilder(),
+        citation_extractor=CitationExtractor(),
+        grounding_service=GroundingService(),
     )
-
-
-def test_answer_retrieves_then_generates():
-    result = make_result()
-
-    pipeline = FakeRetrievalPipeline([result])
-    generation = FakeGenerationService("Refunds take 5 days.")
 
     service = RAGService(
         retrieval_pipeline=pipeline,
         generation_service=generation,
     )
 
-    query = RetrievalQuery(query="Refund window?", top_k=5)
+    return service, pipeline, provider
 
-    response = service.answer(query)
 
-    assert response.answer == "Refunds take 5 days."
+def test_end_to_end_answer_with_citation():
+    result = make_result()
+
+    service, pipeline, _ = make_rag_service(
+        [result],
+        "Disputes are filed within 30 days. [SOURCE-1]",
+    )
+
+    response = service.answer(
+        RetrievalQuery(
+            query="What is the billing policy?",
+            top_k=5,
+        )
+    )
+
+    assert response.query == "What is the billing policy?"
+    assert response.answer
+    assert response.retrieved_count == 1
+    assert len(response.citations) == 1
+
+    assert response.citations[0].citation_id == "SOURCE-1"
+    assert response.citations[0].chunk_id == str(result.chunk_id)
+
+
+def test_end_to_end_forwards_top_k_to_retrieval():
+    service, pipeline, _ = make_rag_service(
+        [make_result()],
+        "answer [SOURCE-1]",
+    )
+
+    query = RetrievalQuery(
+        query="What is the billing policy?",
+        top_k=3,
+    )
+
+    service.answer(query)
 
     assert pipeline.queries == [query]
 
-    assert generation.calls == [
-        ("Refund window?", [result]),
-    ]
 
+def test_end_to_end_citation_maps_to_correct_source():
+    first = make_result("first content")
+    second = make_result("second content")
 
-def test_answer_forwards_empty_results_to_generation():
-    pipeline = FakeRetrievalPipeline([])
-    generation = FakeGenerationService("No context.")
-
-    service = RAGService(
-        retrieval_pipeline=pipeline,
-        generation_service=generation,
+    service, _, _ = make_rag_service(
+        [first, second],
+        "Two answers. [SOURCE-2]",
     )
 
-    service.answer(
-        RetrievalQuery(query="Refund window?", top_k=5)
+    response = service.answer(
+        RetrievalQuery(query="query", top_k=5)
     )
 
-    assert generation.calls == [
-        ("Refund window?", []),
-    ]
+    assert len(response.citations) == 1
+    assert response.citations[0].citation_id == "SOURCE-2"
+    assert response.citations[0].chunk_id == str(second.chunk_id)
+
+
+def test_end_to_end_without_results_skips_provider():
+    service, pipeline, provider = make_rag_service([], "unused")
+
+    response = service.answer(
+        RetrievalQuery(query="query", top_k=5)
+    )
+
+    assert response.retrieved_count == 0
+    assert response.citations == []
+    assert "could not find relevant information" in response.answer
+    assert provider.requests == []
+
+
+def test_end_to_end_without_citations_reports_none():
+    service, _, _ = make_rag_service(
+        [make_result()],
+        "An answer with no source marker.",
+    )
+
+    response = service.answer(
+        RetrievalQuery(query="query", top_k=5)
+    )
+
+    assert response.retrieved_count == 1
+    assert response.citations == []

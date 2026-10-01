@@ -22,9 +22,12 @@ def make_provider(**overrides) -> OpenRouterProvider:
 
 def make_request(
     query: str = "What is the billing policy?",
-    context: str = "Billing disputes must be filed within 30 days.",
 ) -> GenerationRequest:
-    return GenerationRequest(query=query, context=context)
+    return GenerationRequest(
+        query=query,
+        system_prompt="system instructions",
+        user_prompt="user instructions",
+    )
 
 
 def api_payload(
@@ -193,7 +196,7 @@ def test_generate_passes_api_key_and_endpoint(mock_client_cls):
 
 
 @patch("src.providers.llm.openrouter.httpx.Client")
-def test_generate_sends_query_and_context_in_messages(mock_client_cls):
+def test_generate_sends_prebuilt_prompts_in_messages(mock_client_cls):
     response = MagicMock()
     response.json.return_value = api_payload()
 
@@ -206,11 +209,16 @@ def test_generate_sends_query_and_context_in_messages(mock_client_cls):
 
     messages = post_args(mock_client_cls).kwargs["json"]["messages"]
 
-    assert messages[0]["role"] == "system"
-
-    assert messages[1]["role"] == "user"
-    assert "30 days" in messages[1]["content"]
-    assert "What is the billing policy?" in messages[1]["content"]
+    assert messages == [
+        {
+            "role": "system",
+            "content": "system instructions",
+        },
+        {
+            "role": "user",
+            "content": "user instructions",
+        },
+    ]
 
 
 @patch("src.providers.llm.openrouter.httpx.Client")

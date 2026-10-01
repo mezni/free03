@@ -39,18 +39,11 @@ class OpenRouterProvider(LLMProvider):
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "Answer the user's question using only "
-                        "the provided context. If the context does "
-                        "not contain enough information, say so."
-                    ),
+                    "content": request.system_prompt,
                 },
                 {
                     "role": "user",
-                    "content": (
-                        f"Context:\n\n{request.context}\n\n"
-                        f"Question:\n\n{request.query}"
-                    ),
+                    "content": request.user_prompt,
                 },
             ],
         }
