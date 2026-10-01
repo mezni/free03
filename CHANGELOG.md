@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
-| 0.2.6   | Evaluation Metrics | `RecallAtK`, `PrecisionAtK`, `ReciprocalRank`, `MeanReciprocalRank`, `NDCGAtK` over `RetrievalEvaluationResult`, `src/evaluation/metrics` package with 26 tests |
+| 0.2.6   | Evaluation Metrics | `RetrievalMetricsService` aggregating `RecallAtK`/`PrecisionAtK`/`MRR`/`NDCG@K` into a typed `RetrievalMetrics` summary; 29 evaluation tests |
 | 0.2.5   | Reranking | `Reranker` contract + `SimpleReranker`, `RetrievalPipeline` reranking stage, `candidate_k` candidate-pool control |
 | 0.2.4   | Hybrid Retrieval | `reciprocal_rank_fusion()` helper, `HybridSearchStrategy` fusing vector + keyword results via RRF |
 | 0.2.3   | Keyword Retrieval | PostgreSQL full-text search (`search_vector` TSVECTOR + GIN + trigger), `KeywordSearchRepository`/`KeywordSearchStrategy`, `SearchStrategy` accepts `RetrievalQuery` |
@@ -66,11 +66,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 - **`ReciprocalRank`:** reciprocal of the rank of the first relevant chunk within the top `k` (`1/rank`), returning `0.0` when no relevant chunk appears; `k <= 0` raises `ValueError`
 - **`MeanReciprocalRank`:** dataset-level MRR — averages `ReciprocalRank` over a list of `RetrievalEvaluationResult`s (`sum(rr) / len(results)`), returning `0.0` for an empty dataset; `k <= 0` raises `ValueError`
 - **`NDCGAtK`:** binary-gain NDCG@K — `DCG@K / IDCG@K` with gain `1/log2(rank+1)` and an ideal ranking of `min(k, len(relevant))` relevant chunks; returns `0.0` when nothing relevant was retrieved, `0.0` for an empty relevance set, and raises `ValueError` for `k <= 0`
-- **Testing:** `tests/services/test_retrieval_evaluation_service.py` (case→result mapping) and `tests/evaluation/metrics/test_retrieval.py` (26 tests: 6 per metric, plus MRR averaging/empty-dataset and NDCG ideal/partial/miss/position-sensitivity cases)
+- **`RetrievalMetrics` model:** `src/models/retrieval_metrics.py` — frozen, `extra="forbid"` summary of `recall_at_k`, `precision_at_k`, `mrr`, `ndcg_at_k`, each constrained to `[0.0, 1.0]`
+- **`RetrievalMetricsService`:** `src/services/retrieval_metrics_service.py` — `evaluate(evaluations, k)` runs the four metrics over a dataset and returns a single `RetrievalMetrics`; empty datasets yield all-zero metrics, `k <= 0` raises `ValueError`
+- **Testing:** `tests/services/test_retrieval_evaluation_service.py` (case→result mapping), `tests/services/test_retrieval_metrics_service.py` (all-metrics, empty dataset, invalid `k`), and `tests/evaluation/metrics/test_retrieval.py` (26 tests: 6 per metric, plus MRR averaging/empty-dataset and NDCG ideal/partial/miss/position-sensitivity cases)
 
 ### Changed
 - Raw `retrieved_chunk_ids`/`relevant_chunk_ids` pairs are the single metric input, so all metrics share one comparable result shape and no retrieval re-execution is needed per metric
 - `MeanReciprocalRank` is the first metric consuming a *list* of results, setting the pattern for dataset-level aggregates
+- `RetrievalMetricsService` owns the metric instances and exposes one `evaluate()` call, so callers never construct metrics directly or hand-average scores
+- Metric aggregation is unweighted macro-averaging over cases (each case counts equally), matching the existing per-case metric definitions
 
 ## [0.2.5] - 2026-09-25
 
