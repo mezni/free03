@@ -56,6 +56,40 @@ class TestMetricsCollector:
 
         assert metrics.snapshot() == {"a": 1, "b": 3}
 
+    def test_add_accumulates_fractions(self) -> None:
+        metrics = MetricsCollector()
+
+        metrics.add("llm.estimated_cost", 0.25)
+        metrics.add("llm.estimated_cost", 0.5)
+
+        assert metrics.get_total("llm.estimated_cost") == 0.75
+
+    def test_get_total_missing_key_returns_zero(
+        self,
+    ) -> None:
+        metrics = MetricsCollector()
+
+        assert metrics.get_total("unknown") == 0.0
+
+    def test_add_does_not_affect_integer_counter(self) -> None:
+        metrics = MetricsCollector()
+
+        metrics.add("llm.requests", 1.5)
+
+        assert metrics.get("llm.requests") == 0
+        assert metrics.get_total("llm.requests") == 1.5
+
+    def test_snapshot_includes_gauges(self) -> None:
+        metrics = MetricsCollector()
+
+        metrics.increment("llm.requests")
+        metrics.add("llm.estimated_cost", 0.25)
+
+        assert metrics.snapshot() == {
+            "llm.requests": 1,
+            "llm.estimated_cost": 0.25,
+        }
+
 
 class TestMetricsRegistry:
     def setup_method(self) -> None:

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.config.loader import load_yaml_config
+from src.evaluation.quality_gate import QualityGateConfig
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 CONFIG_DIR = BASE_DIR / "config"
@@ -68,6 +69,46 @@ class ReliabilityConfig(BaseModel):
     api: APIReliabilityConfig
 
 
+class ModelPricing(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    input_per_1m_tokens: float = Field(ge=0)
+    output_per_1m_tokens: float = Field(ge=0)
+
+
+class ProviderPricing(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    models: dict[str, ModelPricing]
+
+
+class FinOpsConfig(BaseModel):
+    """Currency and per-provider token pricing.
+
+    Pricing lives in configuration rather than in provider code because
+    provider rates change independently of application releases.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    currency: str = Field(min_length=3, max_length=3)
+
+    pricing: dict[str, dict[str, ModelPricing]]
+
+    @property
+    def providers(self) -> dict[str, ProviderPricing]:
+        return {
+            name: ProviderPricing(models=models)
+            for name, models in self.pricing.items()
+        }
+
+
+class EvaluationConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    quality_gate: QualityGateConfig
+
+
 class EnvironmentSettings(BaseSettings):
     """Environment-specific settings loaded from .env."""
 
@@ -91,6 +132,8 @@ class Settings(BaseModel):
     embedding: EmbeddingConfig
     llm: LLMConfig
     reliability: ReliabilityConfig
+    finops: FinOpsConfig
+    evaluation: EvaluationConfig
 
     @property
     def application_name(self) -> str:
@@ -112,7 +155,7 @@ class Settings(BaseModel):
 @lru_cache
 def get_settings() -> Settings:
     """Return cached application settings."""
-    environment = EnvironmentSettings()
+    environment = EnvironmentSettings(_env_file=None)  # type: ignore[call-arg]
 
     settings_data = load_yaml_config(CONFIG_DIR / "settings.yaml")
     embedding_data = load_yaml_config(
@@ -121,6 +164,10 @@ def get_settings() -> Settings:
     llm_data = load_yaml_config(CONFIG_DIR / "llm.yaml")
     reliability_data = load_yaml_config(
         CONFIG_DIR / "reliability.yaml"
+    )
+    finops_data = load_yaml_config(CONFIG_DIR / "finops.yaml")
+    evaluation_data = load_yaml_config(
+        CONFIG_DIR / "evaluation.yaml"
     )
 
     return Settings(
@@ -137,5 +184,11 @@ def get_settings() -> Settings:
         llm=LLMConfig.model_validate(llm_data["llm"]),
         reliability=ReliabilityConfig.model_validate(
             reliability_data["reliability"]
+        ),
+        finops=FinOpsConfig.model_validate(
+            finops_data["finops"]
+        ),
+        evaluation=EvaluationConfig.model_validate(
+            evaluation_data
         ),
     )

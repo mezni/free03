@@ -1,0 +1,8 @@
+finops:
+  currency: USD
+
+  pricing:
+    openrouter:
+      "openai/gpt-oss-20b:free":
+        input_per_1m_tokens: 0.0
+        output_per_1m_tokens: 0.0

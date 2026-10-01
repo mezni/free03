@@ -4,7 +4,9 @@ from src.generation.citations import CitationExtractor
 from src.generation.context_builder import ContextBuilder
 from src.generation.prompt_builder import PromptBuilder
 from src.models.generation import GenerationResponse
+from src.models.llm_usage import LLMUsageRecord
 from src.models.retrieval import RetrievalResult
+from src.observability.metrics import MetricsCollector
 from src.services.generation_service import GenerationService
 from src.services.grounding_service import GroundingService
 
@@ -43,8 +45,43 @@ class FakeLLMProvider:
         )
 
 
+class TokenReportingLLMProvider(FakeLLMProvider):
+    def generate(self, request):
+        self.requests.append(request)
+
+        return GenerationResponse(
+            answer=self.answer,
+            model_name=self.model_name,
+            prompt_tokens=1_000,
+            completion_tokens=500,
+            total_tokens=1_500,
+        )
+
+
+class FakeUsageTracker:
+    def __init__(self) -> None:
+        self.recorded = []
+
+    def record(self, response, request_id=None):
+        usage = LLMUsageRecord(
+            provider="openrouter",
+            model_name=response.model_name,
+            prompt_tokens=response.prompt_tokens or 0,
+            completion_tokens=response.completion_tokens or 0,
+            total_tokens=response.total_tokens or 0,
+            estimated_cost=0.02,
+            currency="USD",
+        )
+
+        self.recorded.append(usage)
+
+        return usage
+
+
 def make_service(
     provider: FakeLLMProvider | None = None,
+    usage_tracker: FakeUsageTracker | None = None,
+    metrics: MetricsCollector | None = None,
 ) -> GenerationService:
     return GenerationService(
         llm_provider=provider or FakeLLMProvider(),
@@ -52,6 +89,8 @@ def make_service(
         prompt_builder=PromptBuilder(),
         citation_extractor=CitationExtractor(),
         grounding_service=GroundingService(),
+        usage_tracker=usage_tracker,
+        metrics=metrics,
     )
 
 
@@ -141,3 +180,78 @@ def test_generation_returns_fallback_when_no_context():
     assert response.citations == []
     assert response.retrieved_count == 0
     assert provider.requests == []
+
+
+def test_generation_records_usage_after_provider_call():
+    provider = TokenReportingLLMProvider()
+    tracker = FakeUsageTracker()
+
+    service = make_service(
+        provider,
+        usage_tracker=tracker,
+    )
+
+    service.generate(
+        query="What is the billing policy?",
+        results=[make_result()],
+    )
+
+    assert len(tracker.recorded) == 1
+
+    usage = tracker.recorded[0]
+
+    assert usage.provider == "openrouter"
+    assert usage.prompt_tokens == 1_000
+    assert usage.completion_tokens == 500
+    assert usage.total_tokens == 1_500
+
+
+def test_generation_increments_llm_metrics():
+    metrics = MetricsCollector()
+
+    service = make_service(
+        TokenReportingLLMProvider(),
+        usage_tracker=FakeUsageTracker(),
+        metrics=metrics,
+    )
+
+    service.generate(
+        query="What is the billing policy?",
+        results=[make_result()],
+    )
+
+    assert metrics.get("llm.requests") == 1
+    assert metrics.get("llm.prompt_tokens") == 1_000
+    assert metrics.get("llm.completion_tokens") == 500
+    assert metrics.get("llm.total_tokens") == 1_500
+    assert metrics.get_total("llm.estimated_cost") == 0.02
+
+
+def test_generation_without_context_records_no_usage():
+    tracker = FakeUsageTracker()
+
+    service = make_service(usage_tracker=tracker)
+
+    service.generate(
+        query="What is the billing policy?",
+        results=[],
+    )
+
+    assert tracker.recorded == []
+
+
+def test_generation_without_tracker_still_counts_tokens():
+    metrics = MetricsCollector()
+
+    service = make_service(
+        TokenReportingLLMProvider(),
+        metrics=metrics,
+    )
+
+    service.generate(
+        query="What is the billing policy?",
+        results=[make_result()],
+    )
+
+    assert metrics.get("llm.requests") == 1
+    assert metrics.get_total("llm.estimated_cost") == 0.0

@@ -1,5 +1,6 @@
 import logging
 
+from src.finops.usage_tracker import UsageTracker
 from src.generation.citations import CitationExtractor
 from src.generation.context_builder import ContextBuilder
 from src.generation.prompt_builder import PromptBuilder
@@ -28,6 +29,7 @@ class GenerationService:
         prompt_builder: PromptBuilder,
         citation_extractor: CitationExtractor,
         grounding_service: GroundingService,
+        usage_tracker: UsageTracker | None = None,
         metrics: MetricsCollector | None = None,
     ) -> None:
         self._llm_provider = llm_provider
@@ -35,6 +37,7 @@ class GenerationService:
         self._prompt_builder = prompt_builder
         self._citation_extractor = citation_extractor
         self._grounding_service = grounding_service
+        self._usage_tracker = usage_tracker
         self._metrics = metrics or get_metrics()
 
     def generate(
@@ -99,6 +102,8 @@ class GenerationService:
             },
         )
 
+        self._record_usage(response)
+
         citations = self._citation_extractor.extract(
             answer=response.answer,
             results=results,
@@ -115,4 +120,43 @@ class GenerationService:
             citations=citations,
             model_name=response.model_name,
             retrieved_count=len(results),
+        )
+
+    def _record_usage(
+        self,
+        response: GenerationResponse,
+    ) -> None:
+        """Account for one real provider call.
+
+        Reached only after the provider answers. A response served from
+        a cache returns before this point, so a cache hit costs nothing
+        and consumes no provider tokens.
+        """
+        prompt_tokens = response.prompt_tokens or 0
+        completion_tokens = response.completion_tokens or 0
+        total_tokens = (
+            response.total_tokens
+            if response.total_tokens is not None
+            else prompt_tokens + completion_tokens
+        )
+
+        self._metrics.increment("llm.requests")
+        self._metrics.increment(
+            "llm.prompt_tokens", prompt_tokens
+        )
+        self._metrics.increment(
+            "llm.completion_tokens", completion_tokens
+        )
+        self._metrics.increment(
+            "llm.total_tokens", total_tokens
+        )
+
+        if self._usage_tracker is None:
+            return
+
+        usage = self._usage_tracker.record(response)
+
+        self._metrics.add(
+            "llm.estimated_cost",
+            usage.estimated_cost,
         )

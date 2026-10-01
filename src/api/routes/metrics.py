@@ -16,5 +16,5 @@ def get_metrics_collector() -> MetricsCollector:
 @router.get("")
 def metrics(
     collector: MetricsCollector = Depends(get_metrics_collector),
-) -> dict[str, int]:
+) -> dict[str, float]:
     return collector.snapshot()

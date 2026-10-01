@@ -8,13 +8,17 @@ from src.config.settings import (
     ApplicationConfig,
     EmbeddingConfig,
     EnvironmentSettings,
+    EvaluationConfig,
+    FinOpsConfig,
     LLMConfig,
     LLMReliabilityConfig,
     LoggingConfig,
+    ModelPricing,
     ReliabilityConfig,
     RetrievalReliabilityConfig,
     Settings,
 )
+from src.evaluation.quality_gate import QualityGateConfig
 
 
 def create_test_settings(
@@ -55,6 +59,25 @@ def create_test_settings(
                 max_query_length=5000,
                 max_top_k=20,
             ),
+        ),
+        finops=FinOpsConfig(
+            currency="USD",
+            pricing={
+                "openrouter": {
+                    "openai/gpt-oss-20b:free": ModelPricing(
+                        input_per_1m_tokens=0.0,
+                        output_per_1m_tokens=0.0,
+                    )
+                }
+            },
+        ),
+        evaluation=EvaluationConfig(
+            quality_gate=QualityGateConfig(
+                min_answer_relevance=0.6,
+                min_citation_precision=0.8,
+                min_citation_recall=0.8,
+                min_grounding=0.8,
+            )
         ),
     )
 

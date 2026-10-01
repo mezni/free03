@@ -8,6 +8,8 @@ class MetricsCollector:
             defaultdict(int)
         )
 
+        self._gauges: dict[str, float] = defaultdict(float)
+
         self._lock = Lock()
 
     def increment(
@@ -17,6 +19,18 @@ class MetricsCollector:
     ) -> None:
         with self._lock:
             self._counters[name] += value
+
+    def add(
+        self,
+        name: str,
+        value: float,
+    ) -> None:
+        """Accumulate a fractional quantity, such as estimated cost.
+
+        Token counts stay integers; money does not.
+        """
+        with self._lock:
+            self._gauges[name] += value
 
     def get(
         self,
@@ -28,6 +42,16 @@ class MetricsCollector:
                 0,
             )
 
-    def snapshot(self) -> dict[str, int]:
+    def get_total(
+        self,
+        name: str,
+    ) -> float:
         with self._lock:
-            return dict(self._counters)
+            return self._gauges.get(
+                name,
+                0.0,
+            )
+
+    def snapshot(self) -> dict[str, float]:
+        with self._lock:
+            return {**self._counters, **self._gauges}

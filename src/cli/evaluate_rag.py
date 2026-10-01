@@ -38,6 +38,8 @@ def main() -> None:
             ),
         )
 
+        gate = container.quality_gate()
+
         version, metrics = runner.run(
             args.dataset
         )
@@ -63,6 +65,24 @@ def main() -> None:
         f"Grounding:           "
         f"{metrics.grounding:.3f}"
     )
+    print()
+
+    result = gate.evaluate(metrics)
+
+    if result.passed:
+        print("Quality Gate: PASSED")
+
+        return
+
+    print("Quality Gate: FAILED")
+    print()
+    print("Failures:")
+
+    for failure in result.failures:
+        print(f"- {failure}")
+
+    # A non-zero exit is what lets CI block a regression.
+    raise SystemExit(1)
 
 
 if __name__ == "__main__":

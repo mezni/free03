@@ -6,15 +6,19 @@ from src.db.repositories.documents import DocumentRepository
 from src.db.repositories.embeddings import EmbeddingRepository
 from src.db.repositories.index_versions import IndexVersionRepository
 from src.db.repositories.keyword_search import KeywordSearchRepository
+from src.db.repositories.llm_usage import LLMUsageRepository
 from src.db.repositories.vector_search import VectorSearchRepository
 from src.evaluation.answer.semantic import SimpleAnswerEvaluator
 from src.evaluation.citation.evaluator import CitationEvaluator
 from src.evaluation.grounding.evaluator import GroundingEvaluator
-from src.observability.metrics import MetricsCollector
-from src.observability.registry import get_metrics
+from src.evaluation.quality_gate import QualityGate
+from src.finops.cost_calculator import CostCalculator
+from src.finops.usage_tracker import UsageTracker
 from src.generation.citations import CitationExtractor
 from src.generation.context_builder import ContextBuilder
 from src.generation.prompt_builder import PromptBuilder
+from src.observability.metrics import MetricsCollector
+from src.observability.registry import get_metrics
 from src.providers.embeddings.base import EmbeddingProvider
 from src.providers.embeddings.factory import EmbeddingProviderFactory
 from src.providers.llm.base import LLMProvider
@@ -74,6 +78,12 @@ class ApplicationContainer:
     def keyword_search_repository(self) -> KeywordSearchRepository:
         return KeywordSearchRepository(self._session)
 
+    def llm_usage_repository(self) -> LLMUsageRepository:
+        return LLMUsageRepository(self._session)
+
+    def cost_calculator(self) -> CostCalculator:
+        return CostCalculator(self._settings.finops)
+
     def embedding_provider(self) -> EmbeddingProvider:
         return self._embedding_factory.create(
             self._settings.embedding,
@@ -128,6 +138,14 @@ class ApplicationContainer:
             reliability=self._settings.reliability,
         )
 
+    def usage_tracker(self) -> UsageTracker:
+        return UsageTracker(
+            repository=self.llm_usage_repository(),
+            cost_calculator=self.cost_calculator(),
+            provider_name=self._settings.llm.provider,
+            currency=self._settings.finops.currency,
+        )
+
     def generation_service(self) -> GenerationService:
         return GenerationService(
             llm_provider=self.llm_provider(),
@@ -135,8 +153,12 @@ class ApplicationContainer:
             prompt_builder=PromptBuilder(),
             citation_extractor=CitationExtractor(),
             grounding_service=GroundingService(),
+            usage_tracker=self.usage_tracker(),
             metrics=self._metrics,
         )
+
+    def quality_gate(self) -> QualityGate:
+        return QualityGate(self._settings.evaluation.quality_gate)
 
     def rag_service(self) -> RAGService:
         return RAGService(

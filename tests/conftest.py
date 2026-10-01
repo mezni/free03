@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from src.db.models.document import DocumentDB
 from src.db.models.index_version import IndexVersionDB
+from src.db.models.llm_usage import LLMUsageDB
 from src.db.models.run import IngestionRunDB
 from src.ingestion.context import (
     ChunkEmbedding,
@@ -104,4 +105,5 @@ def database_session(database_engine):
         session.execute(delete(DocumentDB))
         session.execute(delete(IndexVersionDB))
         session.execute(delete(IngestionRunDB))
+        session.execute(delete(LLMUsageDB))
         session.commit()
