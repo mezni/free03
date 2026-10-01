@@ -41,4 +41,7 @@ class RetrievalService:
                 "the active index version"
             )
 
-        return self.search_strategy.search(request)
+        return self.search_strategy.search(
+            request,
+            active_version.id,
+        )

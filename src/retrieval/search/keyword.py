@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from src.db.repositories.keyword_search import KeywordSearchRepository
 from src.models.retrieval import RetrievalQuery, RetrievalResult
 from src.retrieval.search.base import SearchStrategy
@@ -17,9 +19,11 @@ class KeywordSearchStrategy(SearchStrategy):
     def search(
         self,
         request: RetrievalQuery,
+        index_version_id: UUID,
     ) -> list[RetrievalResult]:
         rows = self.repository.search(
             query=request.query,
+            index_version_id=index_version_id,
             top_k=request.top_k,
             filters=request.filters,
         )

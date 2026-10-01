@@ -1,8 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy.orm import Session
-
 from sqlalchemy import Select, select
+from sqlalchemy.orm import Session
 
 from src.db.models.chunk import ChunkDB
 from src.db.models.document import DocumentDB
@@ -19,6 +18,7 @@ class VectorSearchRepository:
     def search(
         self,
         query_vector: list[float],
+        index_version_id: UUID,
         top_k: int,
         filters: RetrievalFilter | None = None,
     ) -> list[tuple[ChunkDB, float]]:
@@ -36,6 +36,9 @@ class VectorSearchRepository:
             .join(
                 DocumentDB,
                 DocumentDB.id == ChunkDB.document_id,
+            )
+            .where(
+                ChunkDB.index_version_id == index_version_id,
             )
             .order_by(distance)
             .limit(top_k)

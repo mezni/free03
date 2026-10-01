@@ -2,6 +2,7 @@ from uuid import UUID
 
 from src.db.models.index_version import IndexVersionDB
 from src.db.repositories.vector_search import VectorSearchRepository
+from src.models.retrieval import RetrievalFilter
 from src.services.indexing_service import IndexingService
 from src.services.versioning_service import VersioningService
 
@@ -58,7 +59,7 @@ def test_search_filters_by_source_in_sql(
         query_vector=[0.1] * 8,
         index_version_id=version.id,
         top_k=5,
-        source="billing",
+        filters=RetrievalFilter(source="billing"),
     )
 
     assert billing_rows
@@ -75,7 +76,7 @@ def test_search_filters_by_source_in_sql(
         query_vector=[0.1] * 8,
         index_version_id=version.id,
         top_k=5,
-        source="hr",
+        filters=RetrievalFilter(source="hr"),
     )
 
     assert hr_rows
@@ -104,7 +105,7 @@ def test_search_filters_by_document_id_in_sql(
         query_vector=[0.1] * 8,
         index_version_id=version.id,
         top_k=5,
-        document_id=billing_id,
+        filters=RetrievalFilter(document_id=billing_id),
     )
 
     assert rows

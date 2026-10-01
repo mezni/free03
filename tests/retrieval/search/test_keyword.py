@@ -13,10 +13,12 @@ class FakeKeywordSearchRepository:
     def search(
         self,
         query,
+        index_version_id,
         top_k,
         filters=None,
     ):
         self.query = query
+        self.index_version_id = index_version_id
         self.top_k = top_k
         self.filters = filters
 
@@ -47,13 +49,16 @@ def test_keyword_search_strategy():
         filters=filters,
     )
 
-    results = strategy.search(request)
+    index_version_id = uuid4()
+
+    results = strategy.search(request, index_version_id)
 
     assert len(results) == 1
     assert results[0].content == "Refunds are available within 30 days."
     assert results[0].score == 0.85
     assert results[0].retrieval_method == "keyword"
 
+    assert repository.index_version_id == index_version_id
     assert repository.query == "refund policy"
     assert repository.top_k == 5
     assert repository.filters == filters

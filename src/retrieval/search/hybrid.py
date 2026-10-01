@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from src.models.retrieval import RetrievalQuery, RetrievalResult
 from src.retrieval.search.base import (
     SearchStrategy,
@@ -36,6 +38,7 @@ class HybridSearchStrategy(SearchStrategy):
     def search(
         self,
         request: RetrievalQuery,
+        index_version_id: UUID,
     ) -> list[RetrievalResult]:
         candidate_count = request.candidate_k or (
             request.top_k * self.candidate_multiplier
@@ -47,10 +50,12 @@ class HybridSearchStrategy(SearchStrategy):
 
         vector_results = self.vector_strategy.search(
             candidate_request,
+            index_version_id,
         )
 
         keyword_results = self.keyword_strategy.search(
             candidate_request,
+            index_version_id,
         )
 
         fused_results = reciprocal_rank_fusion(

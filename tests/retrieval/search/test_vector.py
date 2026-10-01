@@ -22,10 +22,12 @@ class FakeVectorSearchRepository:
     def search(
         self,
         query_vector,
+        index_version_id,
         top_k,
         filters=None,
     ):
         self.received_query_vector = query_vector
+        self.received_index_version_id = index_version_id
         self.received_top_k = top_k
         self.received_filters = filters
 
@@ -64,7 +66,9 @@ def test_vector_search_strategy_maps_repository_result():
         filters=filters,
     )
 
-    results = strategy.search(request)
+    index_version_id = uuid4()
+
+    results = strategy.search(request, index_version_id)
 
     assert len(results) == 1
 
@@ -72,6 +76,7 @@ def test_vector_search_strategy_maps_repository_result():
 
     assert result.content == "Refunds are available within 30 days."
     assert result.chunk_index == 0
+    assert repository.received_index_version_id == index_version_id
     assert result.score == 0.15
     assert result.retrieval_method == "vector"
 

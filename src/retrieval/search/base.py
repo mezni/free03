@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from uuid import UUID
 
 from src.models.retrieval import RetrievalQuery, RetrievalResult
 
@@ -12,8 +13,15 @@ class SearchStrategy(ABC):
     def search(
         self,
         request: RetrievalQuery,
+        index_version_id: UUID,
     ) -> list[RetrievalResult]:
-        """Execute a search strategy."""
+        """Execute a search strategy within one index version.
+
+        The version is an explicit argument rather than part of
+        `request` so that callers cannot accidentally search a
+        retired version: only RetrievalService resolves which
+        version is active.
+        """
         raise NotImplementedError
 
 def reciprocal_rank_fusion(

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from src.db.repositories.vector_search import VectorSearchRepository
 from src.models.retrieval import RetrievalQuery, RetrievalResult
 from src.retrieval.search.base import SearchStrategy
@@ -23,6 +25,7 @@ class VectorSearchStrategy(SearchStrategy):
     def search(
         self,
         request: RetrievalQuery,
+        index_version_id: UUID,
     ) -> list[RetrievalResult]:
         query_vector = self.embedding_provider.embed_query(
             request.query,
@@ -30,6 +33,7 @@ class VectorSearchStrategy(SearchStrategy):
 
         rows = self.repository.search(
             query_vector=query_vector,
+            index_version_id=index_version_id,
             top_k=request.top_k,
             filters=request.filters,
         )

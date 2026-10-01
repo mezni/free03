@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import func, select
 
 from src.db.models.chunk import ChunkDB
@@ -12,6 +14,7 @@ class KeywordSearchRepository:
     def search(
         self,
         query: str,
+        index_version_id: UUID,
         top_k: int,
         filters: RetrievalFilter | None = None,
     ) -> list[tuple[ChunkDB, float]]:
@@ -36,6 +39,7 @@ class KeywordSearchRepository:
             )
             .where(
                 ChunkDB.search_vector.op("@@")(search_query),
+                ChunkDB.index_version_id == index_version_id,
             )
             .order_by(rank.desc())
             .limit(top_k)
