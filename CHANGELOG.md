@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
+| 0.2.10  | RAG Evaluation | `RAGEvaluationCase`/`Result`/`Metrics`, YAML dataset + loader, deterministic `CitationEvaluator`/`GroundingEvaluator`/`SimpleAnswerEvaluator` behind an `AnswerEvaluator` boundary, `RAGEvaluationService`/`Runner`, container wiring, `evaluate_rag` CLI |
 | 0.2.9   | RAG Generation | `LLMProvider` contract + `OpenRouterProvider` over `httpx`, `PromptBuilder`, `CitationExtractor`, `GroundingService`; `GenerationService`/`RAGService` returning a cited `RAGResponse`; `config/llm.yaml` with the key kept in `.env` |
 | 0.2.8   | Provider Packages | `src/providers/embeddings/` (relocated), `EmbeddingProviderFactory`, provider contract + boundary tests, configured `model_name` |
 | 0.2.7   | Composition Root | `ApplicationContainer`, `config/embedding.yaml` + `EmbeddingConfig`, `Settings` flattened; pytest `importlib` import mode fixes collection collisions |
@@ -57,6 +58,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 | 0.1.3   | Database      | SQLAlchemy `src/db` module, Alembic migrations |
 | 0.1.2   | Infrastructure | Docker Compose, Makefile, .env.example with DATABASE_URL |
 | 0.1.1   | Core          | Initial release with config, errors, ids, clock |
+
+## [0.2.10] - 2026-10-01
+
+### Added
+- **RAG evaluation models:** `src/models/rag_evaluation.py` — frozen, `extra="forbid"` `RAGEvaluationCase(case_id, query, reference_answer, expected_citations)`, `RAGEvaluationResult`, and `RAGEvaluationMetrics`, every score bounded to `[0.0, 1.0]` so per-case and aggregate metrics cannot drift out of range
+- **Evaluation dataset:** `data/evaluation/rag_v1.yaml` — version 1 with three deliberately simple cases (billing dispute, refund window, compromised account). Reference answers describe the expected fact generically rather than asserting it, and each expects `SOURCE-1`
+- **`RAGEvaluationDatasetLoader`:** `src/evaluation/rag_dataset_loader.py` — `load()` returning `(version, cases)` with `FileNotFoundError` for a missing path and distinct `ValueError` messages for a non-mapping root, non-integer version, non-list cases, and an empty case list; validates every case through `RAGEvaluationCase`
+- **`CitationEvaluator`:** `src/evaluation/citation/evaluator.py` — deterministic set comparison of `expected_citations` against the citations actually attached to a `RAGResponse`, returning `(precision, recall)` as `|expected ∩ actual| / |actual|` and `/ |expected|`; no LLM is involved
+- **`GroundingEvaluator`:** `src/evaluation/grounding/evaluator.py` — conservative structural check scoring `1.0` only when the answer is non-empty, something was retrieved, and at least one citation is attached; measures citation *support structure*, not semantic faithfulness
+- **`AnswerEvaluator` boundary:** `src/evaluation/answer/base.py` — abstract `evaluate(case, response) -> float`, so the deterministic baseline can be swapped for an LLM-as-judge without touching the service
+- **`SimpleAnswerEvaluator`:** `src/evaluation/answer/semantic.py` — baseline token-overlap score, `|reference_tokens ∩ answer_tokens| / |reference_tokens|` over case-folded `\b\w+\b` tokens
+- **`RAGEvaluationService`:** `src/services/rag_evaluation_service.py` — `evaluate_case()` answers each case through `RAGService` and runs all three evaluators; `evaluate()` raises `ValueError` on an empty case list and otherwise reports the unweighted arithmetic mean of each metric
+- **`RAGEvaluationRunner`:** `src/evaluation/rag_evaluation_runner.py` — loads a dataset path and returns `(version, metrics)`, so callers own dataset selection
+- **Evaluation CLI:** `src/cli/evaluate_rag.py` — `uv run python -m src.cli.evaluate_rag [--dataset PATH]`, defaulting to `data/evaluation/rag_v1.yaml`; prints dataset version and the four scores
+- **Container wiring:** `ApplicationContainer.rag_evaluation_service()` builds the service from `RAGService` plus the three evaluators, completing the CLI → container → `RAGEvaluationService` → `RAGService` → retrieval + generation flow
+- **Evaluator tests:** `tests/evaluation/test_citation_evaluator.py` (7 tests: exact match, wrong citation, partial overlap, extra generated citation lowering precision, no citations, no expectations either side, and no expectations with a generated citation), `tests/evaluation/test_grounding_evaluator.py` (5), `tests/evaluation/test_answer_evaluator.py` (9, including the reference-token denominator, case-insensitivity, and that `AnswerEvaluator` is abstract)
+- **Loader, runner, and service tests:** `tests/evaluation/test_rag_dataset_loader.py` (9, including the shipped dataset loading as three cases), `tests/evaluation/test_rag_evaluation_runner.py` (3), `tests/services/test_rag_evaluation_service.py` (5, using a fake `RAGService` plus fake evaluators to pin averaging and the empty-case guard)
+- **End-to-end evaluation test:** `tests/evaluation/test_rag_evaluation_end_to_end.py` runs the real loader, runner, service, and all three real evaluators over the shipped dataset with only `RAGService` replaced — proving perfect scores for correctly cited verbatim answers, near-zero relevance for uncited off-topic answers, and grounding `0.0` when nothing was retrieved
+
+### Known Limitations
+- **The CLI cannot currently run end to end in this environment.** `OPENROUTER_API_KEY` is present but empty in `.env`, and the database holds zero documents and zero index versions, so `ApplicationContainer.rag_evaluation_service()` fails fast on the missing key before any evaluation happens. Both are environment gaps, not code defects; the wiring is covered by tests instead
+- **`expected_citations` are positional.** Every shipped case expects `SOURCE-1`, so citation precision measures whether the first-ranked chunk is the right one. Any retrieval-ranking change silently rescores the metric rather than failing, and a correct answer citing `SOURCE-2` is scored as fully wrong. Keying expectations on stable chunk or document identity — as retrieval evaluation already does via `EvaluationChunkReference` — would make this robust to ranking
+- **A fabricated citation with nothing retrieved still scores perfect precision and recall.** Citation metrics read only the `citations` list and never consult `retrieved_count`, so `grounding` is the only signal that catches it; `tests/evaluation/test_rag_evaluation_end_to_end.py::test_grounding_zero_when_nothing_was_retrieved` pins that split deliberately
+- **`SimpleAnswerEvaluator` is a weak proxy.** It scores reference-token recall over unfiltered `\b\w+\b` tokens, so stopwords count as overlap and a short answer containing every reference word scores `1.0` while being far less complete than the reference. It is a baseline for regression tracking, not a correctness measure
+- **Per-case results are discarded.** `RAGEvaluationService.evaluate()` computes each `RAGEvaluationResult` and immediately reduces to means, so the CLI cannot show which case regressed without a code change; only aggregate scores are observable
+- **Two independent notions of grounding now exist.** `GroundingService` (in production, from `0.2.9`) and `GroundingEvaluator` (in evaluation) apply similar rules while living in separate layers, and the production result is still discarded. Consolidating them is deferred until the LLM-as-judge work lands
+- **`top_k` is not configurable per case.** `evaluate_case()` builds `RetrievalQuery(query=case.query)` and takes the default, so a dataset cannot exercise a different retrieval depth
 
 ## [0.2.9] - 2026-10-01
 
