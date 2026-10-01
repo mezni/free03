@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
+| 0.2.6   | Retrieval Search | Hybrid search using RRF, keyword search with PostgreSQL full-text search |
+| 0.2.5   | Retrieval Search | PostgreSQL full-text search support via `search_vector` column and trigger; new `KeywordSearchStrategy` |
+| 0.2.4   | Evaluation & Retrieval Filters | Added evaluation models and service; consolidated retrieval filters into `RetrievalFilter` model |
+| 0.2.3   | Retrieval Filters | Added `document_type` filter to retrieval queries |
 | 0.2.2   | Retrieval Filters | SQL-side `source`/`document_id` filtering via `documents` join in vector search, shared embedded-document test factory |
 | 0.2.1   | Retrieval        | `VectorSearchRepository` pgvector cosine search, `RetrievalService` owning query embedding against the active version, `RetrievalQuery`/`RetrievalResult` models |
 | 0.1.39  | Index Validation | structured `IndexValidationResult`, `IndexValidationService` guarding activation in `ReindexService`, version-scoped chunk/embedding lookups |
@@ -64,15 +68,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 - `RetrievalService.search()` unchanged — still returns candidates; pipeline layer applies reranking
 - `HybridSearchStrategy` candidate counting now respects `candidate_k` before truncation
 
+## [0.2.6] - 2026-09-25
+
+### Added
+- **Reciprocal Rank Fusion helper:** `reciprocal_rank_fusion()` function in `src/retrieval/search/base.py` for combining multiple ranked result lists
+- **HybridSearchStrategy:** New `SearchStrategy` implementation that fuses vector and keyword search results using RRF
+- **Diversified retrieval:** `HybridSearchStrategy` supports `fusion_k` and `candidate_multiplier` parameters for controlling search scope and fusion behavior
+
+### Changed
+- `reciprocal_rank_fusion()` is a reusable utility function that can be used independently or by `HybridSearchStrategy`
+- `HybridSearchStrategy.search()` first expands results by `candidate_multiplier` before fusion to ensure sufficient candidates are considered before returning the top `top_k` results
+
+### Fixed
+- Metadata consistency: `search_vector` is now automatically maintained via PostgreSQL trigger, ensuring tsvector is always in sync with `content`
+- Test cleanup: retrieval service tests updated to use new `RetrievalService(index_version_repository, search_strategy)` constructor signature
+
+## [0.2.5] - 2026-09-25
+
+### Added
+- **PostgreSQL full-text search:** `search_vector` column (TSVECTOR) added to `chunks` table with GIN index
+- **Full-text search trigger:** Automatic `search_vector` population on chunk insert/update via PostgreSQL trigger function
+- **KeywordSearchRepository:** `KeywordSearchRepository.search()` enables `websearch_to_tsquery`/`ts_rank_cd` queries against `search_vector`
+- **KeywordSearchStrategy:** New `SearchStrategy` implementation for PostgreSQL full-text search
+- **Retrieval pipeline diversification:** `RetrievalService` now accepts any `SearchStrategy` (vector or keyword), decoupling search logic from the service layer
+
+### Changed
+- `SearchStrategy` base class updated to accept `RetrievalQuery` instead of separate queryVector/top_k/filters parameters
+- `VectorSearchStrategy.search()` now takes `RetrievalQuery` and delegates embedding to `EmbeddingProvider`
+- `KeywordSearchStrategy.search()` now takes `RetrievalQuery` and delegates query processing to `KeywordSearchRepository`
+- `RetrievalService` constructor now accepts `search_strategy` instead of `vector_search_repository` + `embedding_provider`
+- `ChunkDB` model now includes `search_vector: Mapped[str | None] = mapped_column(TSVECTOR, nullable=True)`
+
+### Fixed
+- Metadata consistency: `search_vector` is now automatically maintained via PostgreSQL trigger, ensuring tsvector is always in sync with `content`
+- Test cleanup: retrieval service tests updated to use new `RetrievalService(index_version_repository, search_strategy)` constructor signature
+
 ## [0.2.4] - 2026-09-25
 
 ### Added
 - **Evaluation models:** `RetrievalEvaluationCase` and `RetrievalEvaluationResult` (`src/models/retrieval_evaluation.py`) for ground-truth case management and metric computation without re-running retrieval
 - **`RetrievalEvaluationService`** (`src/services/retrieval_evaluation_service.py`) — `evaluate_case()` builds `RetrievalEvaluationResult` from retrieval output and ground-truth cases
 - **Metrics foundation:** Raw `retrieved_chunk_ids`/`relevant_chunk_ids` enables `Recall@K`, `Precision@K`, `MRR`, `NDCG` calculation; test: `tests/services/test_retrieval_evaluation_service.py`
+- **RetrievalFilter model:** New `RetrievalFilter` class in `src/models/retrieval.py` consolidating `source`, `document_id`, and `document_type` filters into a single reusable object
+- **Unified filter API:** `RetrievalQuery.filters` field replaces individual filter arguments in `search()` calls
 
 ### Changed
 - Evaluation data model is now frozen with `extra="forbid"`; supports future metric extensions without schema changes
+- `RetrievalQuery` now uses `filters: RetrievalFilter | None` instead of individual `source`, `document_id`, `document_type` fields
+- `VectorSearchRepository.search()` accepts `filters: RetrievalFilter | None` and applies all filters from the object
+- `RetrievalService.search()` forwards `request.filters` to the repository instead of individual filter fields
+- All existing filter tests updated to use `RetrievalFilter(source="...", document_id=..., document_type=...)`
+
+### Fixed
+- Test cleanup: removed duplicate filter field parameters from `RetrievalQuery` construction in test files
+- Consistent filter validation: all filter fields now go through the `RetrievalFilter` Pydantic model with `extra="forbid""
 
 ## [0.2.3] - 2026-09-25
 
