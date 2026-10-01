@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 - `RetrievalService.search()` unchanged — still returns candidates; pipeline layer applies reranking
 - `HybridSearchStrategy` candidate counting now respects `candidate_k` before truncation
 
+## [0.2.4] - 2026-09-25
+
+### Added
+- **Evaluation models:** `RetrievalEvaluationCase` and `RetrievalEvaluationResult` (`src/models/retrieval_evaluation.py`) for ground-truth case management and metric computation without re-running retrieval
+- **`RetrievalEvaluationService`** (`src/services/retrieval_evaluation_service.py`) — `evaluate_case()` builds `RetrievalEvaluationResult` from retrieval output and ground-truth cases
+- **Metrics foundation:** Raw `retrieved_chunk_ids`/`relevant_chunk_ids` enables `Recall@K`, `Precision@K`, `MRR`, `NDCG` calculation; test: `tests/services/test_retrieval_evaluation_service.py`
+
+### Changed
+- Evaluation data model is now frozen with `extra="forbid"`; supports future metric extensions without schema changes
+
 ## [0.2.3] - 2026-09-25
 
 ### Added
