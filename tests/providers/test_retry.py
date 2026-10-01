@@ -17,6 +17,11 @@ def policy(max_retries: int = 2) -> RetryPolicy:
 
 class TestRetryPolicy:
     def test_retry_eventually_succeeds(self):
+        """Uses a retryable exception, not a bare RuntimeError.
+
+        The default policy retries only transient provider failures, so a
+        generic `RuntimeError` would propagate on the first attempt.
+        """
         attempts = 0
 
         def operation():
@@ -25,7 +30,7 @@ class TestRetryPolicy:
             attempts += 1
 
             if attempts < 3:
-                raise RuntimeError("temporary")
+                raise TransientProviderError("temporary")
 
             return "success"
 
@@ -33,6 +38,24 @@ class TestRetryPolicy:
 
         assert p.execute(operation) == "success"
         assert attempts == 3
+
+    def test_bare_exception_is_not_retried(self):
+        """The prompt's example used RuntimeError, which must not retry."""
+        attempts = 0
+
+        def operation():
+            nonlocal attempts
+
+            attempts += 1
+
+            raise RuntimeError("temporary")
+
+        with pytest.raises(RuntimeError):
+            RetryPolicy(max_retries=2, delay_seconds=0).execute(
+                operation
+            )
+
+        assert attempts == 1
 
     def test_immediate_success_makes_one_attempt(self):
         calls = []
