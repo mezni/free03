@@ -22,11 +22,6 @@ def reciprocal_rank_fusion(
 ) -> list[RetrievalResult]:
     """
     Combine ranked result lists using Reciprocal Rank Fusion.
-
-    RRF score:
-        1 / (k + rank)
-
-    Rank starts at 1.
     """
 
     scores: dict[str, float] = {}
@@ -49,6 +44,11 @@ def reciprocal_rank_fusion(
     )
 
     return [
-        results_by_id[result_id]
+        results_by_id[result_id].model_copy(
+            update={
+                "score": scores[result_id],
+                "retrieval_method": "hybrid",
+            },
+        )
         for result_id in ranked_ids
     ]

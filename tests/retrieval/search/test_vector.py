@@ -73,6 +73,7 @@ def test_vector_search_strategy_maps_repository_result():
     assert result.content == "Refunds are available within 30 days."
     assert result.chunk_index == 0
     assert result.score == 0.15
+    assert result.retrieval_method == "vector"
 
     assert repository.received_query_vector == [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
     assert repository.received_top_k == 5

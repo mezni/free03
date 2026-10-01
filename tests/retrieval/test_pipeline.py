@@ -33,7 +33,14 @@ class FakeReranker:
         self.candidates = candidates
         self.top_k = top_k
 
-        return candidates[:top_k]
+        return [
+            candidate.model_copy(
+                update={
+                    "retrieval_method": "reranked",
+                },
+            )
+            for candidate in candidates[:top_k]
+        ]
 
 
 def test_pipeline_delegates_to_retrieval_service():
@@ -49,6 +56,7 @@ def test_pipeline_delegates_to_retrieval_service():
             content="Refunds are available within 30 days.",
             chunk_index=0,
             score=0.1,
+            retrieval_method="vector",
         )
     ]
 
@@ -75,6 +83,7 @@ def test_pipeline_reranks_results():
             content="result 1",
             chunk_index=0,
             score=0.1,
+            retrieval_method="vector",
         ),
         RetrievalResult(
             chunk_id=uuid4(),
@@ -83,6 +92,7 @@ def test_pipeline_reranks_results():
             content="result 2",
             chunk_index=1,
             score=0.2,
+            retrieval_method="vector",
         ),
     ]
 
@@ -103,6 +113,7 @@ def test_pipeline_reranks_results():
 
     assert len(final_results) == 1
     assert final_results[0].content == "result 1"
+    assert final_results[0].retrieval_method == "reranked"
 
     assert reranker.query == "refund policy"
     assert len(reranker.candidates) == 2

@@ -32,6 +32,7 @@ class KeywordSearchStrategy(SearchStrategy):
                 content=chunk.content,
                 chunk_index=chunk.chunk_index,
                 score=rank,
+                retrieval_method="keyword",
             )
             for chunk, rank in rows
         ]

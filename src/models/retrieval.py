@@ -54,3 +54,5 @@ class RetrievalResult(BaseModel):
     chunk_index: int
 
     score: float
+
+    retrieval_method: str

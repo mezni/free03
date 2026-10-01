@@ -42,6 +42,7 @@ class VectorSearchStrategy(SearchStrategy):
                 content=chunk.content,
                 chunk_index=chunk.chunk_index,
                 score=distance,
+                retrieval_method="vector",
             )
             for chunk, distance in rows
         ]

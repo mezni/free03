@@ -52,6 +52,7 @@ def test_keyword_search_strategy():
     assert len(results) == 1
     assert results[0].content == "Refunds are available within 30 days."
     assert results[0].score == 0.85
+    assert results[0].retrieval_method == "keyword"
 
     assert repository.query == "refund policy"
     assert repository.top_k == 5

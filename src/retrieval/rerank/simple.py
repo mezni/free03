@@ -20,4 +20,11 @@ class SimpleReranker(Reranker):
         if top_k < 1:
             raise ValueError("top_k must be greater than zero.")
 
-        return candidates[:top_k]
+        return [
+            candidate.model_copy(
+                update={
+                    "retrieval_method": "reranked",
+                },
+            )
+            for candidate in candidates[:top_k]
+        ]
