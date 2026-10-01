@@ -4,6 +4,7 @@ import pytest
 
 from src.evaluation.metrics.retrieval import (
     MeanReciprocalRank,
+    NDCGAtK,
     PrecisionAtK,
     RecallAtK,
     ReciprocalRank,
@@ -305,3 +306,78 @@ def test_mean_reciprocal_rank_rejects_invalid_k():
 
     with pytest.raises(ValueError, match="k must be greater than 0"):
         metric.calculate([], k=0)
+
+
+def test_ndcg_at_k_ideal_ranking():
+    chunk_a = uuid4()
+    chunk_b = uuid4()
+
+    evaluation = make_evaluation(
+        retrieved_ids=[chunk_a, chunk_b],
+        relevant_ids=[chunk_a, chunk_b],
+    )
+
+    metric = NDCGAtK()
+
+    assert metric.calculate(evaluation, k=2) == pytest.approx(1.0)
+
+
+def test_ndcg_at_k_partial_relevance():
+    chunk_a = uuid4()
+    chunk_b = uuid4()
+
+    evaluation = make_evaluation(
+        retrieved_ids=[chunk_a, uuid4(), chunk_b],
+        relevant_ids=[chunk_a, chunk_b],
+    )
+
+    metric = NDCGAtK()
+
+    result = metric.calculate(evaluation, k=3)
+
+    assert 0.0 < result < 1.0
+
+
+def test_ndcg_at_k_no_relevant_results():
+    evaluation = make_evaluation(
+        retrieved_ids=[uuid4(), uuid4()],
+        relevant_ids=[uuid4()],
+    )
+
+    metric = NDCGAtK()
+
+    assert metric.calculate(evaluation, k=2) == 0.0
+
+
+def test_ndcg_at_k_rewards_relevant_results_near_top():
+    chunk_a = uuid4()
+    chunk_b = uuid4()
+
+    early = make_evaluation(
+        retrieved_ids=[chunk_a, chunk_b, uuid4()],
+        relevant_ids=[chunk_a, chunk_b],
+    )
+
+    late = make_evaluation(
+        retrieved_ids=[uuid4(), chunk_a, chunk_b],
+        relevant_ids=[chunk_a, chunk_b],
+    )
+
+    metric = NDCGAtK()
+
+    early_score = metric.calculate(early, k=3)
+    late_score = metric.calculate(late, k=3)
+
+    assert early_score > late_score
+
+
+def test_ndcg_at_k_rejects_invalid_k():
+    evaluation = make_evaluation(
+        retrieved_ids=[],
+        relevant_ids=[uuid4()],
+    )
+
+    metric = NDCGAtK()
+
+    with pytest.raises(ValueError, match="k must be greater than 0"):
+        metric.calculate(evaluation, k=0)
