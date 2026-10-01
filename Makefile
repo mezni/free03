@@ -41,19 +41,19 @@ ci:
 	uv run pytest
 
 prod-build:
-	docker compose -f docker-compose.prod.yml build
+	docker compose --env-file .env.production -f docker-compose.prod.yml build
 
 prod-up:
 	docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 
 prod-down:
-	docker compose -f docker-compose.prod.yml down
+	docker compose --env-file .env.production -f docker-compose.prod.yml down
 
 prod-logs:
-	docker compose -f docker-compose.prod.yml logs -f
+	docker compose --env-file .env.production -f docker-compose.prod.yml logs -f
 
 prod-ps:
-	docker compose -f docker-compose.prod.yml ps
+	docker compose --env-file .env.production -f docker-compose.prod.yml ps
 
 prod-health:
 	curl http://localhost:8000/health
