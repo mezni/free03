@@ -25,10 +25,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="rag-system",
-        description=(
-            "Production-oriented Retrieval-Augmented "
-            "Generation API"
-        ),
+        description=("Production-oriented Retrieval-Augmented Generation API"),
         version="1.0.0",
         lifespan=lifespan,
     )

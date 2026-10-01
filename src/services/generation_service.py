@@ -48,10 +48,7 @@ class GenerationService:
         if not results:
             return RAGResponse(
                 query=query,
-                answer=(
-                    "I could not find relevant information "
-                    "in the knowledge base."
-                ),
+                answer=("I could not find relevant information in the knowledge base."),
                 citations=[],
                 model_name=self._llm_provider.model_name,
                 retrieved_count=0,
@@ -79,9 +76,7 @@ class GenerationService:
 
         try:
             with Timer() as timer:
-                response: GenerationResponse = (
-                    self._llm_provider.generate(request)
-                )
+                response: GenerationResponse = self._llm_provider.generate(request)
         except Exception:
             self._metrics.increment("generation.errors")
 
@@ -146,15 +141,9 @@ class GenerationService:
         )
 
         self._metrics.increment("llm.requests")
-        self._metrics.increment(
-            "llm.prompt_tokens", prompt_tokens
-        )
-        self._metrics.increment(
-            "llm.completion_tokens", completion_tokens
-        )
-        self._metrics.increment(
-            "llm.total_tokens", total_tokens
-        )
+        self._metrics.increment("llm.prompt_tokens", prompt_tokens)
+        self._metrics.increment("llm.completion_tokens", completion_tokens)
+        self._metrics.increment("llm.total_tokens", total_tokens)
 
         if self._usage_tracker is None:
             return

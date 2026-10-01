@@ -28,9 +28,7 @@ def make_usage(
 def test_create_returns_stored_record(database_session) -> None:
     repository = LLMUsageRepository(database_session)
 
-    created = repository.create(
-        make_usage(request_id="req-create")
-    )
+    created = repository.create(make_usage(request_id="req-create"))
 
     database_session.commit()
 
@@ -42,9 +40,7 @@ def test_create_returns_stored_record(database_session) -> None:
 def test_create_persists_columns(database_session) -> None:
     repository = LLMUsageRepository(database_session)
 
-    created = repository.create(
-        make_usage(estimated_cost=0.25)
-    )
+    created = repository.create(make_usage(estimated_cost=0.25))
 
     database_session.commit()
 
@@ -72,10 +68,7 @@ def test_list_by_request_id(database_session) -> None:
     records = repository.list_by_request_id("req-multi")
 
     assert len(records) == 2
-    assert all(
-        record.request_id == "req-multi"
-        for record in records
-    )
+    assert all(record.request_id == "req-multi" for record in records)
 
 
 def test_get_by_id_returns_none_for_unknown_id(
@@ -95,8 +88,6 @@ def test_usage_rows_are_removed_on_rollback(
 
     database_session.rollback()
 
-    count = database_session.execute(
-        select(func.count()).select_from(LLMUsageDB)
-    ).scalar_one()
+    count = database_session.execute(select(func.count()).select_from(LLMUsageDB)).scalar_one()
 
     assert count == 0

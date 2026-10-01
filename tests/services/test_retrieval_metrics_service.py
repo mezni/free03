@@ -76,6 +76,7 @@ def test_evaluate_rejects_invalid_k():
             k=0,
         )
 
+
 def test_context_metrics_are_none_without_context_input():
     """Guessing context from the ranked list would make the metric
     meaningless. Absent input means absent metric."""

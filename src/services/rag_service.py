@@ -1,4 +1,3 @@
-
 from src.models.rag import RAGResponse
 from src.models.retrieval import RetrievalQuery
 from src.observability.metrics import MetricsCollector

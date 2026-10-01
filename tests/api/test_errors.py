@@ -30,9 +30,7 @@ class TestReadiness:
                 pass
 
         client = TestClient(create_app())
-        client.app.dependency_overrides[get_db_session] = (
-            lambda: iter([FailingSession()])
-        )
+        client.app.dependency_overrides[get_db_session] = lambda: iter([FailingSession()])
 
         response = client.get("/health/ready")
 
@@ -42,17 +40,13 @@ class TestReadiness:
     def test_readiness_exception_is_not_leaked(self) -> None:
         class FailingSession:
             def execute(self, query):
-                raise RuntimeError(
-                    "password=supersecret host=internal.example"
-                )
+                raise RuntimeError("password=supersecret host=internal.example")
 
             def close(self):
                 pass
 
         client = TestClient(app=create_app(), raise_server_exceptions=False)
-        client.app.dependency_overrides[get_db_session] = (
-            lambda: iter([FailingSession()])
-        )
+        client.app.dependency_overrides[get_db_session] = lambda: iter([FailingSession()])
 
         response = client.get("/health/ready")
 
@@ -113,9 +107,7 @@ class TestErrorSanitization:
 
         @client.app.get("/boom/secret")
         def boom_secret():
-            raise GenerationError(
-                "Authorization: Bearer sk-or-v1-abc123 failed"
-            )
+            raise GenerationError("Authorization: Bearer sk-or-v1-abc123 failed")
 
         response = client.get("/boom/secret")
 
@@ -135,6 +127,4 @@ class TestErrorSanitization:
         response = client.get("/boom/gen")
 
         assert response.headers.get("X-Request-ID")
-        assert response.headers["X-Request-ID"] == response.json()[
-            "request_id"
-        ]
+        assert response.headers["X-Request-ID"] == response.json()["request_id"]

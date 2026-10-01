@@ -385,6 +385,7 @@ def test_ndcg_at_k_rejects_invalid_k():
     with pytest.raises(ValueError, match="k must be greater than 0"):
         metric.calculate(evaluation, k=0)
 
+
 class TestContextRecall:
     def test_all_relevant_chunks_in_context(self):
         chunk_a = uuid4()
@@ -397,10 +398,13 @@ class TestContextRecall:
 
         metric = ContextRecall()
 
-        assert metric.calculate(
-            evaluation,
-            [str(chunk_a), str(chunk_b)],
-        ) == 1.0
+        assert (
+            metric.calculate(
+                evaluation,
+                [str(chunk_a), str(chunk_b)],
+            )
+            == 1.0
+        )
 
     def test_half_of_relevant_chunks_in_context(self):
         chunk_a = uuid4()
@@ -413,10 +417,13 @@ class TestContextRecall:
 
         metric = ContextRecall()
 
-        assert metric.calculate(
-            evaluation,
-            [str(chunk_a)],
-        ) == 0.5
+        assert (
+            metric.calculate(
+                evaluation,
+                [str(chunk_a)],
+            )
+            == 0.5
+        )
 
     def test_context_recall_zero_when_context_empty(self):
         evaluation = make_evaluation(
@@ -452,10 +459,7 @@ class TestContextRecall:
         )
 
         assert RecallAtK().calculate(evaluation, k=5) == 1.0
-        assert (
-            ContextRecall().calculate(evaluation, [])
-            == 0.0
-        )
+        assert ContextRecall().calculate(evaluation, []) == 0.0
 
 
 class TestContextPrecision:
@@ -470,10 +474,13 @@ class TestContextPrecision:
 
         metric = ContextPrecision()
 
-        assert metric.calculate(
-            evaluation,
-            [str(chunk_a), str(chunk_b)],
-        ) == 1.0
+        assert (
+            metric.calculate(
+                evaluation,
+                [str(chunk_a), str(chunk_b)],
+            )
+            == 1.0
+        )
 
     def test_neighbor_padding_lowers_precision(self):
         """Window expansion adds chunks nobody judged relevant."""

@@ -25,13 +25,6 @@ class RetrievalEvaluationService:
     ) -> RetrievalEvaluationResult:
         return RetrievalEvaluationResult(
             case_id=case.case_id,
-            retrieved_chunk_ids=[
-                result.chunk_id
-                for result in results
-            ],
-            relevant_chunk_ids=(
-                self._evaluation_resolver.resolve_all(
-                    case.relevant_chunks
-                )
-            ),
+            retrieved_chunk_ids=[result.chunk_id for result in results],
+            relevant_chunk_ids=(self._evaluation_resolver.resolve_all(case.relevant_chunks)),
         )

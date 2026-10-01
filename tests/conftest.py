@@ -51,18 +51,14 @@ def embedded_document_factory():
 
         return EmbeddedDocument(
             document=document_input,
-            content_hash=hashlib.sha256(
-                content.encode("utf-8")
-            ).hexdigest(),
+            content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
             metadata=metadata,
             chunks=[
                 DocumentChunk(
                     chunk_id=f"{source_uri}#0",
                     document=document_input,
                     content=content,
-                    content_hash=hashlib.sha256(
-                        content.encode("utf-8")
-                    ).hexdigest(),
+                    content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
                     chunk_index=0,
                     start_char=0,
                     end_char=len(content),

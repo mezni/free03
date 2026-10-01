@@ -140,15 +140,9 @@ class ApplicationContainer:
         return RetrievalPipeline(
             retrieval_service=self.retrieval_service(),
             query_analyzer=self.query_analyzer(),
-            reranker=(
-                SimpleReranker()
-                if advanced.reranking.enabled
-                else None
-            ),
+            reranker=(SimpleReranker() if advanced.reranking.enabled else None),
             context_window_service=(
-                self.context_window_service()
-                if advanced.context.window_enabled
-                else None
+                self.context_window_service() if advanced.context.window_enabled else None
             ),
             context_selector=self.context_selector(),
             rerank_candidate_k=advanced.reranking.candidate_k,
@@ -169,9 +163,7 @@ class ApplicationContainer:
 
         return factory.create(
             config=self._settings.llm,
-            api_key=(
-                self._settings.environment.openrouter_api_key
-            ),
+            api_key=(self._settings.environment.openrouter_api_key),
             reliability=self._settings.reliability,
         )
 

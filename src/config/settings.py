@@ -97,10 +97,7 @@ class FinOpsConfig(BaseModel):
 
     @property
     def providers(self) -> dict[str, ProviderPricing]:
-        return {
-            name: ProviderPricing(models=models)
-            for name, models in self.pricing.items()
-        }
+        return {name: ProviderPricing(models=models) for name, models in self.pricing.items()}
 
 
 class EvaluationConfig(BaseModel):
@@ -193,42 +190,22 @@ def get_settings() -> Settings:
     environment = EnvironmentSettings(_env_file=None)  # type: ignore[call-arg]
 
     settings_data = load_yaml_config(CONFIG_DIR / "settings.yaml")
-    embedding_data = load_yaml_config(
-        CONFIG_DIR / "embedding.yaml"
-    )
+    embedding_data = load_yaml_config(CONFIG_DIR / "embedding.yaml")
     llm_data = load_yaml_config(CONFIG_DIR / "llm.yaml")
-    reliability_data = load_yaml_config(
-        CONFIG_DIR / "reliability.yaml"
-    )
+    reliability_data = load_yaml_config(CONFIG_DIR / "reliability.yaml")
     finops_data = load_yaml_config(CONFIG_DIR / "finops.yaml")
-    evaluation_data = load_yaml_config(
-        CONFIG_DIR / "evaluation.yaml"
-    )
-    advanced_retrieval_data = load_yaml_config(
-        CONFIG_DIR / "advanced_retrieval.yaml"
-    )
+    evaluation_data = load_yaml_config(CONFIG_DIR / "evaluation.yaml")
+    advanced_retrieval_data = load_yaml_config(CONFIG_DIR / "advanced_retrieval.yaml")
 
     return Settings(
         environment=environment,
-        application=ApplicationConfig.model_validate(
-            settings_data["application"]
-        ),
-        logging=LoggingConfig.model_validate(
-            settings_data["logging"]
-        ),
-        embedding=EmbeddingConfig.model_validate(
-            embedding_data["embedding"]
-        ),
+        application=ApplicationConfig.model_validate(settings_data["application"]),
+        logging=LoggingConfig.model_validate(settings_data["logging"]),
+        embedding=EmbeddingConfig.model_validate(embedding_data["embedding"]),
         llm=LLMConfig.model_validate(llm_data["llm"]),
-        reliability=ReliabilityConfig.model_validate(
-            reliability_data["reliability"]
-        ),
-        finops=FinOpsConfig.model_validate(
-            finops_data["finops"]
-        ),
-        evaluation=EvaluationConfig.model_validate(
-            evaluation_data
-        ),
+        reliability=ReliabilityConfig.model_validate(reliability_data["reliability"]),
+        finops=FinOpsConfig.model_validate(finops_data["finops"]),
+        evaluation=EvaluationConfig.model_validate(evaluation_data),
         advanced_retrieval=AdvancedRetrievalConfig.model_validate(
             advanced_retrieval_data["advanced_retrieval"]
         ),

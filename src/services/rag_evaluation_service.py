@@ -11,7 +11,6 @@ from src.services.rag_service import RAGService
 
 
 class RAGEvaluationService:
-
     def __init__(
         self,
         rag_service: RAGService,
@@ -34,24 +33,18 @@ class RAGEvaluationService:
             )
         )
 
-        answer_relevance = (
-            self._answer_evaluator.evaluate(
-                case,
-                response,
-            )
+        answer_relevance = self._answer_evaluator.evaluate(
+            case,
+            response,
         )
 
-        citation_precision, citation_recall = (
-            self._citation_evaluator.evaluate(
-                case,
-                response,
-            )
+        citation_precision, citation_recall = self._citation_evaluator.evaluate(
+            case,
+            response,
         )
 
-        grounding = (
-            self._grounding_evaluator.evaluate(
-                response,
-            )
+        grounding = self._grounding_evaluator.evaluate(
+            response,
         )
 
         return RAGEvaluationResult(
@@ -67,32 +60,15 @@ class RAGEvaluationService:
         cases: list[RAGEvaluationCase],
     ) -> RAGEvaluationMetrics:
         if not cases:
-            raise ValueError(
-                "At least one evaluation case is required."
-            )
+            raise ValueError("At least one evaluation case is required.")
 
-        results = [
-            self.evaluate_case(case)
-            for case in cases
-        ]
+        results = [self.evaluate_case(case) for case in cases]
 
         count = len(results)
 
         return RAGEvaluationMetrics(
-            answer_relevance=sum(
-                result.answer_relevance
-                for result in results
-            ) / count,
-            citation_precision=sum(
-                result.citation_precision
-                for result in results
-            ) / count,
-            citation_recall=sum(
-                result.citation_recall
-                for result in results
-            ) / count,
-            grounding=sum(
-                result.grounding
-                for result in results
-            ) / count,
+            answer_relevance=sum(result.answer_relevance for result in results) / count,
+            citation_precision=sum(result.citation_precision for result in results) / count,
+            citation_recall=sum(result.citation_recall for result in results) / count,
+            grounding=sum(result.grounding for result in results) / count,
         )

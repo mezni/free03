@@ -41,9 +41,7 @@ class FileFinalizer:
         counter = 1
 
         while True:
-            candidate = path.with_name(
-                f"{path.stem}_{counter}{path.suffix}"
-            )
+            candidate = path.with_name(f"{path.stem}_{counter}{path.suffix}")
 
             if not candidate.exists():
                 return candidate

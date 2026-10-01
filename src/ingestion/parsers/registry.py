@@ -12,6 +12,4 @@ class ParserRegistry:
             if parser.supports(source_uri):
                 return parser
 
-        raise ValueError(
-            f"No parser available for document: {source_uri}"
-        )
+        raise ValueError(f"No parser available for document: {source_uri}")

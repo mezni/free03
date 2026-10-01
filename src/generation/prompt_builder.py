@@ -25,9 +25,4 @@ class PromptBuilder:
         query: str,
         context: str,
     ) -> str:
-        return (
-            f"Sources:\n\n"
-            f"{context}\n\n"
-            f"Question:\n"
-            f"{query}"
-        )
+        return f"Sources:\n\n{context}\n\nQuestion:\n{query}"

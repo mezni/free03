@@ -140,14 +140,10 @@ class IngestionPipeline:
     ) -> DocumentProcessingResult:
         """Process exactly one source document and record its outcome."""
 
-        existing_document = self.documents.get_by_source_uri(
-            document_input.source_uri
-        )
+        existing_document = self.documents.get_by_source_uri(document_input.source_uri)
 
         previous_content_hash = (
-            existing_document.content_hash
-            if existing_document is not None
-            else None
+            existing_document.content_hash if existing_document is not None else None
         )
 
         change = self.change_detector.detect(
@@ -161,11 +157,7 @@ class IngestionPipeline:
             record = self.processing_service.record_skipped(
                 run_id=run_id,
                 source_uri=document_input.source_uri,
-                document_id=(
-                    existing_document.id
-                    if existing_document is not None
-                    else None
-                ),
+                document_id=(existing_document.id if existing_document is not None else None),
             )
 
             return self._to_result(record)
@@ -180,19 +172,12 @@ class IngestionPipeline:
 
             if operation == DocumentProcessingOperation.UPDATE:
                 if existing_document is None:
-                    raise ValueError(
-                        f"Cannot update missing document: "
-                        f"{document_input.source_uri}"
-                    )
+                    raise ValueError(f"Cannot update missing document: {document_input.source_uri}")
 
-                document_id = self.indexing_service.update(
-                    embedded_document
-                )
+                document_id = self.indexing_service.update(embedded_document)
 
             else:
-                document_id = self.indexing_service.add(
-                    embedded_document
-                )
+                document_id = self.indexing_service.add(embedded_document)
 
             record = self.processing_service.record_success(
                 run_id=run_id,
@@ -206,11 +191,7 @@ class IngestionPipeline:
         except Exception as exc:
             record = self.processing_service.record_failure(
                 run_id=run_id,
-                document_id=(
-                    existing_document.id
-                    if existing_document is not None
-                    else None
-                ),
+                document_id=(existing_document.id if existing_document is not None else None),
                 source_uri=document_input.source_uri,
                 operation=operation,
                 error_message=str(exc),

@@ -33,9 +33,7 @@ cases:
 """
         )
 
-        version, cases = RAGEvaluationDatasetLoader().load(
-            path
-        )
+        version, cases = RAGEvaluationDatasetLoader().load(path)
 
         assert version == 1
         assert len(cases) == 1
@@ -53,17 +51,13 @@ cases:
 """
         )
 
-        version, cases = RAGEvaluationDatasetLoader().load(
-            str(path)
-        )
+        version, cases = RAGEvaluationDatasetLoader().load(str(path))
 
         assert version == 2
         assert cases[0].expected_citations == []
 
     def test_shipped_dataset_loads(self) -> None:
-        version, cases = RAGEvaluationDatasetLoader().load(
-            "data/evaluation/rag_v1.yaml"
-        )
+        version, cases = RAGEvaluationDatasetLoader().load("data/evaluation/rag_v1.yaml")
 
         assert version == 1
         assert len(cases) == 3
@@ -73,9 +67,7 @@ cases:
             FileNotFoundError,
             match="Evaluation dataset not found",
         ):
-            RAGEvaluationDatasetLoader().load(
-                "data/evaluation/does-not-exist.yaml"
-            )
+            RAGEvaluationDatasetLoader().load("data/evaluation/does-not-exist.yaml")
 
     def test_non_mapping_root_raises(self, dataset_path) -> None:
         path = dataset_path("- just\n- a list\n")
@@ -88,8 +80,7 @@ cases:
 
     def test_non_integer_version_raises(self, dataset_path) -> None:
         path = dataset_path(
-            "version: one\ncases:\n  - case_id: c\n"
-            "    query: q\n    reference_answer: a\n"
+            "version: one\ncases:\n  - case_id: c\n    query: q\n    reference_answer: a\n"
         )
 
         with pytest.raises(
@@ -99,9 +90,7 @@ cases:
             RAGEvaluationDatasetLoader().load(path)
 
     def test_non_list_cases_raises(self, dataset_path) -> None:
-        path = dataset_path(
-            "version: 1\ncases:\n  case_id: c\n"
-        )
+        path = dataset_path("version: 1\ncases:\n  case_id: c\n")
 
         with pytest.raises(
             ValueError,

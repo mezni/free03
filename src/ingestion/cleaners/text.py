@@ -31,10 +31,7 @@ class TextDocumentCleaner(DocumentCleaner):
 
     @staticmethod
     def _remove_trailing_whitespace(content: str) -> str:
-        return "\n".join(
-            line.rstrip()
-            for line in content.split("\n")
-        )
+        return "\n".join(line.rstrip() for line in content.split("\n"))
 
     @staticmethod
     def _collapse_excessive_blank_lines(content: str) -> str:

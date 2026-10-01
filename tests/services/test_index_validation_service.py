@@ -16,13 +16,9 @@ def _validation_service(
     database_session,
 ) -> IndexValidationService:
     return IndexValidationService(
-        index_version_repository=IndexVersionRepository(
-            database_session
-        ),
+        index_version_repository=IndexVersionRepository(database_session),
         chunk_repository=ChunkRepository(database_session),
-        embedding_repository=EmbeddingRepository(
-            database_session
-        ),
+        embedding_repository=EmbeddingRepository(database_session),
     )
 
 
@@ -55,9 +51,7 @@ def _add_chunks(
             source="filesystem",
             source_uri=f"/tmp/{uuid4()}.md",
             title="Policy",
-            content_hash=hashlib.sha256(
-                "".join(contents).encode("utf-8")
-            ).hexdigest(),
+            content_hash=hashlib.sha256("".join(contents).encode("utf-8")).hexdigest(),
             status=DocumentLifecycleStatus.ACTIVE,
         )
     )
@@ -68,9 +62,7 @@ def _add_chunks(
             index_version_id=index_version_id,
             chunk_index=index,
             content=content,
-            content_hash=hashlib.sha256(
-                content.encode("utf-8")
-            ).hexdigest(),
+            content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
             start_char=0,
             end_char=len(content),
         )
@@ -96,9 +88,7 @@ def test_validates_clean_building_index(
         ["chunk zero", "chunk one"],
     )
 
-    result = _validation_service(
-        database_session
-    ).validate(version.id)
+    result = _validation_service(database_session).validate(version.id)
 
     assert result.valid is True
     assert result.document_count == 1
@@ -124,16 +114,12 @@ def test_reports_missing_embeddings(
 
     embeddings = EmbeddingRepository(database_session)
 
-    first_embedding = (
-        embeddings.get_by_index_version_id(version.id)[0]
-    )
+    first_embedding = embeddings.get_by_index_version_id(version.id)[0]
 
     database_session.delete(first_embedding)
     database_session.commit()
 
-    result = _validation_service(
-        database_session
-    ).validate(version.id)
+    result = _validation_service(database_session).validate(version.id)
 
     assert result.valid is False
     assert result.chunks_without_embeddings == 1
@@ -154,9 +140,7 @@ def test_reports_wrong_embedding_dimensions(
         declared_dimensions=1536,
     )
 
-    result = _validation_service(
-        database_session
-    ).validate(version.id)
+    result = _validation_service(database_session).validate(version.id)
 
     assert result.valid is False
     assert result.invalid_embedding_count == 1
@@ -167,16 +151,11 @@ def test_reports_empty_index(
 ) -> None:
     version = _build_building_version(database_session)
 
-    result = _validation_service(
-        database_session
-    ).validate(version.id)
+    result = _validation_service(database_session).validate(version.id)
 
     assert result.valid is False
     assert result.chunk_count == 0
-    assert any(
-        "no chunks" in error
-        for error in result.errors
-    )
+    assert any("no chunks" in error for error in result.errors)
 
 
 def test_detects_duplicate_chunk_positions(

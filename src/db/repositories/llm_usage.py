@@ -62,9 +62,7 @@ class LLMUsageRepository:
             .order_by(LLMUsageDB.created_at)
         )
 
-        records = self._session.execute(
-            statement
-        ).scalars()
+        records = self._session.execute(statement).scalars()
 
         return [self._to_record(record) for record in records]
 
@@ -72,13 +70,9 @@ class LLMUsageRepository:
         self,
         usage_id: UUID,
     ) -> LLMUsageRecord | None:
-        statement = select(LLMUsageDB).where(
-            LLMUsageDB.id == usage_id
-        )
+        statement = select(LLMUsageDB).where(LLMUsageDB.id == usage_id)
 
-        record = self._session.execute(
-            statement
-        ).scalar_one_or_none()
+        record = self._session.execute(statement).scalar_one_or_none()
 
         if record is None:
             return None

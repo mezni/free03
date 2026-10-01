@@ -42,14 +42,10 @@ class ChunkRepository:
         document_id: UUID,
     ) -> list[ChunkDB]:
         statement = (
-            select(ChunkDB)
-            .where(ChunkDB.document_id == document_id)
-            .order_by(ChunkDB.chunk_index)
+            select(ChunkDB).where(ChunkDB.document_id == document_id).order_by(ChunkDB.chunk_index)
         )
 
-        return list(
-            self.session.execute(statement).scalars().all()
-        )
+        return list(self.session.execute(statement).scalars().all())
 
     def get_by_document_id_and_version(
         self,
@@ -90,9 +86,7 @@ class ChunkRepository:
             .order_by(ChunkDB.chunk_index)
         )
 
-        return list(
-            self.session.execute(statement).scalars().all()
-        )
+        return list(self.session.execute(statement).scalars().all())
 
     def get_by_index_version_id(
         self,

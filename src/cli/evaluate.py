@@ -9,9 +9,7 @@ from src.evaluation.dataset_loader import (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Run retrieval evaluation."
-    )
+    parser = argparse.ArgumentParser(description="Run retrieval evaluation.")
 
     parser.add_argument(
         "--dataset",
@@ -58,22 +56,13 @@ def main() -> None:
     print(f"K: {args.k}")
     print()
     print(f"Recall@{args.k}:           {metrics.recall_at_k:.3f}")
-    print(
-        f"Precision@{args.k}:        "
-        f"{metrics.precision_at_k:.3f}"
-    )
+    print(f"Precision@{args.k}:        {metrics.precision_at_k:.3f}")
     print(f"MRR:                      {metrics.mrr:.3f}")
     print(f"NDCG@{args.k}:             {metrics.ndcg_at_k:.3f}")
 
     if metrics.context_recall is not None:
-        print(
-            f"Context recall:           "
-            f"{metrics.context_recall:.3f}"
-        )
-        print(
-            f"Context precision:        "
-            f"{metrics.context_precision:.3f}"
-        )
+        print(f"Context recall:           {metrics.context_recall:.3f}")
+        print(f"Context precision:        {metrics.context_precision:.3f}")
 
 
 if __name__ == "__main__":

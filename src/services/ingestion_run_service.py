@@ -59,9 +59,7 @@ class IngestionRunService:
         run = self.repository.get_by_id(run_id)
 
         if run is None:
-            raise ValueError(
-                f"Ingestion run not found: {run_id}"
-            )
+            raise ValueError(f"Ingestion run not found: {run_id}")
 
         self.repository.update_counts(
             run,

@@ -28,25 +28,16 @@ class EvaluationResolver:
         active_version = self._index_version_repository.get_active()
 
         if active_version is None:
-            raise RuntimeError(
-                "No active index version exists."
-            )
+            raise RuntimeError("No active index version exists.")
 
-        document = self._document_repository.get_by_source_uri(
-            reference.document
-        )
+        document = self._document_repository.get_by_source_uri(reference.document)
 
         if document is None:
-            raise LookupError(
-                f"Evaluation document not found: "
-                f"{reference.document}"
-            )
+            raise LookupError(f"Evaluation document not found: {reference.document}")
 
-        chunks = (
-            self._chunk_repository.get_by_document_id_and_version(
-                document_id=document.id,
-                index_version_id=active_version.id,
-            )
+        chunks = self._chunk_repository.get_by_document_id_and_version(
+            document_id=document.id,
+            index_version_id=active_version.id,
         )
 
         for chunk in chunks:
@@ -64,7 +55,4 @@ class EvaluationResolver:
         self,
         references: list[EvaluationChunkReference],
     ) -> list[UUID]:
-        return [
-            self.resolve(reference)
-            for reference in references
-        ]
+        return [self.resolve(reference) for reference in references]

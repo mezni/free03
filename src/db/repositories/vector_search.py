@@ -62,7 +62,4 @@ class VectorSearchRepository:
 
         result = self.session.execute(statement)
 
-        return [
-            (chunk, float(distance_value))
-            for chunk, distance_value in result.all()
-        ]
+        return [(chunk, float(distance_value)) for chunk, distance_value in result.all()]

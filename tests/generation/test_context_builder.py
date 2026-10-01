@@ -39,9 +39,7 @@ def test_build_numbers_sources_in_result_order():
     context = ContextBuilder().build([first, second])
 
     assert context.index("[SOURCE-1]") < context.index("[SOURCE-2]")
-    assert context.index("first content") < context.index(
-        "second content"
-    )
+    assert context.index("first content") < context.index("second content")
 
 
 def test_build_separates_sections():

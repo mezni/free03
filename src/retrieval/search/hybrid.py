@@ -40,9 +40,7 @@ class HybridSearchStrategy(SearchStrategy):
         request: RetrievalQuery,
         index_version_id: UUID,
     ) -> list[RetrievalResult]:
-        candidate_count = request.candidate_k or (
-            request.top_k * self.candidate_multiplier
-        )
+        candidate_count = request.candidate_k or (request.top_k * self.candidate_multiplier)
 
         candidate_request = request.model_copy(
             update={"top_k": candidate_count},

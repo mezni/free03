@@ -32,9 +32,7 @@ cases:
     assert len(dataset.cases) == 1
     assert dataset.cases[0].case_id == "billing-001"
     assert dataset.cases[0].query == "What is the billing policy?"
-    assert dataset.cases[0].relevant_chunks[0].document == (
-        "data/raw/billing/sample-policy.md"
-    )
+    assert dataset.cases[0].relevant_chunks[0].document == ("data/raw/billing/sample-policy.md")
     assert dataset.cases[0].relevant_chunks[0].chunk_index == 0
 
 
@@ -134,11 +132,7 @@ def test_load_repository_dataset():
     assert dataset.version == 1
     assert len(dataset.cases) == 3
     assert dataset.cases[0].case_id == "billing-policy-001"
-    assert dataset.cases[0].relevant_chunks[0].document == (
-        "data/raw/billing/sample-policy.md"
-    )
+    assert dataset.cases[0].relevant_chunks[0].document == ("data/raw/billing/sample-policy.md")
     assert dataset.cases[0].relevant_chunks[0].chunk_index == 0
     assert dataset.cases[1].relevant_chunks[0].chunk_index == 1
-    assert dataset.cases[2].relevant_chunks[0].document == (
-        "data/raw/security/account-security.md"
-    )
+    assert dataset.cases[2].relevant_chunks[0].document == ("data/raw/security/account-security.md")

@@ -21,7 +21,6 @@ _STRUCTURED_FIELDS = (
 
 
 class JsonFormatter(logging.Formatter):
-
     def format(
         self,
         record: logging.LogRecord,
@@ -42,9 +41,7 @@ class JsonFormatter(logging.Formatter):
                 payload[field] = getattr(record, field)
 
         if record.exc_info is not None:
-            payload["exception"] = self.formatException(
-                record.exc_info
-            )
+            payload["exception"] = self.formatException(record.exc_info)
 
         return json.dumps(payload, default=str)
 

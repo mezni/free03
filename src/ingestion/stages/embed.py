@@ -14,17 +14,12 @@ class EmbedStage(PipelineStage[ChunkedDocument, EmbeddedDocument]):
         self.provider = provider
 
     def execute(self, data: ChunkedDocument) -> EmbeddedDocument:
-        texts = [
-            chunk.content
-            for chunk in data.chunks
-        ]
+        texts = [chunk.content for chunk in data.chunks]
 
         vectors = self.provider.embed(texts)
 
         if len(vectors) != len(data.chunks):
-            raise ValueError(
-                "Embedding provider returned an unexpected number of vectors"
-            )
+            raise ValueError("Embedding provider returned an unexpected number of vectors")
 
         embeddings = [
             ChunkEmbedding(

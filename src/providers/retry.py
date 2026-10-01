@@ -21,9 +21,7 @@ class RetryPolicy:
         self,
         max_retries: int,
         delay_seconds: float,
-        retryable_exceptions: tuple[
-            type[BaseException], ...
-        ] = DEFAULT_RETRYABLE,
+        retryable_exceptions: tuple[type[BaseException], ...] = DEFAULT_RETRYABLE,
     ) -> None:
         self._max_retries = max_retries
         self._delay_seconds = delay_seconds

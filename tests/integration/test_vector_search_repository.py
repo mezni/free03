@@ -63,14 +63,8 @@ def test_search_filters_by_source_in_sql(
     )
 
     assert billing_rows
-    assert all(
-        chunk.document_id == billing_id
-        for chunk, _ in billing_rows
-    )
-    assert all(
-        chunk.index_version_id == version.id
-        for chunk, _ in billing_rows
-    )
+    assert all(chunk.document_id == billing_id for chunk, _ in billing_rows)
+    assert all(chunk.index_version_id == version.id for chunk, _ in billing_rows)
 
     hr_rows = repository.search(
         query_vector=[0.1] * 8,
@@ -80,14 +74,8 @@ def test_search_filters_by_source_in_sql(
     )
 
     assert hr_rows
-    assert all(
-        chunk.document_id == hr_id
-        for chunk, _ in hr_rows
-    )
-    assert all(
-        chunk.index_version_id == version.id
-        for chunk, _ in hr_rows
-    )
+    assert all(chunk.document_id == hr_id for chunk, _ in hr_rows)
+    assert all(chunk.index_version_id == version.id for chunk, _ in hr_rows)
 
 
 def test_search_filters_by_document_id_in_sql(
@@ -109,15 +97,6 @@ def test_search_filters_by_document_id_in_sql(
     )
 
     assert rows
-    assert all(
-        chunk.document_id == billing_id
-        for chunk, _ in rows
-    )
-    assert all(
-        chunk.index_version_id == version.id
-        for chunk, _ in rows
-    )
-    assert all(
-        chunk.document_id != hr_id
-        for chunk, _ in rows
-    )
+    assert all(chunk.document_id == billing_id for chunk, _ in rows)
+    assert all(chunk.index_version_id == version.id for chunk, _ in rows)
+    assert all(chunk.document_id != hr_id for chunk, _ in rows)

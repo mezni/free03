@@ -105,10 +105,7 @@ def test_window_expands_to_neighbors() -> None:
     )
 
     assert [r.chunk_index for r in expanded] == [1, 2, 3]
-    assert all(
-        r.index_version_id == version_id
-        for r in expanded
-    )
+    assert all(r.index_version_id == version_id for r in expanded)
 
 
 def test_window_of_zero_returns_results_unchanged() -> None:
@@ -175,9 +172,7 @@ def test_window_never_crosses_index_versions() -> None:
         for index in range(3)
     ]
 
-    repository = FakeChunkRepository(
-        {document_id: [*active_chunks, *retired_chunks]}
-    )
+    repository = FakeChunkRepository({document_id: [*active_chunks, *retired_chunks]})
 
     service = ContextWindowService(repository)
 
@@ -186,13 +181,8 @@ def test_window_never_crosses_index_versions() -> None:
         window=1,
     )
 
-    assert {r.index_version_id for r in expanded} == {
-        active_version
-    }
-    assert all(
-        r.content.startswith("v3")
-        for r in expanded
-    )
+    assert {r.index_version_id for r in expanded} == {active_version}
+    assert all(r.content.startswith("v3") for r in expanded)
     assert repository.calls[0]["index_version_id"] == active_version
 
 
@@ -209,14 +199,8 @@ def test_window_passes_version_on_every_lookup() -> None:
     )
 
     assert len(repository.calls) == 2
-    assert all(
-        call["index_version_id"] == version_id
-        for call in repository.calls
-    )
-    assert all(
-        call["window"] == 1
-        for call in repository.calls
-    )
+    assert all(call["index_version_id"] == version_id for call in repository.calls)
+    assert all(call["window"] == 1 for call in repository.calls)
 
 
 def test_window_preserves_retrieved_score() -> None:
@@ -236,15 +220,10 @@ def test_window_preserves_retrieved_score() -> None:
     )
 
     assert [r.score for r in expanded] == [0.42, 0.42, 0.42]
-    assert all(
-        r.retrieval_method == "context_window"
-        for r in expanded
-    )
+    assert all(r.retrieval_method == "context_window" for r in expanded)
 
 
 def test_window_returns_empty_for_no_results() -> None:
-    service = ContextWindowService(
-        FakeChunkRepository({})
-    )
+    service = ContextWindowService(FakeChunkRepository({}))
 
     assert service.expand([], window=1) == []

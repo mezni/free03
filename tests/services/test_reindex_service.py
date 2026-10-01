@@ -74,13 +74,9 @@ def _build_reindex_service(
         versioning_service=VersioningService(database_session),
         indexing_service=IndexingService(database_session),
         validation_service=IndexValidationService(
-            index_version_repository=IndexVersionRepository(
-                database_session
-            ),
+            index_version_repository=IndexVersionRepository(database_session),
             chunk_repository=ChunkRepository(database_session),
-            embedding_repository=EmbeddingRepository(
-                database_session
-            ),
+            embedding_repository=EmbeddingRepository(database_session),
         ),
         document_source=FilesystemSource(
             input_dir=raw,
@@ -149,18 +145,11 @@ def test_reindex_builds_activates_and_retires_previous(
     assert retired.status == IndexVersionStatus.RETIRED
 
     chunks = (
-        database_session.query(ChunkDB)
-        .filter(
-            ChunkDB.index_version_id == new_version.id
-        )
-        .all()
+        database_session.query(ChunkDB).filter(ChunkDB.index_version_id == new_version.id).all()
     )
 
     assert len(chunks) > 0
-    assert all(
-        chunk.index_version_id == new_version.id
-        for chunk in chunks
-    )
+    assert all(chunk.index_version_id == new_version.id for chunk in chunks)
 
 
 def test_reindex_failure_marks_version_failed_and_keeps_previous_active(
@@ -202,24 +191,18 @@ def test_reindex_failure_marks_version_failed_and_keeps_previous_active(
     assert active.status == IndexVersionStatus.ACTIVE
 
     versions = (
-        database_session.query(IndexVersionDB)
-        .order_by(IndexVersionDB.version_number.asc())
-        .all()
+        database_session.query(IndexVersionDB).order_by(IndexVersionDB.version_number.asc()).all()
     )
 
     failed_versions = [
-        version
-        for version in versions
-        if version.status == IndexVersionStatus.FAILED.value
+        version for version in versions if version.status == IndexVersionStatus.FAILED.value
     ]
 
     assert len(failed_versions) == 1
 
     assert (
         database_session.query(ChunkDB)
-        .filter(
-            ChunkDB.index_version_id == failed_versions[0].id
-        )
+        .filter(ChunkDB.index_version_id == failed_versions[0].id)
         .count()
         == 0
     )

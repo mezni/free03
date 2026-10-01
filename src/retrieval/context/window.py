@@ -31,13 +31,11 @@ class ContextWindowService:
         seen: set[str] = set()
 
         for result in results:
-            chunks = (
-                self._chunk_repository.get_neighboring_chunks(
-                    document_id=result.document_id,
-                    index_version_id=result.index_version_id,
-                    chunk_index=result.chunk_index,
-                    window=window,
-                )
+            chunks = self._chunk_repository.get_neighboring_chunks(
+                document_id=result.document_id,
+                index_version_id=result.index_version_id,
+                chunk_index=result.chunk_index,
+                window=window,
             )
 
             for chunk in chunks:

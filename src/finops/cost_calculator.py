@@ -23,23 +23,15 @@ class CostCalculator:
         provider_pricing = self._config.pricing.get(provider)
 
         if provider_pricing is None:
-            raise ValueError(
-                f"No pricing configured for provider: {provider}"
-            )
+            raise ValueError(f"No pricing configured for provider: {provider}")
 
         pricing = provider_pricing.get(model_name)
 
         if pricing is None:
-            raise ValueError(
-                f"No pricing configured for model: {model_name}"
-            )
+            raise ValueError(f"No pricing configured for model: {model_name}")
 
-        input_cost = (
-            prompt_tokens / TOKENS_PER_PRICING_UNIT
-        ) * pricing.input_per_1m_tokens
+        input_cost = (prompt_tokens / TOKENS_PER_PRICING_UNIT) * pricing.input_per_1m_tokens
 
-        output_cost = (
-            completion_tokens / TOKENS_PER_PRICING_UNIT
-        ) * pricing.output_per_1m_tokens
+        output_cost = (completion_tokens / TOKENS_PER_PRICING_UNIT) * pricing.output_per_1m_tokens
 
         return input_cost + output_cost

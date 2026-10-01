@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -45,9 +45,7 @@ class IndexVersionRepository:
         self,
         version_number: int,
     ) -> IndexVersionDB | None:
-        statement = select(IndexVersionDB).where(
-            IndexVersionDB.version_number == version_number
-        )
+        statement = select(IndexVersionDB).where(IndexVersionDB.version_number == version_number)
 
         return self.session.execute(statement).scalar_one_or_none()
 
@@ -55,16 +53,16 @@ class IndexVersionRepository:
         self,
         version_id: UUID,
     ) -> IndexVersionDB | None:
-        statement = select(IndexVersionDB).where(
-            IndexVersionDB.id == version_id
-        )
+        statement = select(IndexVersionDB).where(IndexVersionDB.id == version_id)
 
         return self.session.execute(statement).scalar_one_or_none()
 
     def get_next_version_number(self) -> int:
-        statement = select(IndexVersionDB.version_number).order_by(
-            IndexVersionDB.version_number.desc()
-        ).limit(1)
+        statement = (
+            select(IndexVersionDB.version_number)
+            .order_by(IndexVersionDB.version_number.desc())
+            .limit(1)
+        )
 
         latest = self.session.execute(statement).scalar_one_or_none()
 
@@ -93,18 +91,22 @@ class IndexVersionRepository:
         return version
 
     def activate(self, version: IndexVersionDB) -> IndexVersionDB:
-        active_versions = self.session.execute(
-            select(IndexVersionDB).where(
-                IndexVersionDB.status == IndexVersionStatus.ACTIVE.value,
-                IndexVersionDB.id != version.id,
+        active_versions = (
+            self.session.execute(
+                select(IndexVersionDB).where(
+                    IndexVersionDB.status == IndexVersionStatus.ACTIVE.value,
+                    IndexVersionDB.id != version.id,
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         for active_version in active_versions:
             active_version.status = IndexVersionStatus.RETIRED.value
 
         version.status = IndexVersionStatus.ACTIVE.value
-        version.activated_at = datetime.now(timezone.utc)
+        version.activated_at = datetime.now(UTC)
 
         self.session.flush()
 

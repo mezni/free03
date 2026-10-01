@@ -39,20 +39,10 @@ def test_ingestion_pipeline_end_to_end(
     assert len(results.document_ids) == 1
 
     document = (
-        database_session.query(DocumentDB)
-        .filter(
-            DocumentDB.source_uri == str(document_path)
-        )
-        .one()
+        database_session.query(DocumentDB).filter(DocumentDB.source_uri == str(document_path)).one()
     )
 
-    chunks = (
-        database_session.query(ChunkDB)
-        .filter(
-            ChunkDB.document_id == document.id
-        )
-        .all()
-    )
+    chunks = database_session.query(ChunkDB).filter(ChunkDB.document_id == document.id).all()
 
     embeddings = (
         database_session.query(EmbeddingDB)
@@ -60,9 +50,7 @@ def test_ingestion_pipeline_end_to_end(
             ChunkDB,
             EmbeddingDB.chunk_id == ChunkDB.id,
         )
-        .filter(
-            ChunkDB.document_id == document.id
-        )
+        .filter(ChunkDB.document_id == document.id)
         .all()
     )
 
@@ -79,10 +67,7 @@ def test_ingestion_skips_unchanged_document(
     raw.mkdir()
 
     document_path = raw / "billing-policy.md"
-    content = (
-        "# Billing Policy\n\n"
-        "Customers are billed according to their active service plan.\n"
-    )
+    content = "# Billing Policy\n\nCustomers are billed according to their active service plan.\n"
 
     document_path.write_text(content, encoding="utf-8")
 
@@ -106,11 +91,7 @@ def test_ingestion_skips_unchanged_document(
     assert document_path.exists()
 
     documents = (
-        database_session.query(DocumentDB)
-        .filter(
-            DocumentDB.source_uri == str(document_path)
-        )
-        .all()
+        database_session.query(DocumentDB).filter(DocumentDB.source_uri == str(document_path)).all()
     )
 
     assert len(documents) == 1
@@ -126,8 +107,7 @@ def test_modified_document_is_reindexed(
     document_path = raw / "billing-policy.md"
 
     document_path.write_text(
-        "# Billing Policy\n\n"
-        "Original billing policy.\n",
+        "# Billing Policy\n\nOriginal billing policy.\n",
         encoding="utf-8",
     )
 
@@ -143,28 +123,19 @@ def test_modified_document_is_reindexed(
     assert first_result.processed_count == 1
 
     document = (
-        database_session.query(DocumentDB)
-        .filter(
-            DocumentDB.source_uri == str(document_path)
-        )
-        .one()
+        database_session.query(DocumentDB).filter(DocumentDB.source_uri == str(document_path)).one()
     )
 
     original_hash = document.content_hash
 
     original_chunks = (
-        database_session.query(ChunkDB)
-        .filter(
-            ChunkDB.document_id == document.id
-        )
-        .all()
+        database_session.query(ChunkDB).filter(ChunkDB.document_id == document.id).all()
     )
 
     assert len(original_chunks) > 0
 
     document_path.write_text(
-        "# Billing Policy\n\n"
-        "Updated billing policy with new information.\n",
+        "# Billing Policy\n\nUpdated billing policy with new information.\n",
         encoding="utf-8",
     )
 
@@ -179,11 +150,7 @@ def test_modified_document_is_reindexed(
     assert document.content_hash != original_hash
 
     updated_chunks = (
-        database_session.query(ChunkDB)
-        .filter(
-            ChunkDB.document_id == document.id
-        )
-        .all()
+        database_session.query(ChunkDB).filter(ChunkDB.document_id == document.id).all()
     )
 
     assert len(updated_chunks) > 0
@@ -212,11 +179,7 @@ def test_indexing_service_removes_document_from_active_index(
     pipeline.run()
 
     document = (
-        database_session.query(DocumentDB)
-        .filter(
-            DocumentDB.source_uri == str(document_path)
-        )
-        .one()
+        database_session.query(DocumentDB).filter(DocumentDB.source_uri == str(document_path)).one()
     )
 
     from src.services.indexing_service import IndexingService
@@ -225,16 +188,6 @@ def test_indexing_service_removes_document_from_active_index(
 
     service.delete(document.id)
 
-    assert (
-        database_session.query(ChunkDB)
-        .filter(ChunkDB.document_id == document.id)
-        .count()
-        == 0
-    )
+    assert database_session.query(ChunkDB).filter(ChunkDB.document_id == document.id).count() == 0
 
-    assert (
-        database_session.query(DocumentDB)
-        .filter(DocumentDB.id == document.id)
-        .one()
-        is not None
-    )
+    assert database_session.query(DocumentDB).filter(DocumentDB.id == document.id).one() is not None

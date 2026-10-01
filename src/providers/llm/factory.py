@@ -17,15 +17,10 @@ class LLMProviderFactory:
 
         if provider_name == "openrouter":
             if not api_key:
-                raise ValueError(
-                    "OPENROUTER_API_KEY is required "
-                    "for the OpenRouter provider."
-                )
+                raise ValueError("OPENROUTER_API_KEY is required for the OpenRouter provider.")
 
             llm_reliability = (
-                reliability.llm
-                if reliability is not None
-                else LLMReliabilityDefaults()
+                reliability.llm if reliability is not None else LLMReliabilityDefaults()
             )
 
             return OpenRouterProvider(
@@ -36,15 +31,11 @@ class LLMProviderFactory:
                 timeout_seconds=llm_reliability.timeout_seconds,
                 retry_policy=RetryPolicy(
                     max_retries=llm_reliability.max_retries,
-                    delay_seconds=(
-                        llm_reliability.retry_delay_seconds
-                    ),
+                    delay_seconds=(llm_reliability.retry_delay_seconds),
                 ),
             )
 
-        raise ValueError(
-            f"Unsupported LLM provider: {config.provider}"
-        )
+        raise ValueError(f"Unsupported LLM provider: {config.provider}")
 
 
 class LLMReliabilityDefaults:

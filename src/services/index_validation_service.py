@@ -24,51 +24,32 @@ class IndexValidationService:
         self,
         index_version_id: UUID,
     ) -> IndexValidationResult:
-        version = self.index_version_repository.get_by_id(
-            index_version_id
-        )
+        version = self.index_version_repository.get_by_id(index_version_id)
 
         if version is None:
-            raise ValueError(
-                f"Index version not found: {index_version_id}"
-            )
+            raise ValueError(f"Index version not found: {index_version_id}")
 
         errors: list[str] = []
 
         if version.status != IndexVersionStatus.BUILDING.value:
-            errors.append(
-                f"Index version must be BUILDING, "
-                f"got {version.status}"
-            )
+            errors.append(f"Index version must be BUILDING, got {version.status}")
 
-        chunks = self.chunk_repository.get_by_index_version_id(
-            index_version_id
-        )
+        chunks = self.chunk_repository.get_by_index_version_id(index_version_id)
 
-        embeddings = self.embedding_repository.get_by_index_version_id(
-            index_version_id
-        )
+        embeddings = self.embedding_repository.get_by_index_version_id(index_version_id)
 
         chunk_count = len(chunks)
         embedding_count = len(embeddings)
 
         if chunk_count == 0:
-            errors.append(
-                "Index contains no chunks"
-            )
+            errors.append("Index contains no chunks")
 
         invalid_embedding_count = sum(
-            1
-            for embedding in embeddings
-            if embedding.dimensions
-            != version.embedding_dimensions
+            1 for embedding in embeddings if embedding.dimensions != version.embedding_dimensions
         )
 
         if invalid_embedding_count > 0:
-            errors.append(
-                f"{invalid_embedding_count} embeddings have "
-                "incorrect dimensions"
-            )
+            errors.append(f"{invalid_embedding_count} embeddings have incorrect dimensions")
 
         chunks_without_embeddings = self._count_chunks_without_embeddings(
             chunks,
@@ -76,18 +57,12 @@ class IndexValidationService:
         )
 
         if chunks_without_embeddings > 0:
-            errors.append(
-                f"{chunks_without_embeddings} chunks have no embedding"
-            )
+            errors.append(f"{chunks_without_embeddings} chunks have no embedding")
 
-        duplicate_chunk_count = (
-            self._count_duplicate_chunks(chunks)
-        )
+        duplicate_chunk_count = self._count_duplicate_chunks(chunks)
 
         if duplicate_chunk_count > 0:
-            errors.append(
-                f"{duplicate_chunk_count} duplicate chunk positions found"
-            )
+            errors.append(f"{duplicate_chunk_count} duplicate chunk positions found")
 
         return IndexValidationResult(
             valid=not errors,
@@ -106,16 +81,9 @@ class IndexValidationService:
         chunks: list[ChunkDB],
         embeddings: list[EmbeddingDB],
     ) -> int:
-        embedding_chunk_ids = {
-            embedding.chunk_id
-            for embedding in embeddings
-        }
+        embedding_chunk_ids = {embedding.chunk_id for embedding in embeddings}
 
-        return sum(
-            1
-            for chunk in chunks
-            if chunk.id not in embedding_chunk_ids
-        )
+        return sum(1 for chunk in chunks if chunk.id not in embedding_chunk_ids)
 
     def _count_duplicate_chunks(
         self,

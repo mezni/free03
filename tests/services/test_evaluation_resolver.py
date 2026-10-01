@@ -85,9 +85,7 @@ def make_resolver():
             }
         ),
         chunk_repository=chunk_repository,
-        index_version_repository=FakeIndexVersionRepository(
-            version
-        ),
+        index_version_repository=FakeIndexVersionRepository(version),
     )
 
     return resolver, version, document_id, chunk_repository, chunk_id
@@ -156,9 +154,7 @@ def test_resolve_requires_active_index():
 
 
 def test_resolve_all():
-    resolver, version, document_id, chunk_repository, first = (
-        make_resolver()
-    )
+    resolver, version, document_id, chunk_repository, first = make_resolver()
 
     second_chunk_id = uuid4()
 
@@ -189,9 +185,7 @@ def test_resolve_all_empty():
 
 
 def test_resolve_all_preserves_input_order():
-    resolver, version, document_id, chunk_repository, target = (
-        make_resolver()
-    )
+    resolver, version, document_id, chunk_repository, target = make_resolver()
 
     first_chunk = FakeChunk(chunk_id=uuid4(), chunk_index=0)
 
@@ -217,18 +211,14 @@ def test_resolve_all_preserves_input_order():
 
 
 def test_resolve_ignores_chunks_from_other_versions():
-    resolver, version, document_id, chunk_repository, _ = (
-        make_resolver()
-    )
+    resolver, version, document_id, chunk_repository, _ = make_resolver()
 
     other_version_chunk = FakeChunk(
         chunk_id=uuid4(),
         chunk_index=2,
     )
 
-    chunk_repository.chunks[
-        (document_id, uuid4())
-    ] = [other_version_chunk]
+    chunk_repository.chunks[(document_id, uuid4())] = [other_version_chunk]
 
     reference = EvaluationChunkReference(
         document=DOCUMENT_URI,
@@ -238,6 +228,4 @@ def test_resolve_ignores_chunks_from_other_versions():
     result = resolver.resolve(reference)
 
     assert result != other_version_chunk.id
-    assert result == chunk_repository.chunks[
-        (document_id, version.id)
-    ][0].id
+    assert result == chunk_repository.chunks[(document_id, version.id)][0].id

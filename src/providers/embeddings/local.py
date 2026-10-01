@@ -36,17 +36,13 @@ class LocalEmbeddingProvider(EmbeddingProvider):
         values: list[float] = []
 
         for index in range(self._dimensions):
-            digest = hashlib.sha256(
-                f"{index}:{text}".encode("utf-8")
-            ).digest()
+            digest = hashlib.sha256(f"{index}:{text}".encode()).digest()
 
             integer = int.from_bytes(digest[:4], byteorder="big")
 
             values.append((integer / 2**32) * 2 - 1)
 
-        magnitude = math.sqrt(
-            sum(value * value for value in values)
-        )
+        magnitude = math.sqrt(sum(value * value for value in values))
 
         if magnitude == 0:
             return values

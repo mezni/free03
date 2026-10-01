@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.core.enums import DocumentLifecycleStatus
-from src.models.document import Document, DocumentCreate
+from src.models.document import DocumentCreate
 
 
 def test_document_create():

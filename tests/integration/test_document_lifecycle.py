@@ -1,5 +1,4 @@
 from src.core.enums import DocumentLifecycleStatus
-from src.db.models.document import DocumentDB
 from src.db.repositories.documents import DocumentRepository
 from src.models.document import DocumentCreate
 

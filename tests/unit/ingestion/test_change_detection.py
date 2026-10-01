@@ -58,10 +58,7 @@ def test_unchanged_document(tmp_path: Path):
     )
 
     assert second_result.change_type == DocumentChangeType.UNCHANGED
-    assert (
-        second_result.content_hash
-        == first_result.content_hash
-    )
+    assert second_result.content_hash == first_result.content_hash
 
 
 def test_modified_document(tmp_path: Path):
@@ -97,7 +94,4 @@ def test_modified_document(tmp_path: Path):
 
     assert second_result.change_type == DocumentChangeType.MODIFIED
 
-    assert (
-        second_result.content_hash
-        != first_result.content_hash
-    )
+    assert second_result.content_hash != first_result.content_hash

@@ -61,10 +61,7 @@ def test_settings_load_finops_config():
 
     pricing = settings.finops.pricing["openrouter"]
 
-    assert (
-        pricing["openai/gpt-oss-20b:free"].input_per_1m_tokens
-        == 0.0
-    )
+    assert pricing["openai/gpt-oss-20b:free"].input_per_1m_tokens == 0.0
 
 
 def test_settings_load_quality_gate_config():

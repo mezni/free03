@@ -36,29 +36,18 @@ class RetrievalMetricsService:
         if k <= 0:
             raise ValueError("k must be greater than 0")
 
-        recall_scores = [
-            self._recall.calculate(evaluation, k)
-            for evaluation in evaluations
-        ]
+        recall_scores = [self._recall.calculate(evaluation, k) for evaluation in evaluations]
 
-        precision_scores = [
-            self._precision.calculate(evaluation, k)
-            for evaluation in evaluations
-        ]
+        precision_scores = [self._precision.calculate(evaluation, k) for evaluation in evaluations]
 
-        ndcg_scores = [
-            self._ndcg.calculate(evaluation, k)
-            for evaluation in evaluations
-        ]
+        ndcg_scores = [self._ndcg.calculate(evaluation, k) for evaluation in evaluations]
 
         context_recall: float | None = None
         context_precision: float | None = None
 
         if context_chunk_ids is not None:
             if len(context_chunk_ids) != len(evaluations):
-                raise ValueError(
-                    "context_chunk_ids must align with evaluations"
-                )
+                raise ValueError("context_chunk_ids must align with evaluations")
 
             context_recall = self._average(
                 [

@@ -8,7 +8,6 @@ from src.services.rag_evaluation_service import (
 
 
 class RAGEvaluationRunner:
-
     def __init__(
         self,
         dataset_loader: RAGEvaluationDatasetLoader,
@@ -21,12 +20,8 @@ class RAGEvaluationRunner:
         self,
         dataset_path: str,
     ) -> tuple[int, RAGEvaluationMetrics]:
-        version, cases = self._dataset_loader.load(
-            dataset_path
-        )
+        version, cases = self._dataset_loader.load(dataset_path)
 
-        metrics = self._evaluation_service.evaluate(
-            cases
-        )
+        metrics = self._evaluation_service.evaluate(cases)
 
         return version, metrics

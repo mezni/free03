@@ -41,9 +41,7 @@ class TestRAGEvaluationRunner:
 
         runner = RAGEvaluationRunner(
             dataset_loader=FakeLoader(1, ["case"]),
-            evaluation_service=FakeEvaluationService(
-                metrics
-            ),
+            evaluation_service=FakeEvaluationService(metrics),
         )
 
         version, result = runner.run("data/evaluation/rag_v1.yaml")

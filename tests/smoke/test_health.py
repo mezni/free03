@@ -28,13 +28,9 @@ def test_readiness_reports_database_outage() -> None:
     client = make_client()
 
     failing = MagicMock()
-    failing.execute.side_effect = RuntimeError(
-        "connection refused: host=db.internal user=rag"
-    )
+    failing.execute.side_effect = RuntimeError("connection refused: host=db.internal user=rag")
 
-    client.app.dependency_overrides[get_db_session] = (
-        lambda: failing
-    )
+    client.app.dependency_overrides[get_db_session] = lambda: failing
 
     response = client.get("/health/ready")
 

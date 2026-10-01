@@ -3,9 +3,7 @@ from src.ingestion.parsers.registry import ParserRegistry
 from src.ingestion.stages.base import PipelineStage
 
 
-class ParseStage(
-    PipelineStage[RawDocument, ParsedDocument]
-):
+class ParseStage(PipelineStage[RawDocument, ParsedDocument]):
     """Parse raw documents using the appropriate parser."""
 
     def __init__(self, registry: ParserRegistry) -> None:
@@ -15,8 +13,6 @@ class ParseStage(
         self,
         data: RawDocument,
     ) -> ParsedDocument:
-        parser = self.registry.get_parser(
-            data.document.source_uri
-        )
+        parser = self.registry.get_parser(data.document.source_uri)
 
         return parser.parse(data)

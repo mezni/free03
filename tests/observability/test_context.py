@@ -25,11 +25,7 @@ class TestRequestId:
             [
                 sys.executable,
                 "-c",
-                (
-                    "from src.observability.context import "
-                    "get_request_id; "
-                    "print(get_request_id())"
-                ),
+                ("from src.observability.context import get_request_id; print(get_request_id())"),
             ],
             capture_output=True,
             text=True,

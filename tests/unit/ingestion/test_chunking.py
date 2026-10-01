@@ -4,7 +4,6 @@ import pytest
 
 from src.ingestion.chunkers.text import CharacterTextChunker
 from src.ingestion.context import (
-    CleanedDocument,
     DocumentInput,
     DocumentMetadata,
     EnrichedDocument,
@@ -32,9 +31,7 @@ def create_document(tmp_path: Path) -> EnrichedDocument:
         document_type="markdown",
         title="Policy",
         file_size_bytes=1000,
-        modified_at=__import__("datetime").datetime.now(
-            __import__("datetime").timezone.utc
-        ),
+        modified_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
     )
 
     return EnrichedDocument(
@@ -84,9 +81,7 @@ def test_chunker_rejects_invalid_configuration() -> None:
 
 
 def test_empty_document_returns_no_chunks(tmp_path: Path) -> None:
-    document = create_document(tmp_path).model_copy(
-        update={"content": ""}
-    )
+    document = create_document(tmp_path).model_copy(update={"content": ""})
 
     chunker = CharacterTextChunker()
 

@@ -13,14 +13,7 @@ def test_text_cleaner():
 
     parsed = ParsedDocument(
         document=document,
-        content=(
-            "\r\n"
-            "# Billing Policy   \r\n"
-            "\r\n"
-            "\r\n"
-            "\r\n"
-            "Customers are billed monthly.   \r\n"
-        ),
+        content=("\r\n# Billing Policy   \r\n\r\n\r\n\r\nCustomers are billed monthly.   \r\n"),
         content_hash="a" * 64,
         format="markdown",
     )
@@ -29,10 +22,7 @@ def test_text_cleaner():
 
     result = cleaner.clean(parsed)
 
-    assert result.content == (
-        "# Billing Policy\n\n"
-        "Customers are billed monthly."
-    )
+    assert result.content == ("# Billing Policy\n\nCustomers are billed monthly.")
 
     assert result.content_hash == parsed.content_hash
     assert result.format == "markdown"

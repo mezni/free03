@@ -33,9 +33,7 @@ def test_system_prompt_keeps_context_in_data_role():
 
 
 def test_prompt_contains_prebuilt_context():
-    context = ContextBuilder().build(
-        [make_result("Billing disputes are filed within 30 days.")]
-    )
+    context = ContextBuilder().build([make_result("Billing disputes are filed within 30 days.")])
 
     user_prompt = PromptBuilder().build_user_prompt(
         query="What is the billing policy?",
@@ -44,10 +42,7 @@ def test_prompt_contains_prebuilt_context():
 
     assert "[SOURCE-1]" in user_prompt
 
-    assert (
-        "Billing disputes are filed within 30 days."
-        in user_prompt
-    )
+    assert "Billing disputes are filed within 30 days." in user_prompt
 
 
 def test_prompt_contains_question():
@@ -72,13 +67,9 @@ def test_prompt_numbers_sources_in_context_order():
         context=context,
     )
 
-    assert user_prompt.index("[SOURCE-1]") < user_prompt.index(
-        "[SOURCE-2]"
-    )
+    assert user_prompt.index("[SOURCE-1]") < user_prompt.index("[SOURCE-2]")
 
-    assert user_prompt.index("first content") < user_prompt.index(
-        "second content"
-    )
+    assert user_prompt.index("first content") < user_prompt.index("second content")
 
 
 def test_prompt_has_no_sources_for_empty_context():

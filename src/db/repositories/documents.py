@@ -30,16 +30,12 @@ class DocumentRepository:
         return document
 
     def get_by_id(self, document_id: UUID) -> DocumentDB | None:
-        statement = select(DocumentDB).where(
-            DocumentDB.id == document_id
-        )
+        statement = select(DocumentDB).where(DocumentDB.id == document_id)
 
         return self.session.execute(statement).scalar_one_or_none()
 
     def get_by_source_uri(self, source_uri: str) -> DocumentDB | None:
-        statement = select(DocumentDB).where(
-            DocumentDB.source_uri == source_uri
-        )
+        statement = select(DocumentDB).where(DocumentDB.source_uri == source_uri)
 
         return self.session.execute(statement).scalar_one_or_none()
 
@@ -47,9 +43,7 @@ class DocumentRepository:
         self,
         content_hash: str,
     ) -> DocumentDB | None:
-        statement = select(DocumentDB).where(
-            DocumentDB.content_hash == content_hash
-        )
+        statement = select(DocumentDB).where(DocumentDB.content_hash == content_hash)
 
         return self.session.execute(statement).scalar_one_or_none()
 

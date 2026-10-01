@@ -40,9 +40,7 @@ def test_find_document_by_source_uri(database_session):
 
     database_session.commit()
 
-    document = repository.get_by_source_uri(
-        "data/raw/roaming/roaming.md"
-    )
+    document = repository.get_by_source_uri("data/raw/roaming/roaming.md")
 
     assert document is not None
     assert document.title == "Roaming Policy"

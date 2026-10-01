@@ -4,9 +4,7 @@ from threading import Lock
 
 class MetricsCollector:
     def __init__(self) -> None:
-        self._counters: dict[str, int] = (
-            defaultdict(int)
-        )
+        self._counters: dict[str, int] = defaultdict(int)
 
         self._gauges: dict[str, float] = defaultdict(float)
 

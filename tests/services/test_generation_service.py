@@ -31,8 +31,7 @@ class FakeLLMProvider:
 
     def __init__(self, answer: str | None = None) -> None:
         self.answer = answer or (
-            "The billing policy allows disputes within the "
-            "specified period. [SOURCE-1]"
+            "The billing policy allows disputes within the specified period. [SOURCE-1]"
         )
         self.requests = []
 
@@ -154,9 +153,7 @@ def test_generation_sends_prebuilt_prompts():
 
 
 def test_generation_omits_citations_when_absent():
-    service = make_service(
-        FakeLLMProvider(answer="No citation here.")
-    )
+    service = make_service(FakeLLMProvider(answer="No citation here."))
 
     response = service.generate(
         query="What is the billing policy?",

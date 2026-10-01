@@ -58,21 +58,12 @@ class RetrievalEvaluationRunner:
 
         results = self._retrieval_pipeline.execute(request)
 
-        relevant_chunk_ids = (
-            self._evaluation_resolver.resolve_all(
-                case.relevant_chunks
-            )
-        )
+        relevant_chunk_ids = self._evaluation_resolver.resolve_all(case.relevant_chunks)
 
         evaluation = RetrievalEvaluationResult(
             case_id=case.case_id,
-            retrieved_chunk_ids=[
-                result.chunk_id
-                for result in results
-            ],
+            retrieved_chunk_ids=[result.chunk_id for result in results],
             relevant_chunk_ids=relevant_chunk_ids,
         )
 
-        return evaluation, [
-            str(result.chunk_id) for result in results
-        ]
+        return evaluation, [str(result.chunk_id) for result in results]

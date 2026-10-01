@@ -8,7 +8,6 @@ from src.models.rag import Citation, RAGResponse
 
 
 class FakeRAGService:
-
     def answer(self, query):
         return RAGResponse(
             query=query.query,
@@ -29,9 +28,7 @@ class FakeRAGService:
 def test_rag_query() -> None:
     app = create_app()
 
-    app.dependency_overrides[
-        get_rag_service
-    ] = lambda: FakeRAGService()
+    app.dependency_overrides[get_rag_service] = lambda: FakeRAGService()
 
     client = TestClient(app)
 
@@ -47,9 +44,7 @@ def test_rag_query() -> None:
 
     body = response.json()
 
-    assert body["query"] == (
-        "What is the billing policy?"
-    )
+    assert body["query"] == ("What is the billing policy?")
 
     assert body["model_name"] == "fake-model"
     assert body["retrieved_count"] == 1
@@ -96,15 +91,12 @@ def test_rag_query_defaults_top_k_to_five() -> None:
     seen: list[int] = []
 
     class RecordingRAGService(FakeRAGService):
-
         def answer(self, query):
             seen.append(query.top_k)
 
             return super().answer(query)
 
-    app.dependency_overrides[
-        get_rag_service
-    ] = lambda: RecordingRAGService()
+    app.dependency_overrides[get_rag_service] = lambda: RecordingRAGService()
 
     client = TestClient(app)
 
@@ -120,9 +112,7 @@ def test_rag_query_defaults_top_k_to_five() -> None:
 def test_rag_query_rejects_empty_query() -> None:
     app = create_app()
 
-    app.dependency_overrides[
-        get_rag_service
-    ] = lambda: FakeRAGService()
+    app.dependency_overrides[get_rag_service] = lambda: FakeRAGService()
 
     client = TestClient(app)
 
@@ -137,9 +127,7 @@ def test_rag_query_rejects_empty_query() -> None:
 def test_rag_query_rejects_unknown_field() -> None:
     app = create_app()
 
-    app.dependency_overrides[
-        get_rag_service
-    ] = lambda: FakeRAGService()
+    app.dependency_overrides[get_rag_service] = lambda: FakeRAGService()
 
     client = TestClient(app)
 
@@ -157,9 +145,7 @@ def test_rag_query_rejects_unknown_field() -> None:
 def test_rag_query_rejects_out_of_range_top_k() -> None:
     app = create_app()
 
-    app.dependency_overrides[
-        get_rag_service
-    ] = lambda: FakeRAGService()
+    app.dependency_overrides[get_rag_service] = lambda: FakeRAGService()
 
     client = TestClient(app)
 

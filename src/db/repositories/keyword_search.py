@@ -63,7 +63,4 @@ class KeywordSearchRepository:
 
         result = self.session.execute(statement)
 
-        return [
-            (chunk, float(rank_value))
-            for chunk, rank_value in result.all()
-        ]
+        return [(chunk, float(rank_value)) for chunk, rank_value in result.all()]

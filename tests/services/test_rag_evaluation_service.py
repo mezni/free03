@@ -17,9 +17,7 @@ class FakeRAGService:
     def answer(self, query) -> RAGResponse:
         self.queries.append(query.query)
 
-        return self._responses[
-            len(self.queries) - 1
-        ]
+        return self._responses[len(self.queries) - 1]
 
 
 class FakeAnswerEvaluator(AnswerEvaluator):
@@ -88,12 +86,8 @@ def _service(
     return RAGEvaluationService(
         rag_service=rag_service,
         answer_evaluator=FakeAnswerEvaluator(answer_score),
-        citation_evaluator=FakeCitationEvaluator(
-            citation_scores or [(1.0, 1.0)]
-        ),
-        grounding_evaluator=FakeGroundingEvaluator(
-            grounding_score
-        ),
+        citation_evaluator=FakeCitationEvaluator(citation_scores or [(1.0, 1.0)]),
+        grounding_evaluator=FakeGroundingEvaluator(grounding_score),
     )
 
 
@@ -109,13 +103,9 @@ class TestEvaluateCase:
     def test_forwards_case_query_to_rag_service(self) -> None:
         rag_service = FakeRAGService([_response("answer")])
 
-        _service(rag_service).evaluate_case(
-            _case(query="How long is the refund window?")
-        )
+        _service(rag_service).evaluate_case(_case(query="How long is the refund window?"))
 
-        assert rag_service.queries == [
-            "How long is the refund window?"
-        ]
+        assert rag_service.queries == ["How long is the refund window?"]
 
     def test_delegates_to_each_evaluator(self) -> None:
         service = _service(
@@ -135,18 +125,14 @@ class TestEvaluateCase:
 
 class TestEvaluate:
     def test_averages_across_cases(self) -> None:
-        rag_service = FakeRAGService(
-            [_response("a"), _response("b")]
-        )
+        rag_service = FakeRAGService([_response("a"), _response("b")])
 
         service = _service(
             rag_service,
             citation_scores=[(1.0, 1.0), (0.0, 0.0)],
         )
 
-        metrics = service.evaluate(
-            [_case("case-001"), _case("case-002")]
-        )
+        metrics = service.evaluate([_case("case-001"), _case("case-002")])
 
         assert metrics.answer_relevance == 0.5
         assert metrics.citation_precision == 0.5

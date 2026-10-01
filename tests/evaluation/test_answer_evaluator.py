@@ -97,6 +97,4 @@ class TestAnswerEvaluatorIsAbstract:
         except TypeError:
             return
 
-        raise AssertionError(
-            "AnswerEvaluator should be abstract"
-        )
+        raise AssertionError("AnswerEvaluator should be abstract")

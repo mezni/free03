@@ -46,18 +46,14 @@ def _embedded_document(
 
     return EmbeddedDocument(
         document=document_input,
-        content_hash=hashlib.sha256(
-            content.encode("utf-8")
-        ).hexdigest(),
+        content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
         metadata=metadata,
         chunks=[
             DocumentChunk(
                 chunk_id=f"{source_uri}#0",
                 document=document_input,
                 content=content,
-                content_hash=hashlib.sha256(
-                    content.encode("utf-8")
-                ).hexdigest(),
+                content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
                 chunk_index=0,
                 start_char=0,
                 end_char=len(content),
@@ -81,18 +77,12 @@ def _retrieval_service(
 ) -> RetrievalService:
     from src.retrieval.search.vector import VectorSearchStrategy
 
-    embedding_provider = LocalEmbeddingProvider(
-        dimensions=dimensions
-    )
+    embedding_provider = LocalEmbeddingProvider(dimensions=dimensions)
 
     return RetrievalService(
-        index_version_repository=IndexVersionRepository(
-            database_session
-        ),
+        index_version_repository=IndexVersionRepository(database_session),
         search_strategy=VectorSearchStrategy(
-            repository=VectorSearchRepository(
-                database_session
-            ),
+            repository=VectorSearchRepository(database_session),
             embedding_provider=embedding_provider,
         ),
         embedding_provider=embedding_provider,
@@ -149,23 +139,13 @@ def test_search_only_returns_chunks_from_active_version(
     versioning.activate_version(active_version)
     database_session.commit()
 
-    results = _retrieval_service(
-        database_session
-    ).search(
-        RetrievalQuery(query="current", top_k=5)
-    )
+    results = _retrieval_service(database_session).search(RetrievalQuery(query="current", top_k=5))
 
     assert results
 
-    assert all(
-        result.index_version_id == active_version.id
-        for result in results
-    )
+    assert all(result.index_version_id == active_version.id for result in results)
 
-    assert all(
-        "old information" not in result.content
-        for result in results
-    )
+    assert all("old information" not in result.content for result in results)
 
 
 def test_search_filters_by_source(database_session) -> None:
@@ -186,15 +166,11 @@ def test_search_filters_by_source(database_session) -> None:
         )
     )
 
-    document = indexing.documents.get_by_source_uri(
-        "/tmp/billing.md"
-    )
+    document = indexing.documents.get_by_source_uri("/tmp/billing.md")
 
     assert document is not None
 
-    results = _retrieval_service(
-        database_session
-    ).search(
+    results = _retrieval_service(database_session).search(
         RetrievalQuery(
             query="policy",
             top_k=5,
@@ -205,10 +181,7 @@ def test_search_filters_by_source(database_session) -> None:
     )
 
     assert results
-    assert all(
-        result.document_id == document.id
-        for result in results
-    )
+    assert all(result.document_id == document.id for result in results)
 
 
 def test_search_filters_by_document_id(
@@ -231,15 +204,11 @@ def test_search_filters_by_document_id(
         )
     )
 
-    document = indexing.documents.get_by_source_uri(
-        "/tmp/billing.md"
-    )
+    document = indexing.documents.get_by_source_uri("/tmp/billing.md")
 
     assert document is not None
 
-    results = _retrieval_service(
-        database_session
-    ).search(
+    results = _retrieval_service(database_session).search(
         RetrievalQuery(
             query="policy",
             top_k=5,
@@ -250,10 +219,7 @@ def test_search_filters_by_document_id(
     )
 
     assert results
-    assert all(
-        result.document_id == document.id
-        for result in results
-    )
+    assert all(result.document_id == document.id for result in results)
 
 
 def test_search_without_filters_returns_every_document(
@@ -276,24 +242,15 @@ def test_search_without_filters_returns_every_document(
         )
     )
 
-    billing = indexing.documents.get_by_source_uri(
-        "/tmp/billing.md"
-    )
+    billing = indexing.documents.get_by_source_uri("/tmp/billing.md")
     hr = indexing.documents.get_by_source_uri("/tmp/hr.md")
 
     assert billing is not None
     assert hr is not None
 
-    results = _retrieval_service(
-        database_session
-    ).search(
-        RetrievalQuery(query="policy", top_k=5)
-    )
+    results = _retrieval_service(database_session).search(RetrievalQuery(query="policy", top_k=5))
 
-    result_documents = {
-        result.document_id
-        for result in results
-    }
+    result_documents = {result.document_id for result in results}
 
     assert billing.id in result_documents
     assert hr.id in result_documents
@@ -308,9 +265,7 @@ def test_search_requires_active_version(
         ValueError,
         match="No active index version",
     ):
-        service.search(
-            RetrievalQuery(query="anything")
-        )
+        service.search(RetrievalQuery(query="anything"))
 
 
 def test_search_rejects_query_dimension_mismatch(
@@ -334,6 +289,4 @@ def test_search_rejects_query_dimension_mismatch(
         ValueError,
         match="dimensions do not match",
     ):
-        service.search(
-            RetrievalQuery(query="anything")
-        )
+        service.search(RetrievalQuery(query="anything"))

@@ -9,9 +9,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
-    Index,
 )
-from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID, TSVECTOR
+from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base

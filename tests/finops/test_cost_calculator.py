@@ -114,12 +114,8 @@ def test_unknown_model_is_rejected() -> None:
 
 
 def test_pricing_comes_from_configuration() -> None:
-    cheap = CostCalculator(
-        make_config(input_price=1.0, output_price=2.0)
-    )
-    expensive = CostCalculator(
-        make_config(input_price=10.0, output_price=20.0)
-    )
+    cheap = CostCalculator(make_config(input_price=1.0, output_price=2.0))
+    expensive = CostCalculator(make_config(input_price=10.0, output_price=20.0))
 
     tokens = {
         "provider": "openrouter",

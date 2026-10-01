@@ -67,9 +67,7 @@ def make_response(
     if json_error is not None:
         response.json.side_effect = json_error
     else:
-        response.json.return_value = (
-            api_payload() if payload is None else payload
-        )
+        response.json.return_value = api_payload() if payload is None else payload
 
     return response
 
@@ -90,9 +88,7 @@ def wire(
 
 
 def post_args(mock_client_cls):
-    client = (
-        mock_client_cls.return_value.__enter__.return_value
-    )
+    client = mock_client_cls.return_value.__enter__.return_value
 
     return client.post.call_args
 
@@ -111,14 +107,9 @@ def test_provider_exposes_model_name():
 def test_generate_extracts_answer(mock_client_cls):
     wire(mock_client_cls, make_response())
 
-    result = make_provider(retry_policy=no_retries()).generate(
-        make_request()
-    )
+    result = make_provider(retry_policy=no_retries()).generate(make_request())
 
-    assert (
-        result.answer
-        == "Disputes must be filed within 30 days."
-    )
+    assert result.answer == "Disputes must be filed within 30 days."
 
 
 @patch("src.providers.llm.openrouter.httpx.Client")
@@ -136,9 +127,7 @@ def test_generate_extracts_usage(mock_client_cls):
         ),
     )
 
-    result = make_provider(retry_policy=no_retries()).generate(
-        make_request()
-    )
+    result = make_provider(retry_policy=no_retries()).generate(make_request())
 
     assert result.prompt_tokens == 120
     assert result.completion_tokens == 30
@@ -149,9 +138,7 @@ def test_generate_extracts_usage(mock_client_cls):
 def test_generate_tolerates_missing_usage(mock_client_cls):
     wire(mock_client_cls, make_response())
 
-    result = make_provider(retry_policy=no_retries()).generate(
-        make_request()
-    )
+    result = make_provider(retry_policy=no_retries()).generate(make_request())
 
     assert result.prompt_tokens is None
     assert result.completion_tokens is None
@@ -165,9 +152,7 @@ def test_generate_tolerates_null_usage(mock_client_cls):
 
     wire(mock_client_cls, make_response(payload=payload))
 
-    result = make_provider(retry_policy=no_retries()).generate(
-        make_request()
-    )
+    result = make_provider(retry_policy=no_retries()).generate(make_request())
 
     assert result.total_tokens is None
 
@@ -176,16 +161,10 @@ def test_generate_tolerates_null_usage(mock_client_cls):
 def test_generate_prefers_model_from_response(mock_client_cls):
     wire(
         mock_client_cls,
-        make_response(
-            payload=api_payload(
-                model="provider-reported-model"
-            )
-        ),
+        make_response(payload=api_payload(model="provider-reported-model")),
     )
 
-    result = make_provider(retry_policy=no_retries()).generate(
-        make_request()
-    )
+    result = make_provider(retry_policy=no_retries()).generate(make_request())
 
     assert result.model_name == "provider-reported-model"
 
@@ -197,9 +176,7 @@ def test_generate_falls_back_to_configured_model(mock_client_cls):
 
     wire(mock_client_cls, make_response(payload=payload))
 
-    result = make_provider(retry_policy=no_retries()).generate(
-        make_request()
-    )
+    result = make_provider(retry_policy=no_retries()).generate(make_request())
 
     assert result.model_name == "openai/gpt-oss-20b:free"
 
@@ -211,9 +188,7 @@ def test_generate_ignores_non_string_model(mock_client_cls):
 
     wire(mock_client_cls, make_response(payload=payload))
 
-    result = make_provider(retry_policy=no_retries()).generate(
-        make_request()
-    )
+    result = make_provider(retry_policy=no_retries()).generate(make_request())
 
     assert result.model_name == "openai/gpt-oss-20b:free"
 
@@ -292,9 +267,7 @@ class TestFailureClassification:
         )
 
         with pytest.raises(ProviderTimeoutError):
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
     @patch("src.providers.llm.openrouter.httpx.Client")
     def test_connect_error_becomes_transient(
@@ -308,9 +281,7 @@ class TestFailureClassification:
         )
 
         with pytest.raises(TransientProviderError):
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
     @patch("src.providers.llm.openrouter.httpx.Client")
     def test_server_error_becomes_transient(
@@ -320,9 +291,7 @@ class TestFailureClassification:
         wire(mock_client_cls, make_response(status_code=503))
 
         with pytest.raises(TransientProviderError):
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
     @patch("src.providers.llm.openrouter.httpx.Client")
     def test_client_error_is_not_transient(
@@ -332,13 +301,9 @@ class TestFailureClassification:
         wire(mock_client_cls, make_response(status_code=401))
 
         with pytest.raises(ProviderResponseError) as info:
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
-        assert not isinstance(
-            info.value, TransientProviderError
-        )
+        assert not isinstance(info.value, TransientProviderError)
 
     @patch("src.providers.llm.openrouter.httpx.Client")
     def test_error_body_is_never_exposed(
@@ -352,9 +317,7 @@ class TestFailureClassification:
         wire(mock_client_cls, response)
 
         with pytest.raises(ProviderResponseError) as info:
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
         assert "SECRET" not in str(info.value)
         assert "sk-or-v1" not in str(info.value)
@@ -368,9 +331,7 @@ class TestFailureClassification:
         )
 
         with pytest.raises(Exception) as info:
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
         assert not isinstance(info.value, httpx.HTTPError)
 
@@ -413,9 +374,7 @@ class TestResponseValidation:
         wire(mock_client_cls, make_response(payload=payload))
 
         with pytest.raises(ProviderResponseError):
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
     @patch("src.providers.llm.openrouter.httpx.Client")
     def test_invalid_json_raises(self, mock_client_cls) -> None:
@@ -425,9 +384,7 @@ class TestResponseValidation:
         )
 
         with pytest.raises(ProviderResponseError):
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
     @patch("src.providers.llm.openrouter.httpx.Client")
     def test_non_dict_json_raises(self, mock_client_cls) -> None:
@@ -437,9 +394,7 @@ class TestResponseValidation:
         )
 
         with pytest.raises(ProviderResponseError):
-            make_provider(retry_policy=no_retries()).generate(
-                make_request()
-            )
+            make_provider(retry_policy=no_retries()).generate(make_request())
 
     @patch("src.providers.llm.openrouter.httpx.Client")
     def test_empty_content_is_accepted(
@@ -448,14 +403,10 @@ class TestResponseValidation:
     ) -> None:
         wire(
             mock_client_cls,
-            make_response(
-                payload=api_payload(answer="")
-            ),
+            make_response(payload=api_payload(answer="")),
         )
 
-        result = make_provider(retry_policy=no_retries()).generate(
-            make_request()
-        )
+        result = make_provider(retry_policy=no_retries()).generate(make_request())
 
         assert result.answer == ""
 
@@ -484,9 +435,7 @@ class TestRetryIntegration:
 
         result = provider.generate(make_request())
 
-        assert result.answer == (
-            "Disputes must be filed within 30 days."
-        )
+        assert result.answer == ("Disputes must be filed within 30 days.")
         assert client.post.call_count == 2
 
     @patch("src.providers.llm.openrouter.httpx.Client")

@@ -137,8 +137,7 @@ class TestMetricsRegistry:
 
         assert m.get("a") == 4 if "a" in keys else True
         assert (
-            m.get(keys[0])
-            == sum(v for k, v in zip(keys, values, strict=False) if k == keys[0])
+            m.get(keys[0]) == sum(v for k, v in zip(keys, values, strict=False) if k == keys[0])
             if keys
             else True
         )

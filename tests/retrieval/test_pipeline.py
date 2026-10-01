@@ -29,9 +29,7 @@ class FakeReranker:
         self.top_k = top_k
 
         return [
-            candidate.model_copy(
-                update={"retrieval_method": "reranked"}
-            )
+            candidate.model_copy(update={"retrieval_method": "reranked"})
             for candidate in candidates[:top_k]
         ]
 
@@ -93,11 +91,7 @@ def make_result(
 
 
 def test_pipeline_delegates_to_retrieval_service():
-    expected_results = [
-        make_result(
-            "Refunds are available within 30 days."
-        )
-    ]
+    expected_results = [make_result("Refunds are available within 30 days.")]
 
     service = FakeRetrievalService(expected_results)
     pipeline = RetrievalPipeline(service)
@@ -145,18 +139,14 @@ def test_pipeline_reranks_results():
 
 def test_pipeline_searches_with_rewritten_query():
     service = FakeRetrievalService([make_result()])
-    analyzer = StubQueryAnalyzer(
-        rewritten="refund policy rules"
-    )
+    analyzer = StubQueryAnalyzer(rewritten="refund policy rules")
 
     pipeline = RetrievalPipeline(
         retrieval_service=service,
         query_analyzer=analyzer,
     )
 
-    pipeline.execute(
-        RetrievalQuery(query="  What is   refund?  ", top_k=5)
-    )
+    pipeline.execute(RetrievalQuery(query="  What is   refund?  ", top_k=5))
 
     assert analyzer.queries == ["  What is   refund?  "]
     assert service.received_request.query == "refund policy rules"
@@ -175,9 +165,7 @@ def test_pipeline_passes_analyzer_filters_to_retrieval():
         ),
     )
 
-    pipeline.execute(
-        RetrievalQuery(query="policy", top_k=5)
-    )
+    pipeline.execute(RetrievalQuery(query="policy", top_k=5))
 
     assert service.received_request.filters == filters
 
@@ -203,10 +191,7 @@ def test_analyzer_without_filters_keeps_caller_filters():
         )
     )
 
-    assert (
-        service.received_request.filters
-        == caller_filters
-    )
+    assert service.received_request.filters == caller_filters
 
 
 def test_no_analyzer_passes_query_through():
@@ -214,9 +199,7 @@ def test_no_analyzer_passes_query_through():
 
     pipeline = RetrievalPipeline(retrieval_service=service)
 
-    pipeline.execute(
-        RetrievalQuery(query="  raw   query  ", top_k=5)
-    )
+    pipeline.execute(RetrievalQuery(query="  raw   query  ", top_k=5))
 
     assert service.received_request.query == "  raw   query  "
 
@@ -236,9 +219,7 @@ def test_pipeline_expands_context_window():
         context_window_service=window_service,
     )
 
-    results = pipeline.execute(
-        RetrievalQuery(query="q", top_k=5)
-    )
+    results = pipeline.execute(RetrievalQuery(query="q", top_k=5))
 
     assert results == expanded
     assert window_service.calls[0][1] == 1
@@ -257,15 +238,11 @@ def test_pipeline_selects_context_after_expansion():
 
     pipeline = RetrievalPipeline(
         retrieval_service=FakeRetrievalService(original),
-        context_window_service=StubContextWindowService(
-            expanded
-        ),
+        context_window_service=StubContextWindowService(expanded),
         context_selector=selector,
     )
 
-    results = pipeline.execute(
-        RetrievalQuery(query="q", top_k=2)
-    )
+    results = pipeline.execute(RetrievalQuery(query="q", top_k=2))
 
     assert len(results) == 2
     assert selector.calls[0][1] == 2
@@ -281,9 +258,7 @@ def test_context_cap_applies_without_expansion():
         context_selector=selector,
     )
 
-    results = pipeline.execute(
-        RetrievalQuery(query="q", top_k=2)
-    )
+    results = pipeline.execute(RetrievalQuery(query="q", top_k=2))
 
     assert len(results) == 2
 
@@ -341,9 +316,7 @@ def test_max_chunks_never_truncates_below_caller_top_k():
         max_chunks=2,
     )
 
-    results = pipeline.execute(
-        RetrievalQuery(query="q", top_k=5)
-    )
+    results = pipeline.execute(RetrievalQuery(query="q", top_k=5))
 
     assert len(results) == 1
 
@@ -365,10 +338,6 @@ def test_window_size_is_passed_through():
 def test_no_optional_stages_returns_retrieval_results():
     results = [make_result("a")]
 
-    pipeline = RetrievalPipeline(
-        retrieval_service=FakeRetrievalService(results)
-    )
+    pipeline = RetrievalPipeline(retrieval_service=FakeRetrievalService(results))
 
-    assert pipeline.execute(
-        RetrievalQuery(query="q", top_k=5)
-    ) == results
+    assert pipeline.execute(RetrievalQuery(query="q", top_k=5)) == results

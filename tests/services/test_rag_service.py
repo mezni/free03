@@ -121,9 +121,7 @@ def test_end_to_end_citation_maps_to_correct_source():
         "Two answers. [SOURCE-2]",
     )
 
-    response = service.answer(
-        RetrievalQuery(query="query", top_k=5)
-    )
+    response = service.answer(RetrievalQuery(query="query", top_k=5))
 
     assert len(response.citations) == 1
     assert response.citations[0].citation_id == "SOURCE-2"
@@ -133,9 +131,7 @@ def test_end_to_end_citation_maps_to_correct_source():
 def test_end_to_end_without_results_skips_provider():
     service, pipeline, provider = make_rag_service([], "unused")
 
-    response = service.answer(
-        RetrievalQuery(query="query", top_k=5)
-    )
+    response = service.answer(RetrievalQuery(query="query", top_k=5))
 
     assert response.retrieved_count == 0
     assert response.citations == []
@@ -149,9 +145,7 @@ def test_end_to_end_without_citations_reports_none():
         "An answer with no source marker.",
     )
 
-    response = service.answer(
-        RetrievalQuery(query="query", top_k=5)
-    )
+    response = service.answer(RetrievalQuery(query="query", top_k=5))
 
     assert response.retrieved_count == 1
     assert response.citations == []

@@ -24,6 +24,7 @@ class SearchStrategy(ABC):
         """
         raise NotImplementedError
 
+
 def reciprocal_rank_fusion(
     result_lists: list[list[RetrievalResult]],
     k: int = 60,
@@ -39,9 +40,7 @@ def reciprocal_rank_fusion(
         for rank, result in enumerate(results, start=1):
             result_key = str(result.chunk_id)
 
-            scores[result_key] = scores.get(result_key, 0.0) + (
-                1.0 / (k + rank)
-            )
+            scores[result_key] = scores.get(result_key, 0.0) + (1.0 / (k + rank))
 
             results_by_id[result_key] = result
 

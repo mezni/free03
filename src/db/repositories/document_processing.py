@@ -44,6 +44,4 @@ class DocumentProcessingRepository:
             .order_by(DocumentProcessingDB.created_at)
         )
 
-        return list(
-            self.session.execute(statement).scalars().all()
-        )
+        return list(self.session.execute(statement).scalars().all())

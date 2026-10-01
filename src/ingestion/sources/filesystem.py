@@ -17,9 +17,7 @@ class FilesystemSource(DocumentSource):
 
     def discover(self) -> list[DocumentInput]:
         if not self.input_dir.exists():
-            raise FileNotFoundError(
-                f"Input directory does not exist: {self.input_dir}"
-            )
+            raise FileNotFoundError(f"Input directory does not exist: {self.input_dir}")
 
         documents: list[DocumentInput] = []
 

@@ -80,28 +80,19 @@ class ReindexService:
         try:
             self._build_version(version.id)
 
-            validation = self.validation_service.validate(
-                version.id
-            )
+            validation = self.validation_service.validate(version.id)
 
             if not validation.valid:
-                raise ValueError(
-                    "Index validation failed: "
-                    + "; ".join(validation.errors)
-                )
+                raise ValueError("Index validation failed: " + "; ".join(validation.errors))
 
             self.versioning_service.activate_version(version)
 
             self.session.commit()
 
-            activated_version = self.versioning_service.get_version(
-                version.id
-            )
+            activated_version = self.versioning_service.get_version(version.id)
 
             if activated_version is None:
-                raise ValueError(
-                    f"Index version not found: {version.id}"
-                )
+                raise ValueError(f"Index version not found: {version.id}")
 
             return activated_version
 

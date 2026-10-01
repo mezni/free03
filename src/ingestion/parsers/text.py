@@ -16,10 +16,7 @@ class TextParser(DocumentParser):
 
     def parse(self, document: RawDocument) -> ParsedDocument:
         if not self.supports(document.document.source_uri):
-            raise ValueError(
-                f"Unsupported document format: "
-                f"{document.document.source_uri}"
-            )
+            raise ValueError(f"Unsupported document format: {document.document.source_uri}")
 
         return ParsedDocument(
             document=document.document,

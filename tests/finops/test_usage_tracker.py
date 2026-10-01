@@ -26,9 +26,7 @@ class FakeUsageRepository:
     ) -> LLMUsageRecord:
         self.created.append(usage)
 
-        return usage.model_copy(
-            update={"id": uuid4()}
-        )
+        return usage.model_copy(update={"id": uuid4()})
 
 
 def make_tracker(
@@ -153,9 +151,7 @@ def test_unpriced_model_still_records_tokens() -> None:
 def test_record_uses_configured_currency() -> None:
     repository = FakeUsageRepository()
 
-    usage = make_tracker(
-        repository, currency="EUR"
-    ).record(
+    usage = make_tracker(repository, currency="EUR").record(
         GenerationResponse(
             answer="answer",
             model_name="test-model",

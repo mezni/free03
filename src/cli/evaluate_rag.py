@@ -12,9 +12,7 @@ from src.evaluation.rag_evaluation_runner import (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Run RAG evaluation."
-    )
+    parser = argparse.ArgumentParser(description="Run RAG evaluation.")
 
     parser.add_argument(
         "--dataset",
@@ -33,38 +31,22 @@ def main() -> None:
 
         runner = RAGEvaluationRunner(
             dataset_loader=RAGEvaluationDatasetLoader(),
-            evaluation_service=(
-                container.rag_evaluation_service()
-            ),
+            evaluation_service=(container.rag_evaluation_service()),
         )
 
         gate = container.quality_gate()
 
-        version, metrics = runner.run(
-            args.dataset
-        )
+        version, metrics = runner.run(args.dataset)
 
     print()
     print("RAG Evaluation")
     print("================")
     print(f"Dataset version: {version}")
     print()
-    print(
-        f"Answer relevance:    "
-        f"{metrics.answer_relevance:.3f}"
-    )
-    print(
-        f"Citation precision:  "
-        f"{metrics.citation_precision:.3f}"
-    )
-    print(
-        f"Citation recall:     "
-        f"{metrics.citation_recall:.3f}"
-    )
-    print(
-        f"Grounding:           "
-        f"{metrics.grounding:.3f}"
-    )
+    print(f"Answer relevance:    {metrics.answer_relevance:.3f}")
+    print(f"Citation precision:  {metrics.citation_precision:.3f}")
+    print(f"Citation recall:     {metrics.citation_recall:.3f}")
+    print(f"Grounding:           {metrics.grounding:.3f}")
     print()
 
     result = gate.evaluate(metrics)

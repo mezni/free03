@@ -64,9 +64,7 @@ class OpenRouterProvider(LLMProvider):
             "Content-Type": "application/json",
         }
 
-        return self._retry_policy.execute(
-            lambda: self._complete(payload, headers)
-        )
+        return self._retry_policy.execute(lambda: self._complete(payload, headers))
 
     def _complete(
         self,
@@ -92,26 +90,18 @@ class OpenRouterProvider(LLMProvider):
                     headers=headers,
                 )
         except httpx.TimeoutException as exc:
-            raise ProviderTimeoutError(
-                "LLM provider request timed out."
-            ) from exc
+            raise ProviderTimeoutError("LLM provider request timed out.") from exc
         except httpx.HTTPError as exc:
-            raise TransientProviderError(
-                "LLM provider request failed."
-            ) from exc
+            raise TransientProviderError("LLM provider request failed.") from exc
 
         if response.status_code >= 500:
-            raise TransientProviderError(
-                "LLM provider returned a server error."
-            )
+            raise TransientProviderError("LLM provider returned a server error.")
 
         if response.status_code >= 400:
             # Status only. The response body can echo the request,
             # model name, or credential fragments, so it is never
             # surfaced.
-            raise ProviderResponseError(
-                "LLM provider rejected the request."
-            )
+            raise ProviderResponseError("LLM provider rejected the request.")
 
         return response
 
@@ -122,42 +112,30 @@ class OpenRouterProvider(LLMProvider):
         try:
             data = response.json()
         except ValueError as exc:
-            raise ProviderResponseError(
-                "LLM provider returned invalid JSON."
-            ) from exc
+            raise ProviderResponseError("LLM provider returned invalid JSON.") from exc
 
         if not isinstance(data, dict):
-            raise ProviderResponseError(
-                "LLM provider returned an invalid payload."
-            )
+            raise ProviderResponseError("LLM provider returned an invalid payload.")
 
         choices = data.get("choices")
 
         if not isinstance(choices, list) or not choices:
-            raise ProviderResponseError(
-                "LLM provider returned no choices."
-            )
+            raise ProviderResponseError("LLM provider returned no choices.")
 
         first = choices[0]
 
         if not isinstance(first, dict):
-            raise ProviderResponseError(
-                "LLM provider returned an invalid choice."
-            )
+            raise ProviderResponseError("LLM provider returned an invalid choice.")
 
         message = first.get("message")
 
         if not isinstance(message, dict):
-            raise ProviderResponseError(
-                "LLM provider returned an invalid message."
-            )
+            raise ProviderResponseError("LLM provider returned an invalid message.")
 
         content = message.get("content")
 
         if not isinstance(content, str):
-            raise ProviderResponseError(
-                "LLM provider returned invalid content."
-            )
+            raise ProviderResponseError("LLM provider returned invalid content.")
 
         raw_usage = data.get("usage")
         usage = raw_usage if isinstance(raw_usage, dict) else {}
@@ -166,11 +144,7 @@ class OpenRouterProvider(LLMProvider):
 
         return GenerationResponse(
             answer=content,
-            model_name=(
-                model
-                if isinstance(model, str) and model
-                else self._model_name
-            ),
+            model_name=(model if isinstance(model, str) and model else self._model_name),
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             total_tokens=usage.get("total_tokens"),

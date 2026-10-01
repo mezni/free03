@@ -51,18 +51,14 @@ class TestRetryPolicy:
             raise RuntimeError("temporary")
 
         with pytest.raises(RuntimeError):
-            RetryPolicy(max_retries=2, delay_seconds=0).execute(
-                operation
-            )
+            RetryPolicy(max_retries=2, delay_seconds=0).execute(operation)
 
         assert attempts == 1
 
     def test_immediate_success_makes_one_attempt(self):
         calls = []
 
-        assert policy().execute(
-            lambda: calls.append(1) or "ok"
-        ) == "ok"
+        assert policy().execute(lambda: calls.append(1) or "ok") == "ok"
         assert len(calls) == 1
 
     def test_raises_after_exhausting_retries(self):

@@ -7,17 +7,11 @@ from src.retrieval.query.simple import SimpleQueryAnalyzer
 def test_query_normalization() -> None:
     analyzer = SimpleQueryAnalyzer()
 
-    result = analyzer.analyze(
-        "  What   is   the   refund policy?  "
-    )
+    result = analyzer.analyze("  What   is   the   refund policy?  ")
 
-    assert result.original_query == (
-        "  What   is   the   refund policy?  "
-    )
+    assert result.original_query == ("  What   is   the   refund policy?  ")
 
-    assert result.rewritten_query == (
-        "What is the refund policy?"
-    )
+    assert result.rewritten_query == ("What is the refund policy?")
 
 
 def test_normalization_collapses_newlines_and_tabs() -> None:
@@ -92,9 +86,7 @@ class TestQueryExpander:
         analyzer = SimpleQueryAnalyzer()
         expander = QueryExpander()
 
-        analysis = analyzer.analyze(
-            "What is the refund policy?"
-        )
+        analysis = analyzer.analyze("What is the refund policy?")
 
         queries = expander.expand(analysis)
 

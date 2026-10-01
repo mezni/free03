@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -30,20 +30,16 @@ class IngestionRunRepository:
         self,
         run_id: UUID,
     ) -> IngestionRunDB | None:
-        statement = select(IngestionRunDB).where(
-            IngestionRunDB.id == run_id
-        )
+        statement = select(IngestionRunDB).where(IngestionRunDB.id == run_id)
 
-        return self.session.execute(
-            statement
-        ).scalar_one_or_none()
+        return self.session.execute(statement).scalar_one_or_none()
 
     def mark_completed(
         self,
         run: IngestionRunDB,
     ) -> IngestionRunDB:
         run.status = IngestionRunStatus.COMPLETED.value
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
 
         self.session.flush()
 
@@ -55,7 +51,7 @@ class IngestionRunRepository:
         error_message: str,
     ) -> IngestionRunDB:
         run.status = IngestionRunStatus.FAILED.value
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         run.error_message = error_message
 
         self.session.flush()

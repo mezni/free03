@@ -78,9 +78,7 @@ class TestQueryLength:
         self,
         client: TestClient,
     ) -> None:
-        assert (
-            _post(client, {"query": "x" * 5001}).status_code == 422
-        )
+        assert _post(client, {"query": "x" * 5001}).status_code == 422
 
 
 class TestTopK:

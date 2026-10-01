@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.ingestion.context import CleanedDocument, DocumentMetadata
 from src.ingestion.metadata import MetadataExtractor
@@ -21,7 +21,7 @@ class FilesystemMetadataExtractor(MetadataExtractor):
             file_size_bytes=stat.st_size,
             modified_at=datetime.fromtimestamp(
                 stat.st_mtime,
-                tz=timezone.utc,
+                tz=UTC,
             ),
         )
 

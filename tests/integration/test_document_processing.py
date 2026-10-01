@@ -42,13 +42,9 @@ def test_processing_record_is_committed(
 
     database_session.rollback()
 
-    statement = select(DocumentProcessingDB).where(
-        DocumentProcessingDB.run_id == run.id
-    )
+    statement = select(DocumentProcessingDB).where(DocumentProcessingDB.run_id == run.id)
 
-    records = list(
-        database_session.execute(statement).scalars().all()
-    )
+    records = list(database_session.execute(statement).scalars().all())
 
     assert len(records) == 1
     assert records[0].status == "success"

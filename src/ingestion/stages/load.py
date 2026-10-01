@@ -3,9 +3,7 @@ from src.ingestion.loaders.base import DocumentLoader
 from src.ingestion.stages.base import PipelineStage
 
 
-class LoadStage(
-    PipelineStage[DocumentChange, RawDocument]
-):
+class LoadStage(PipelineStage[DocumentChange, RawDocument]):
     """Load raw content for a changed document."""
 
     def __init__(self, loader: DocumentLoader) -> None:

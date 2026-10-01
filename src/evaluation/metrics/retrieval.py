@@ -86,10 +86,7 @@ class MeanReciprocalRank:
 
         metric = ReciprocalRank()
 
-        reciprocal_ranks = [
-            metric.calculate(evaluation, k)
-            for evaluation in evaluations
-        ]
+        reciprocal_ranks = [metric.calculate(evaluation, k) for evaluation in evaluations]
 
         return sum(reciprocal_ranks) / len(reciprocal_ranks)
 
@@ -168,9 +165,7 @@ class NDCGAtK:
 
         ideal_count = min(k, len(relevant_ids))
 
-        ideal_retrieved_ids = (
-            evaluation.relevant_chunk_ids[:ideal_count]
-        )
+        ideal_retrieved_ids = evaluation.relevant_chunk_ids[:ideal_count]
 
         ideal_dcg = self._dcg(
             retrieved_ids=ideal_retrieved_ids,

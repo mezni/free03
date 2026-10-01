@@ -71,14 +71,10 @@ class IndexingService:
         self._validate_embedding_dimensions(data, version)
 
         try:
-            document = self.documents.get_by_source_uri(
-                data.document.source_uri
-            )
+            document = self.documents.get_by_source_uri(data.document.source_uri)
 
             if document is None:
-                raise ValueError(
-                    "Cannot update document because it does not exist"
-                )
+                raise ValueError("Cannot update document because it does not exist")
 
             self.documents.update_status(
                 document,
@@ -90,10 +86,7 @@ class IndexingService:
                 version.id,
             )
 
-            chunk_ids = [
-                chunk.id
-                for chunk in existing_chunks
-            ]
+            chunk_ids = [chunk.id for chunk in existing_chunks]
 
             self.embeddings.delete_by_chunk_ids(chunk_ids)
             self.chunks.delete_by_document_id(
@@ -158,14 +151,10 @@ class IndexingService:
         self._validate_embedding_dimensions(data, version)
 
         try:
-            document = self.documents.get_by_source_uri(
-                data.document.source_uri
-            )
+            document = self.documents.get_by_source_uri(data.document.source_uri)
 
             if document is None:
-                document = self.documents.create(
-                    self._build_document_data(data)
-                )
+                document = self.documents.create(self._build_document_data(data))
 
             self._persist_chunks_and_embeddings(
                 document_id=document.id,
@@ -186,14 +175,10 @@ class IndexingService:
         index_version_id: UUID | None,
     ) -> IndexVersionDB:
         if index_version_id is not None:
-            version = self.index_versions.get_by_id(
-                index_version_id
-            )
+            version = self.index_versions.get_by_id(index_version_id)
 
             if version is None:
-                raise ValueError(
-                    f"Index version not found: {index_version_id}"
-                )
+                raise ValueError(f"Index version not found: {index_version_id}")
 
             return version
 
@@ -213,8 +198,7 @@ class IndexingService:
             IndexVersionStatus.ACTIVE.value,
         }:
             raise ValueError(
-                f"Index version {version.version_number} "
-                f"is not writable: {version.status}"
+                f"Index version {version.version_number} is not writable: {version.status}"
             )
 
     def _validate_embedding_dimensions(

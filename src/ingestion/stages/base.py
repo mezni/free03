@@ -1,12 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
 
 
-InputT = TypeVar("InputT")
-OutputT = TypeVar("OutputT")
-
-
-class PipelineStage(ABC, Generic[InputT, OutputT]):
+class PipelineStage[InputT, OutputT](ABC):
     """Base interface for an ingestion pipeline stage."""
 
     @abstractmethod

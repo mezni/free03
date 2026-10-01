@@ -42,6 +42,7 @@ def test_factory_rejects_unknown_provider():
     ):
         factory.create(config)
 
+
 def test_factory_accepts_uppercase_provider():
     config = EmbeddingConfig(
         provider="LOCAL",

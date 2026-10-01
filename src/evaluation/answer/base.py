@@ -5,7 +5,6 @@ from src.models.rag_evaluation import RAGEvaluationCase
 
 
 class AnswerEvaluator(ABC):
-
     @abstractmethod
     def evaluate(
         self,

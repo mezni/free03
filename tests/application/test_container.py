@@ -39,7 +39,8 @@ def create_test_settings(
             environment="test",
         ),
         logging=LoggingConfig(level="INFO"),
-        embedding=embedding or EmbeddingConfig(
+        embedding=embedding
+        or EmbeddingConfig(
             provider="local",
             model="local-dev",
             dimensions=8,
@@ -194,14 +195,13 @@ def test_container_rejects_unknown_embedding_provider():
     ):
         container.embedding_provider()
 
+
 def test_container_creates_llm_provider():
     session = MagicMock()
 
     container = ApplicationContainer(
         session=session,
-        settings=create_test_settings(
-            openrouter_api_key="test-key"
-        ),
+        settings=create_test_settings(openrouter_api_key="test-key"),
     )
 
     provider = container.llm_provider()
@@ -229,9 +229,7 @@ def test_container_creates_rag_service():
 
     container = ApplicationContainer(
         session=session,
-        settings=create_test_settings(
-            openrouter_api_key="test-key"
-        ),
+        settings=create_test_settings(openrouter_api_key="test-key"),
     )
 
     rag_service = container.rag_service()
@@ -257,9 +255,7 @@ def test_container_creates_rag_evaluation_service():
 
     container = ApplicationContainer(
         session=session,
-        settings=create_test_settings(
-            openrouter_api_key="test-key"
-        ),
+        settings=create_test_settings(openrouter_api_key="test-key"),
     )
 
     service = container.rag_evaluation_service()

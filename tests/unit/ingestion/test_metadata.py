@@ -8,8 +8,7 @@ def test_extract_filesystem_metadata(tmp_path: Path) -> None:
     document_path = tmp_path / "sample-policy.md"
 
     document_path.write_text(
-        "# Billing Policy\n\n"
-        "Customers are billed according to their active service plan.\n",
+        "# Billing Policy\n\nCustomers are billed according to their active service plan.\n",
         encoding="utf-8",
     )
 
@@ -20,8 +19,7 @@ def test_extract_filesystem_metadata(tmp_path: Path) -> None:
             path=document_path,
         ),
         content=(
-            "# Billing Policy\n\n"
-            "Customers are billed according to their active service plan."
+            "# Billing Policy\n\nCustomers are billed according to their active service plan."
         ),
         content_hash="a" * 64,
         format="markdown",

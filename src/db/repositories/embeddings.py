@@ -36,13 +36,9 @@ class EmbeddingRepository:
         self,
         chunk_id: UUID,
     ) -> EmbeddingDB | None:
-        statement = select(EmbeddingDB).where(
-            EmbeddingDB.chunk_id == chunk_id
-        )
+        statement = select(EmbeddingDB).where(EmbeddingDB.chunk_id == chunk_id)
 
-        return self.session.execute(
-            statement
-        ).scalar_one_or_none()
+        return self.session.execute(statement).scalar_one_or_none()
 
     def get_by_index_version_id(
         self,
@@ -68,11 +64,9 @@ class EmbeddingRepository:
             return 0
 
         embeddings = list(
-            self.session.execute(
-                select(EmbeddingDB).where(
-                    EmbeddingDB.chunk_id.in_(chunk_ids)
-                )
-            ).scalars().all()
+            self.session.execute(select(EmbeddingDB).where(EmbeddingDB.chunk_id.in_(chunk_ids)))
+            .scalars()
+            .all()
         )
 
         for embedding in embeddings:

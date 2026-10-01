@@ -75,9 +75,7 @@ class RetrievalPipeline:
         )
 
         with Timer() as timer:
-            candidates = self.retrieval_service.search(
-                retrieval_request
-            )
+            candidates = self.retrieval_service.search(retrieval_request)
 
             results = self._rerank(
                 analysis.rewritten_query,
@@ -139,16 +137,12 @@ class RetrievalPipeline:
                 filters=request.filters,
             )
 
-        analysis = self.query_analyzer.analyze(
-            request.query
-        )
+        analysis = self.query_analyzer.analyze(request.query)
 
         if analysis.filters is None:
             # An analyzer that produces no filters must not silently
             # discard filters the caller already set.
-            return analysis.model_copy(
-                update={"filters": request.filters}
-            )
+            return analysis.model_copy(update={"filters": request.filters})
 
         return analysis
 

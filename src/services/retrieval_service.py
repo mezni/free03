@@ -24,22 +24,15 @@ class RetrievalService:
         self,
         request: RetrievalQuery,
     ) -> list[RetrievalResult]:
-        active_version = (
-            self.index_version_repository.get_active()
-        )
+        active_version = self.index_version_repository.get_active()
 
         if active_version is None:
-            raise ValueError(
-                "No active index version exists"
-            )
+            raise ValueError("No active index version exists")
 
         query_vector = self.embedding_provider.embed_query(request.query)
 
         if len(query_vector) != active_version.embedding_dimensions:
-            raise ValueError(
-                "Query embedding dimensions do not match "
-                "the active index version"
-            )
+            raise ValueError("Query embedding dimensions do not match the active index version")
 
         return self.search_strategy.search(
             request,

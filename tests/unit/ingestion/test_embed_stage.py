@@ -29,9 +29,7 @@ def test_embed_stage(tmp_path: Path) -> None:
         document_type="markdown",
         title="Billing Policy",
         file_size_bytes=14,
-        modified_at=__import__("datetime").datetime.now(
-            __import__("datetime").timezone.utc
-        ),
+        modified_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
     )
 
     chunk = DocumentChunk(
@@ -52,9 +50,7 @@ def test_embed_stage(tmp_path: Path) -> None:
         chunks=[chunk],
     )
 
-    stage = EmbedStage(
-        LocalEmbeddingProvider(dimensions=8)
-    )
+    stage = EmbedStage(LocalEmbeddingProvider(dimensions=8))
 
     result = stage.execute(input_document)
 

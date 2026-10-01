@@ -383,7 +383,7 @@ Filesystem currently supports:
 The earlier source implementation also had PDF support in its pattern list, but PDF ingestion is not implemented yet, so the current pipeline factory intentionally uses only:
 
 ```python
-patterns=("*.md", "*.txt")
+patterns = ("*.md", "*.txt")
 ```
 
 ## 12. Change detection — FINISHED

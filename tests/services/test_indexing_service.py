@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -30,7 +30,7 @@ def _embedded_document(
         document_type="markdown",
         title="Policy",
         file_size_bytes=100,
-        modified_at=datetime.now(timezone.utc),
+        modified_at=datetime.now(UTC),
     )
 
     document_input = DocumentInput(
@@ -50,9 +50,7 @@ def _embedded_document(
                 chunk_id=chunk_id,
                 document=document_input,
                 content=content,
-                content_hash=hashlib.sha256(
-                    content.encode("utf-8")
-                ).hexdigest(),
+                content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
                 chunk_index=index,
                 start_char=0,
                 end_char=len(content),
@@ -71,9 +69,7 @@ def _embedded_document(
 
     return EmbeddedDocument(
         document=document_input,
-        content_hash=hashlib.sha256(
-            "".join(contents).encode("utf-8")
-        ).hexdigest(),
+        content_hash=hashlib.sha256("".join(contents).encode("utf-8")).hexdigest(),
         metadata=metadata,
         chunks=chunks,
         embeddings=embeddings,
@@ -132,18 +128,12 @@ def test_update_replaces_chunks_in_active_version_only(
         version_two.id,
     )
 
-    assert [
-        chunk.content
-        for chunk in version_one_chunks
-    ] == [
+    assert [chunk.content for chunk in version_one_chunks] == [
         "v1 old chunk 0",
         "v1 old chunk 1",
     ]
 
-    assert [
-        chunk.content
-        for chunk in version_two_chunks
-    ] == [
+    assert [chunk.content for chunk in version_two_chunks] == [
         "v2 new chunk 0",
         "v2 new chunk 1",
     ]
@@ -172,10 +162,7 @@ def test_add_targets_active_version_by_default(
         version.id,
     )
 
-    assert [
-        chunk.content
-        for chunk in version_chunks
-    ] == [
+    assert [chunk.content for chunk in version_chunks] == [
         "active chunk 0",
         "active chunk 1",
     ]
@@ -233,18 +220,12 @@ def test_update_in_building_version_leaves_active_untouched(
         version_two.id,
     )
 
-    assert [
-        chunk.content
-        for chunk in version_one_chunks
-    ] == [
+    assert [chunk.content for chunk in version_one_chunks] == [
         "v1 chunk 0",
         "v1 chunk 1",
     ]
 
-    assert [
-        chunk.content
-        for chunk in version_two_chunks
-    ] == [
+    assert [chunk.content for chunk in version_two_chunks] == [
         "v2 new chunk 0",
         "v2 new chunk 1",
     ]
@@ -299,10 +280,7 @@ def test_delete_from_version_leaves_document_and_other_version(
         version_two.id,
     )
 
-    assert [
-        chunk.content
-        for chunk in version_one_chunks
-    ] == [
+    assert [chunk.content for chunk in version_one_chunks] == [
         "v1 chunk 0",
         "v1 chunk 1",
     ]

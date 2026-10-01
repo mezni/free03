@@ -20,6 +20,4 @@ class Timer:
         if self._started_at is None:
             return
 
-        self.duration_ms = (
-            perf_counter() - self._started_at
-        ) * 1000
+        self.duration_ms = (perf_counter() - self._started_at) * 1000

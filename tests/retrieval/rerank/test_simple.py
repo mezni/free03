@@ -76,6 +76,6 @@ def test_simple_reranker_raises_on_invalid_top_k():
             candidates=candidates,
             top_k=0,
         )
-        assert False, "Expected ValueError"
+        raise AssertionError("Expected ValueError")
     except ValueError as e:
         assert "top_k must be greater than zero" in str(e)

@@ -1,8 +1,3 @@
-from datetime import datetime, timezone
-from pathlib import Path
-
-from src.db.models.chunk import ChunkDB
-from src.db.models.embedding import EmbeddingDB
 from src.db.repositories.chunks import ChunkRepository
 from src.db.repositories.embeddings import EmbeddingRepository
 

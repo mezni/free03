@@ -18,6 +18,4 @@ class EmbeddingProviderFactory:
                 model_name=config.model,
             )
 
-        raise ValueError(
-            f"Unsupported embedding provider: {config.provider}"
-        )
+        raise ValueError(f"Unsupported embedding provider: {config.provider}")

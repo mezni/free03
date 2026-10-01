@@ -76,10 +76,7 @@ class TestRAGEvaluationEndToEnd:
         # Answer each query with its own reference answer verbatim,
         # correctly cited as SOURCE-1.
         rag_service = ScriptedRAGService(
-            {
-                case.query: _cited(case.reference_answer)
-                for case in cases
-            }
+            {case.query: _cited(case.reference_answer) for case in cases}
         )
 
         version, metrics = RAGEvaluationRunner(
@@ -97,12 +94,7 @@ class TestRAGEvaluationEndToEnd:
         _, cases = RAGEvaluationDatasetLoader().load(DATASET)
 
         rag_service = ScriptedRAGService(
-            {
-                case.query: _uncited(
-                    "Kubernetes deployment pipeline overview."
-                )
-                for case in cases
-            }
+            {case.query: _uncited("Kubernetes deployment pipeline overview.") for case in cases}
         )
 
         _, metrics = RAGEvaluationRunner(
@@ -142,14 +134,9 @@ class TestRAGEvaluationEndToEnd:
         _, cases = RAGEvaluationDatasetLoader().load(DATASET)
 
         rag_service = ScriptedRAGService(
-            {
-                case.query: _cited(case.reference_answer)
-                for case in cases
-            }
+            {case.query: _cited(case.reference_answer) for case in cases}
         )
 
         _service(rag_service).evaluate(cases)
 
-        assert rag_service.queries == [
-            case.query for case in cases
-        ]
+        assert rag_service.queries == [case.query for case in cases]

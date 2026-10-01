@@ -40,9 +40,7 @@ class FakeEvaluationResolver:
         self.references.append(references)
 
         return [
-            self.resolved_by_reference[
-                (reference.document, reference.chunk_index)
-            ]
+            self.resolved_by_reference[(reference.document, reference.chunk_index)]
             for reference in references
         ]
 
