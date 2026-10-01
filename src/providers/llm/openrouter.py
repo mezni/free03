@@ -9,8 +9,10 @@ from src.models.generation import (
     GenerationRequest,
     GenerationResponse,
 )
+from src.providers.circuit_breaker import CircuitBreaker, CircuitState
 from src.providers.llm.base import LLMProvider
 from src.providers.retry import RetryPolicy
+from src.providers.retryable import is_retryable_status
 
 
 class OpenRouterProvider(LLMProvider):
@@ -24,6 +26,7 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int,
         timeout_seconds: int,
         retry_policy: RetryPolicy | None = None,
+        circuit_breaker: CircuitBreaker | None = None,
     ) -> None:
         self._api_key = api_key
         self._model_name = model_name
@@ -34,10 +37,18 @@ class OpenRouterProvider(LLMProvider):
             max_retries=0,
             delay_seconds=0.0,
         )
+        self._circuit_breaker = circuit_breaker
 
     @property
     def model_name(self) -> str:
         return self._model_name
+
+    @property
+    def circuit_state(self) -> CircuitState:
+        if self._circuit_breaker is None:
+            return CircuitState.CLOSED
+
+        return self._circuit_breaker.state
 
     def generate(
         self,
@@ -64,7 +75,25 @@ class OpenRouterProvider(LLMProvider):
             "Content-Type": "application/json",
         }
 
-        return self._retry_policy.execute(lambda: self._complete(payload, headers))
+        if self._circuit_breaker is not None:
+            # Rejected before the request is built, so an open circuit
+            # costs no network call and no provider load.
+            self._circuit_breaker.before_call()
+
+        try:
+            response = self._retry_policy.execute(
+                lambda: self._complete(payload, headers)
+            )
+        except (ProviderTimeoutError, TransientProviderError):
+            if self._circuit_breaker is not None:
+                self._circuit_breaker.record_failure()
+
+            raise
+
+        if self._circuit_breaker is not None:
+            self._circuit_breaker.record_success()
+
+        return response
 
     def _complete(
         self,
@@ -94,13 +123,19 @@ class OpenRouterProvider(LLMProvider):
         except httpx.HTTPError as exc:
             raise TransientProviderError("LLM provider request failed.") from exc
 
-        if response.status_code >= 500:
-            raise TransientProviderError("LLM provider returned a server error.")
-
         if response.status_code >= 400:
             # Status only. The response body can echo the request,
             # model name, or credential fragments, so it is never
             # surfaced.
+            #
+            # Transient statuses become retryable errors; everything
+            # else stays a deterministic `ProviderResponseError`, which
+            # the retry policy will not retry.
+            if is_retryable_status(response.status_code):
+                raise TransientProviderError(
+                    "LLM provider returned a retryable status."
+                )
+
             raise ProviderResponseError("LLM provider rejected the request.")
 
         return response

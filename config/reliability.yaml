@@ -4,6 +4,11 @@ reliability:
     max_retries: 2
     retry_delay_seconds: 1.0
 
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      recovery_seconds: 30
+
   retrieval:
     timeout_seconds: 10
 

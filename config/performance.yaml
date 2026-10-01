@@ -1,0 +1,4 @@
+performance:
+  retrieval:
+    cache_enabled: true
+    backend: memory

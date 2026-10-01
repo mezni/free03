@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
@@ -40,12 +41,23 @@ class LLMConfig(BaseModel):
     max_tokens: int = Field(gt=0, le=100_000)
 
 
+class CircuitBreakerConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+
+    failure_threshold: int = Field(gt=0, le=100)
+
+    recovery_seconds: float = Field(gt=0.0, le=600.0)
+
+
 class LLMReliabilityConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     timeout_seconds: int = Field(gt=0, le=300)
     max_retries: int = Field(ge=0, le=5)
     retry_delay_seconds: float = Field(ge=0.0, le=30.0)
+    circuit_breaker: CircuitBreakerConfig
 
 
 class RetrievalReliabilityConfig(BaseModel):
@@ -140,6 +152,78 @@ class AdvancedRetrievalConfig(BaseModel):
     reranking: RerankingConfig
 
 
+class APIAuthConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+    api_key_header: str = Field(min_length=1, max_length=100)
+
+
+class RateLimitConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+    requests_per_minute: int = Field(gt=0, le=10_000)
+
+
+class RequestSecurityConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    max_body_size_bytes: int = Field(gt=0, le=10_000_000)
+
+
+class AuditConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+
+
+class SecurityConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    api: APIAuthConfig
+    rate_limit: RateLimitConfig
+    request: RequestSecurityConfig
+    audit: AuditConfig
+
+
+class DatabaseConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pool_size: int = Field(gt=0, le=100)
+    max_overflow: int = Field(ge=0, le=200)
+    pool_timeout_seconds: int = Field(gt=0, le=300)
+    pool_recycle_seconds: int = Field(gt=0, le=86_400)
+
+
+class TimeoutConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request_seconds: int = Field(gt=0, le=600)
+
+
+class ProductionConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    workers: int = Field(gt=0, le=32)
+    graceful_shutdown_seconds: int = Field(gt=0, le=300)
+    database: DatabaseConfig
+    timeouts: TimeoutConfig
+
+
+class RetrievalCacheConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    cache_enabled: bool = True
+    backend: Literal["memory"] = "memory"
+
+
+class PerformanceConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    retrieval: RetrievalCacheConfig
+
+
 class EnvironmentSettings(BaseSettings):
     """Environment-specific settings loaded from .env."""
 
@@ -152,6 +236,7 @@ class EnvironmentSettings(BaseSettings):
     app_env: str = Field(default="dev")
     database_url: str
     openrouter_api_key: str | None = None
+    api_key: str | None = None
 
 
 class Settings(BaseModel):
@@ -166,6 +251,9 @@ class Settings(BaseModel):
     finops: FinOpsConfig
     evaluation: EvaluationConfig
     advanced_retrieval: AdvancedRetrievalConfig
+    security: SecurityConfig
+    production: ProductionConfig
+    performance: PerformanceConfig
 
     @property
     def application_name(self) -> str:
@@ -183,6 +271,10 @@ class Settings(BaseModel):
     def openrouter_api_key(self) -> str | None:
         return self.environment.openrouter_api_key
 
+    @property
+    def api_key(self) -> str | None:
+        return self.environment.api_key
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -196,6 +288,9 @@ def get_settings() -> Settings:
     finops_data = load_yaml_config(CONFIG_DIR / "finops.yaml")
     evaluation_data = load_yaml_config(CONFIG_DIR / "evaluation.yaml")
     advanced_retrieval_data = load_yaml_config(CONFIG_DIR / "advanced_retrieval.yaml")
+    security_data = load_yaml_config(CONFIG_DIR / "security.yaml")
+    production_data = load_yaml_config(CONFIG_DIR / "production.yaml")
+    performance_data = load_yaml_config(CONFIG_DIR / "performance.yaml")
 
     return Settings(
         environment=environment,
@@ -209,4 +304,7 @@ def get_settings() -> Settings:
         advanced_retrieval=AdvancedRetrievalConfig.model_validate(
             advanced_retrieval_data["advanced_retrieval"]
         ),
+        security=SecurityConfig.model_validate(security_data["security"]),
+        production=ProductionConfig.model_validate(production_data["production"]),
+        performance=PerformanceConfig.model_validate(performance_data["performance"]),
     )

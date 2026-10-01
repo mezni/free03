@@ -1,4 +1,5 @@
 from src.config.settings import LLMConfig, ReliabilityConfig
+from src.providers.circuit_breaker import CircuitBreaker
 from src.providers.llm.base import LLMProvider
 from src.providers.llm.openrouter import OpenRouterProvider
 from src.providers.retry import RetryPolicy
@@ -23,6 +24,20 @@ class LLMProviderFactory:
                 reliability.llm if reliability is not None else LLMReliabilityDefaults()
             )
 
+            circuit_breaker_config = llm_reliability.circuit_breaker
+
+            circuit_breaker = None
+
+            if circuit_breaker_config.enabled:
+                circuit_breaker = CircuitBreaker(
+                    failure_threshold=(
+                        circuit_breaker_config.failure_threshold
+                    ),
+                    recovery_seconds=(
+                        circuit_breaker_config.recovery_seconds
+                    ),
+                )
+
             return OpenRouterProvider(
                 api_key=api_key,
                 model_name=config.model,
@@ -33,6 +48,7 @@ class LLMProviderFactory:
                     max_retries=llm_reliability.max_retries,
                     delay_seconds=(llm_reliability.retry_delay_seconds),
                 ),
+                circuit_breaker=circuit_breaker,
             )
 
         raise ValueError(f"Unsupported LLM provider: {config.provider}")
@@ -48,3 +64,7 @@ class LLMReliabilityDefaults:
     timeout_seconds = 60
     max_retries = 0
     retry_delay_seconds = 0.0
+
+    enabled = False
+    failure_threshold = 5
+    recovery_seconds = 30.0

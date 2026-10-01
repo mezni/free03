@@ -14,6 +14,9 @@ def get_db_session() -> Generator[Session]:
 
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 

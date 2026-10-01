@@ -1,0 +1,14 @@
+security:
+  api:
+    enabled: true
+    api_key_header: X-API-Key
+
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+
+  request:
+    max_body_size_bytes: 1048576
+
+  audit:
+    enabled: true
