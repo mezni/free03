@@ -66,3 +66,27 @@ class ReciprocalRank:
                 return 1.0 / rank
 
         return 0.0
+
+
+class MeanReciprocalRank:
+    """Calculate Mean Reciprocal Rank across evaluation results."""
+
+    def calculate(
+        self,
+        evaluations: list[RetrievalEvaluationResult],
+        k: int,
+    ) -> float:
+        if k <= 0:
+            raise ValueError("k must be greater than 0")
+
+        if not evaluations:
+            return 0.0
+
+        metric = ReciprocalRank()
+
+        reciprocal_ranks = [
+            metric.calculate(evaluation, k)
+            for evaluation in evaluations
+        ]
+
+        return sum(reciprocal_ranks) / len(reciprocal_ranks)

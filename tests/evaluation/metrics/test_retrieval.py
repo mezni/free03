@@ -2,7 +2,8 @@ from uuid import uuid4
 
 import pytest
 
-from src.evaluation.metrics.retrieval import (  # Import all three metrics
+from src.evaluation.metrics.retrieval import (
+    MeanReciprocalRank,
     PrecisionAtK,
     RecallAtK,
     ReciprocalRank,
@@ -262,3 +263,45 @@ def test_reciprocal_rank_rejects_invalid_k():
 
     with pytest.raises(ValueError, match="k must be greater than 0"):
         metric.calculate(evaluation, k=0)
+
+
+def test_mean_reciprocal_rank():
+    chunk_a = uuid4()
+    chunk_b = uuid4()
+    chunk_c = uuid4()
+
+    evaluations = [
+        make_evaluation(
+            retrieved_ids=[chunk_a, uuid4()],
+            relevant_ids=[chunk_a],
+        ),
+        make_evaluation(
+            retrieved_ids=[uuid4(), chunk_b],
+            relevant_ids=[chunk_b],
+        ),
+        make_evaluation(
+            retrieved_ids=[uuid4(), uuid4(), chunk_c],
+            relevant_ids=[chunk_c],
+        ),
+    ]
+
+    metric = MeanReciprocalRank()
+
+    result = metric.calculate(evaluations, k=3)
+
+    expected = (1.0 + 0.5 + (1 / 3)) / 3
+
+    assert result == pytest.approx(expected)
+
+
+def test_mean_reciprocal_rank_empty_dataset():
+    metric = MeanReciprocalRank()
+
+    assert metric.calculate([], k=5) == 0.0
+
+
+def test_mean_reciprocal_rank_rejects_invalid_k():
+    metric = MeanReciprocalRank()
+
+    with pytest.raises(ValueError, match="k must be greater than 0"):
+        metric.calculate([], k=0)

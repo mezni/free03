@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
-| 0.2.6   | Evaluation Metrics | `RecallAtK`, `PrecisionAtK`, `ReciprocalRank` metrics over `RetrievalEvaluationResult`, `src/evaluation/metrics` package with 18 tests |
+| 0.2.6   | Evaluation Metrics | `RecallAtK`, `PrecisionAtK`, `ReciprocalRank`, `MeanReciprocalRank` over `RetrievalEvaluationResult`, `src/evaluation/metrics` package with 21 tests |
 | 0.2.5   | Reranking | `Reranker` contract + `SimpleReranker`, `RetrievalPipeline` reranking stage, `candidate_k` candidate-pool control |
 | 0.2.4   | Hybrid Retrieval | `reciprocal_rank_fusion()` helper, `HybridSearchStrategy` fusing vector + keyword results via RRF |
 | 0.2.3   | Keyword Retrieval | PostgreSQL full-text search (`search_vector` TSVECTOR + GIN + trigger), `KeywordSearchRepository`/`KeywordSearchStrategy`, `SearchStrategy` accepts `RetrievalQuery` |
@@ -64,10 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 - **`RecallAtK`:** fraction of relevant chunks found in the top-`k` retrieved chunks; empty relevance set returns `0.0`, `k <= 0` raises `ValueError`
 - **`PrecisionAtK`:** fraction of the top-`k` retrieved chunks that are relevant; empty result set returns `0.0`, `k <= 0` raises `ValueError`
 - **`ReciprocalRank`:** reciprocal of the rank of the first relevant chunk within the top `k` (`1/rank`), returning `0.0` when no relevant chunk appears; `k <= 0` raises `ValueError`
-- **Testing:** `tests/services/test_retrieval_evaluation_service.py` (case→result mapping) and `tests/evaluation/metrics/test_retrieval.py` (18 tests: 6 per metric covering perfect/partial/miss, top-`k` truncation, `k` beyond result count, empty inputs, and invalid `k`)
+- **`MeanReciprocalRank`:** dataset-level MRR — averages `ReciprocalRank` over a list of `RetrievalEvaluationResult`s (`sum(rr) / len(results)`), returning `0.0` for an empty dataset; `k <= 0` raises `ValueError`
+- **Testing:** `tests/services/test_retrieval_evaluation_service.py` (case→result mapping) and `tests/evaluation/metrics/test_retrieval.py` (21 tests: 6 per single-case metric plus MRR averaging/empty-dataset/invalid-`k` cases)
 
 ### Changed
-- Raw `retrieved_chunk_ids`/`relevant_chunk_ids` pairs are the single metric input, so all three metrics share one comparable result shape and no retrieval re-execution is needed per metric
+- Raw `retrieved_chunk_ids`/`relevant_chunk_ids` pairs are the single metric input, so all metrics share one comparable result shape and no retrieval re-execution is needed per metric
+- `MeanReciprocalRank` is the first metric consuming a *list* of results, setting the pattern for dataset-level aggregates
 
 ## [0.2.5] - 2026-09-25
 
