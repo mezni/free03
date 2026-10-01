@@ -43,3 +43,26 @@ class PrecisionAtK:
         retrieved_relevant = set(retrieved_ids) & relevant_ids
 
         return len(retrieved_relevant) / len(retrieved_ids)
+
+
+class ReciprocalRank:
+    """Calculate Reciprocal Rank for a retrieval evaluation result."""
+
+    def calculate(
+        self,
+        evaluation: RetrievalEvaluationResult,
+        k: int,
+    ) -> float:
+        if k <= 0:
+            raise ValueError("k must be greater than 0")
+
+        relevant_ids = set(evaluation.relevant_chunk_ids)
+
+        for rank, chunk_id in enumerate(
+            evaluation.retrieved_chunk_ids[:k],
+            start=1,
+        ):
+            if chunk_id in relevant_ids:
+                return 1.0 / rank
+
+        return 0.0

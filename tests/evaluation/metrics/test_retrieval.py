@@ -2,7 +2,11 @@ from uuid import uuid4
 
 import pytest
 
-from src.evaluation.metrics.retrieval import PrecisionAtK, RecallAtK
+from src.evaluation.metrics.retrieval import (  # Import all three metrics
+    PrecisionAtK,
+    RecallAtK,
+    ReciprocalRank,
+)
 from src.models.retrieval_evaluation import RetrievalEvaluationResult
 
 
@@ -178,6 +182,83 @@ def test_precision_at_k_rejects_invalid_k():
     )
 
     metric = PrecisionAtK()
+
+    with pytest.raises(ValueError, match="k must be greater than 0"):
+        metric.calculate(evaluation, k=0)
+
+def test_reciprocal_rank_first_result_is_relevant():
+    chunk_a = uuid4()
+    chunk_b = uuid4()
+
+    evaluation = make_evaluation(
+        retrieved_ids=[chunk_a, chunk_b],
+        relevant_ids=[chunk_a],
+    )
+
+    metric = ReciprocalRank()
+
+    assert metric.calculate(evaluation, k=2) == 1.0
+
+
+def test_reciprocal_rank_relevant_result_is_second():
+    chunk_a = uuid4()
+    chunk_b = uuid4()
+
+    evaluation = make_evaluation(
+        retrieved_ids=[chunk_b, chunk_a],
+        relevant_ids=[chunk_a],
+    )
+
+    metric = ReciprocalRank()
+
+    assert metric.calculate(evaluation, k=2) == 0.5
+
+
+def test_reciprocal_rank_relevant_result_is_third():
+    chunk_a = uuid4()
+
+    evaluation = make_evaluation(
+        retrieved_ids=[uuid4(), uuid4(), chunk_a],
+        relevant_ids=[chunk_a],
+    )
+
+    metric = ReciprocalRank()
+
+    assert metric.calculate(evaluation, k=3) == 1 / 3
+
+
+def test_reciprocal_rank_returns_zero_when_no_relevant_result():
+    evaluation = make_evaluation(
+        retrieved_ids=[uuid4(), uuid4()],
+        relevant_ids=[uuid4()],
+    )
+
+    metric = ReciprocalRank()
+
+    assert metric.calculate(evaluation, k=2) == 0.0
+
+
+def test_reciprocal_rank_uses_only_top_k():
+    chunk_a = uuid4()
+
+    evaluation = make_evaluation(
+        retrieved_ids=[uuid4(), chunk_a],
+        relevant_ids=[chunk_a],
+    )
+
+    metric = ReciprocalRank()
+
+    assert metric.calculate(evaluation, k=1) == 0.0
+    assert metric.calculate(evaluation, k=2) == 0.5
+
+
+def test_reciprocal_rank_rejects_invalid_k():
+    evaluation = make_evaluation(
+        retrieved_ids=[],
+        relevant_ids=[uuid4()],
+    )
+
+    metric = ReciprocalRank()
 
     with pytest.raises(ValueError, match="k must be greater than 0"):
         metric.calculate(evaluation, k=0)
