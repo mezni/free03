@@ -5,6 +5,7 @@ description = "Aether RAG system"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.142.2",
     "httpx>=0.28.1",
     "pgvector>=0.5.0",
     "psycopg[binary]>=3.3.5",
@@ -13,6 +14,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
     "sqlalchemy>=2.0.54",
+    "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
@@ -37,6 +39,11 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's dependency-injection idiom is `Depends()` in an argument
+# default, which B008 flags as a mutable-default call.
+"src/api/*" = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

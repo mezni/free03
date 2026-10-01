@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
+| 0.2.11  | HTTP API | FastAPI + uvicorn, `create_app()`, `/health` and `POST /rag/query`, request-scoped session dependency, `RAGAPIError` handler, dependency-overridden tests with no network |
 | 0.2.10  | RAG Evaluation | `RAGEvaluationCase`/`Result`/`Metrics`, YAML dataset + loader, deterministic `CitationEvaluator`/`GroundingEvaluator`/`SimpleAnswerEvaluator` behind an `AnswerEvaluator` boundary, `RAGEvaluationService`/`Runner`, container wiring, `evaluate_rag` CLI |
 | 0.2.9   | RAG Generation | `LLMProvider` contract + `OpenRouterProvider` over `httpx`, `PromptBuilder`, `CitationExtractor`, `GroundingService`; `GenerationService`/`RAGService` returning a cited `RAGResponse`; `config/llm.yaml` with the key kept in `.env` |
 | 0.2.8   | Provider Packages | `src/providers/embeddings/` (relocated), `EmbeddingProviderFactory`, provider contract + boundary tests, configured `model_name` |
@@ -58,6 +59,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 | 0.1.3   | Database      | SQLAlchemy `src/db` module, Alembic migrations |
 | 0.1.2   | Infrastructure | Docker Compose, Makefile, .env.example with DATABASE_URL |
 | 0.1.1   | Core          | Initial release with config, errors, ids, clock |
+
+## [0.2.11] - 2026-10-01
+
+### Added
+- **FastAPI and uvicorn:** added as runtime dependencies; `httpx` was already a runtime dependency, so it was not duplicated into the dev group for `TestClient`
+- **API package:** `src/api/` — `app.py` with `create_app()` plus a module-level `app` for `uvicorn src.api.app:app --reload`, `dependencies.py`, `errors.py`, and `routes/` holding the `health` and `rag` routers
+- **API schemas:** `src/models/api.py` — `RAGQueryRequest(query, top_k=5)` bounded to `1..5000` characters and `top_k` in `[1, 20]` with `extra="forbid"`, and `RAGQueryResponse` mirroring `RAGResponse`. The HTTP schema is deliberately separate from `RetrievalQuery`, keeping the boundary HTTP schema → application schema → domain services
+- **`get_db_session`:** `src/api/dependencies.py` — a `Generator[Session]` yielding `SessionLocal()` and closing it in `finally`, so request-scoped sessions are cleaned up
+- **`get_rag_service`:** `src/api/dependencies.py` — depends on `get_db_session`, builds `ApplicationContainer`, and returns `container.rag_service()`, keeping all composition in the container rather than in the route
+- **Health endpoint:** `GET /health` returning `{"status": "ok"}`; no database or provider checks yet
+- **RAG endpoint:** `POST /rag/query` — validates the request, builds `RetrievalQuery(query, top_k)`, calls `RAGService.answer()`, and projects the result onto `RAGQueryResponse`. The endpoint holds no retrieval or generation logic
+- **`RAGAPIError`:** `src/api/errors.py` — carries `message` and `status_code` (default `500`); `register_exception_handlers(app)` renders it as `{"error": message}`. Registered in `create_app()`. Unexpected exceptions are deliberately left unmasked
+- **API tests:** `tests/api/test_health.py` (1), `tests/api/test_rag.py` (7 — response shape, `top_k` forwarding, the `top_k=5` default, empty query, unknown field, out-of-range `top_k`, and OpenAPI generation), `tests/api/test_errors.py` (4 — status code and body, the `500` default, unexpected errors staying unmasked, and health still working with handlers registered). The RAG route tests override `get_rag_service`, so no test reaches OpenRouter
+- **Lint configuration:** `pyproject.toml` gained a `[tool.ruff.lint.per-file-ignores]` entry scoping `B008` to `src/api/*`, because `Depends()` in an argument default is FastAPI's dependency-injection idiom rather than a mutable-default bug
+
+### Changed
+- Verified live with `uvicorn src.api.app:app`: `/health` returns `{"status":"ok"}`, and the OpenAPI schema exposes exactly `/health` and `/rag/query`
+
+### Known Limitations
+- **`POST /rag/query` still returns `500` in this environment, for two stacked reasons.** `OPENROUTER_API_KEY` is empty in `.env`, so `get_rag_service` raises during dependency resolution and masks request validation — an empty `query` body returns `500` instead of `422`. Once a key is present, validation returns `422` correctly (confirmed in-process), and a valid request then fails with `ValueError: No active index version exists` because the database holds zero documents and no index versions
+- **Dependency construction failure shadows `422` validation.** FastAPI resolves `get_rag_service` before the endpoint body is validated, so any configuration error surfaces as `500` for *every* request to `/rag/query`, including malformed ones. A `/health/ready` endpoint that reports configuration and database state would make this diagnosable instead of a stack trace
+- **`get_db_session` is unexercised by tests.** Every route test overrides `get_rag_service`, so session creation and cleanup have no coverage; a test asserting the generator closes its session would close that gap
+- **`RAGQueryResponse` has no error envelope for retrieval failures.** Because `RAGAPIError` is defined but never raised anywhere, the error path exists only as a mechanism — no service currently translates domain failures (missing active version, provider errors) into it
+- **No request timeouts, authentication, rate limiting, or CORS configuration**, and the synchronous `def` route handlers run in the threadpool, so a slow provider call occupies a worker for the full `timeout_seconds`
 
 ## [0.2.10] - 2026-10-01
 
