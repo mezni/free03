@@ -1,0 +1,16 @@
+# Advanced retrieval is experimental. These defaults are conservative:
+# query expansion is OFF because it is not enabled by the analyzer yet,
+# and the window is deliberately small so context growth stays bounded.
+advanced_retrieval:
+  query:
+    expansion_enabled: false
+    max_queries: 3
+
+  context:
+    window_enabled: true
+    window_size: 1
+    max_chunks: 8
+
+  reranking:
+    enabled: true
+    candidate_k: 20

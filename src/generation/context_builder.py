@@ -2,7 +2,12 @@ from src.models.retrieval import RetrievalResult
 
 
 class ContextBuilder:
-    """Render retrieved chunks into a cited source context."""
+    """The single canonical formatter for retrieved context.
+
+    Context construction lives here only. The prompt builder receives
+    an already-built context string, so retrieved content is never
+    formatted twice.
+    """
 
     def build(
         self,
@@ -10,7 +15,10 @@ class ContextBuilder:
     ) -> str:
         sections: list[str] = []
 
-        for position, result in enumerate(results, start=1):
+        for position, result in enumerate(
+            results,
+            start=1,
+        ):
             section = (
                 f"[SOURCE-{position}]\n"
                 f"Document ID: {result.document_id}\n"

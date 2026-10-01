@@ -66,6 +66,34 @@ class ChunkRepository:
             .all()
         )
 
+    def get_neighboring_chunks(
+        self,
+        document_id: UUID,
+        index_version_id: UUID,
+        chunk_index: int,
+        window: int = 1,
+    ) -> list[ChunkDB]:
+        """Return chunks around `chunk_index` within one document.
+
+        `index_version_id` is mandatory, not optional. Omitting it
+        would let a window lookup mix chunks from different index
+        versions, which would break version isolation.
+        """
+        statement = (
+            select(ChunkDB)
+            .where(
+                ChunkDB.document_id == document_id,
+                ChunkDB.index_version_id == index_version_id,
+                ChunkDB.chunk_index >= chunk_index - window,
+                ChunkDB.chunk_index <= chunk_index + window,
+            )
+            .order_by(ChunkDB.chunk_index)
+        )
+
+        return list(
+            self.session.execute(statement).scalars().all()
+        )
+
     def get_by_index_version_id(
         self,
         index_version_id: UUID,

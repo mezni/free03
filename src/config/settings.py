@@ -109,6 +109,40 @@ class EvaluationConfig(BaseModel):
     quality_gate: QualityGateConfig
 
 
+class QueryConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expansion_enabled: bool = False
+
+    max_queries: int = Field(gt=0, le=10)
+
+
+class ContextConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    window_enabled: bool = True
+
+    window_size: int = Field(ge=0, le=5)
+
+    max_chunks: int = Field(gt=0, le=50)
+
+
+class RerankingConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+
+    candidate_k: int = Field(gt=0, le=100)
+
+
+class AdvancedRetrievalConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    query: QueryConfig
+    context: ContextConfig
+    reranking: RerankingConfig
+
+
 class EnvironmentSettings(BaseSettings):
     """Environment-specific settings loaded from .env."""
 
@@ -134,6 +168,7 @@ class Settings(BaseModel):
     reliability: ReliabilityConfig
     finops: FinOpsConfig
     evaluation: EvaluationConfig
+    advanced_retrieval: AdvancedRetrievalConfig
 
     @property
     def application_name(self) -> str:
@@ -169,6 +204,9 @@ def get_settings() -> Settings:
     evaluation_data = load_yaml_config(
         CONFIG_DIR / "evaluation.yaml"
     )
+    advanced_retrieval_data = load_yaml_config(
+        CONFIG_DIR / "advanced_retrieval.yaml"
+    )
 
     return Settings(
         environment=environment,
@@ -190,5 +228,8 @@ def get_settings() -> Settings:
         ),
         evaluation=EvaluationConfig.model_validate(
             evaluation_data
+        ),
+        advanced_retrieval=AdvancedRetrievalConfig.model_validate(
+            advanced_retrieval_data["advanced_retrieval"]
         ),
     )

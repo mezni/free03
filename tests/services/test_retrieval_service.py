@@ -80,6 +80,11 @@ def _retrieval_service(
     dimensions: int = 8,
 ) -> RetrievalService:
     from src.retrieval.search.vector import VectorSearchStrategy
+
+    embedding_provider = LocalEmbeddingProvider(
+        dimensions=dimensions
+    )
+
     return RetrievalService(
         index_version_repository=IndexVersionRepository(
             database_session
@@ -88,10 +93,9 @@ def _retrieval_service(
             repository=VectorSearchRepository(
                 database_session
             ),
-            embedding_provider=LocalEmbeddingProvider(
-                dimensions=dimensions
-            ),
+            embedding_provider=embedding_provider,
         ),
+        embedding_provider=embedding_provider,
     )
 
 

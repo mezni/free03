@@ -4,8 +4,10 @@ import pytest
 
 from src.application.container import ApplicationContainer
 from src.config.settings import (
+    AdvancedRetrievalConfig,
     APIReliabilityConfig,
     ApplicationConfig,
+    ContextConfig,
     EmbeddingConfig,
     EnvironmentSettings,
     EvaluationConfig,
@@ -14,7 +16,9 @@ from src.config.settings import (
     LLMReliabilityConfig,
     LoggingConfig,
     ModelPricing,
+    QueryConfig,
     ReliabilityConfig,
+    RerankingConfig,
     RetrievalReliabilityConfig,
     Settings,
 )
@@ -70,6 +74,21 @@ def create_test_settings(
                     )
                 }
             },
+        ),
+        advanced_retrieval=AdvancedRetrievalConfig(
+            query=QueryConfig(
+                expansion_enabled=False,
+                max_queries=3,
+            ),
+            context=ContextConfig(
+                window_enabled=True,
+                window_size=1,
+                max_chunks=8,
+            ),
+            reranking=RerankingConfig(
+                enabled=True,
+                candidate_k=20,
+            ),
         ),
         evaluation=EvaluationConfig(
             quality_gate=QualityGateConfig(

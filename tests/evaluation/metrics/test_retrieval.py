@@ -3,6 +3,8 @@ from uuid import uuid4
 import pytest
 
 from src.evaluation.metrics.retrieval import (
+    ContextPrecision,
+    ContextRecall,
     MeanReciprocalRank,
     NDCGAtK,
     PrecisionAtK,
@@ -382,3 +384,123 @@ def test_ndcg_at_k_rejects_invalid_k():
 
     with pytest.raises(ValueError, match="k must be greater than 0"):
         metric.calculate(evaluation, k=0)
+
+class TestContextRecall:
+    def test_all_relevant_chunks_in_context(self):
+        chunk_a = uuid4()
+        chunk_b = uuid4()
+
+        evaluation = make_evaluation(
+            retrieved_ids=[chunk_a, chunk_b],
+            relevant_ids=[chunk_a, chunk_b],
+        )
+
+        metric = ContextRecall()
+
+        assert metric.calculate(
+            evaluation,
+            [str(chunk_a), str(chunk_b)],
+        ) == 1.0
+
+    def test_half_of_relevant_chunks_in_context(self):
+        chunk_a = uuid4()
+        chunk_b = uuid4()
+
+        evaluation = make_evaluation(
+            retrieved_ids=[chunk_a],
+            relevant_ids=[chunk_a, chunk_b],
+        )
+
+        metric = ContextRecall()
+
+        assert metric.calculate(
+            evaluation,
+            [str(chunk_a)],
+        ) == 0.5
+
+    def test_context_recall_zero_when_context_empty(self):
+        evaluation = make_evaluation(
+            retrieved_ids=[],
+            relevant_ids=[uuid4()],
+        )
+
+        metric = ContextRecall()
+
+        assert metric.calculate(evaluation, []) == 0.0
+
+    def test_context_recall_zero_without_relevant_chunks(self):
+        evaluation = make_evaluation(
+            retrieved_ids=[],
+            relevant_ids=[],
+        )
+
+        metric = ContextRecall()
+
+        assert metric.calculate(evaluation, []) == 0.0
+
+    def test_perfect_ranking_can_still_fail_context_recall(self):
+        """A chunk ranked first but dropped before the LLM.
+
+        Window expansion can push a highly-ranked chunk out of the
+        final budget. Context Recall is what catches that.
+        """
+        relevant = uuid4()
+
+        evaluation = make_evaluation(
+            retrieved_ids=[relevant],
+            relevant_ids=[relevant],
+        )
+
+        assert RecallAtK().calculate(evaluation, k=5) == 1.0
+        assert (
+            ContextRecall().calculate(evaluation, [])
+            == 0.0
+        )
+
+
+class TestContextPrecision:
+    def test_all_context_chunks_relevant(self):
+        chunk_a = uuid4()
+        chunk_b = uuid4()
+
+        evaluation = make_evaluation(
+            retrieved_ids=[chunk_a, chunk_b],
+            relevant_ids=[chunk_a, chunk_b],
+        )
+
+        metric = ContextPrecision()
+
+        assert metric.calculate(
+            evaluation,
+            [str(chunk_a), str(chunk_b)],
+        ) == 1.0
+
+    def test_neighbor_padding_lowers_precision(self):
+        """Window expansion adds chunks nobody judged relevant."""
+        relevant = uuid4()
+
+        evaluation = make_evaluation(
+            retrieved_ids=[relevant],
+            relevant_ids=[relevant],
+        )
+
+        metric = ContextPrecision()
+
+        assert metric.calculate(
+            evaluation,
+            [
+                str(relevant),
+                str(uuid4()),
+                str(uuid4()),
+            ],
+        ) == pytest.approx(1 / 3)
+
+    def test_context_precision_zero_when_empty(self):
+        evaluation = make_evaluation(
+            retrieved_ids=[],
+            relevant_ids=[],
+        )
+
+        metric = ContextPrecision()
+
+        assert metric.calculate(evaluation, []) == 0.0

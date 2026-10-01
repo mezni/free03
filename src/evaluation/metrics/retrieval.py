@@ -94,6 +94,56 @@ class MeanReciprocalRank:
         return sum(reciprocal_ranks) / len(reciprocal_ranks)
 
 
+class ContextRecall:
+    """Fraction of relevant chunks that reached the final context.
+
+    Recall@K measures whether retrieval ranked a relevant chunk highly.
+    This measures whether it survived into the context the LLM actually
+    saw. A pipeline can score perfect Recall@K and still fail here if
+    reranking, window expansion, or selection displaced the answer.
+    """
+
+    def calculate(
+        self,
+        evaluation: RetrievalEvaluationResult,
+        context_chunk_ids: list[str],
+    ) -> float:
+        relevant_ids = {str(chunk) for chunk in evaluation.relevant_chunk_ids}
+
+        if not relevant_ids:
+            return 0.0
+
+        context_ids = set(context_chunk_ids)
+
+        retrieved_relevant = relevant_ids & context_ids
+
+        return len(retrieved_relevant) / len(relevant_ids)
+
+
+class ContextPrecision:
+    """Fraction of context chunks that are relevant.
+
+    The counterweight to Context Recall. Window expansion deliberately
+    adds neighbor chunks that were never independently judged relevant,
+    so this metric rises as context grows. A rise in recall paired with
+    a fall in precision means the window is padding the prompt.
+    """
+
+    def calculate(
+        self,
+        evaluation: RetrievalEvaluationResult,
+        context_chunk_ids: list[str],
+    ) -> float:
+        if not context_chunk_ids:
+            return 0.0
+
+        relevant_ids = {str(chunk) for chunk in evaluation.relevant_chunk_ids}
+
+        context_ids = set(context_chunk_ids)
+
+        return len(relevant_ids & context_ids) / len(context_ids)
+
+
 class NDCGAtK:
     """Calculate binary Normalized Discounted Cumulative Gain@K."""
 

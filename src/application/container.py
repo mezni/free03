@@ -23,7 +23,13 @@ from src.providers.embeddings.base import EmbeddingProvider
 from src.providers.embeddings.factory import EmbeddingProviderFactory
 from src.providers.llm.base import LLMProvider
 from src.providers.llm.factory import LLMProviderFactory
+from src.retrieval.context.base import ContextSelector
+from src.retrieval.context.simple import SimpleContextSelector
+from src.retrieval.context.window import ContextWindowService
 from src.retrieval.pipeline import RetrievalPipeline
+from src.retrieval.query.base import QueryAnalyzer
+from src.retrieval.query.expander import QueryExpander
+from src.retrieval.query.simple import SimpleQueryAnalyzer
 from src.retrieval.rerank.simple import SimpleReranker
 from src.retrieval.search.hybrid import HybridSearchStrategy
 from src.retrieval.search.keyword import KeywordSearchStrategy
@@ -111,12 +117,43 @@ class ApplicationContainer:
         return RetrievalService(
             search_strategy=hybrid_strategy,
             index_version_repository=self.index_version_repository(),
+            embedding_provider=embedding_provider,
         )
 
+    def query_analyzer(self) -> QueryAnalyzer:
+        return SimpleQueryAnalyzer()
+
+    def query_expander(self) -> QueryExpander:
+        return QueryExpander()
+
+    def context_window_service(self) -> ContextWindowService:
+        return ContextWindowService(
+            chunk_repository=self.chunk_repository(),
+        )
+
+    def context_selector(self) -> ContextSelector:
+        return SimpleContextSelector()
+
     def retrieval_pipeline(self) -> RetrievalPipeline:
+        advanced = self._settings.advanced_retrieval
+
         return RetrievalPipeline(
             retrieval_service=self.retrieval_service(),
-            reranker=SimpleReranker(),
+            query_analyzer=self.query_analyzer(),
+            reranker=(
+                SimpleReranker()
+                if advanced.reranking.enabled
+                else None
+            ),
+            context_window_service=(
+                self.context_window_service()
+                if advanced.context.window_enabled
+                else None
+            ),
+            context_selector=self.context_selector(),
+            rerank_candidate_k=advanced.reranking.candidate_k,
+            window_size=advanced.context.window_size,
+            max_chunks=advanced.context.max_chunks,
             metrics=self._metrics,
         )
 

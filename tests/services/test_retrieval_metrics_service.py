@@ -75,3 +75,67 @@ def test_evaluate_rejects_invalid_k():
             evaluations=[],
             k=0,
         )
+
+def test_context_metrics_are_none_without_context_input():
+    """Guessing context from the ranked list would make the metric
+    meaningless. Absent input means absent metric."""
+    evaluations = [
+        make_evaluation(
+            retrieved_ids=[uuid4()],
+            relevant_ids=[uuid4()],
+            case_id="case-1",
+        )
+    ]
+
+    result = RetrievalMetricsService().evaluate(
+        evaluations=evaluations,
+        k=5,
+    )
+
+    assert result.context_recall is None
+    assert result.context_precision is None
+
+
+def test_context_metrics_are_computed_when_context_provided():
+    chunk_a = uuid4()
+    chunk_b = uuid4()
+    padded = uuid4()
+
+    evaluations = [
+        make_evaluation(
+            retrieved_ids=[chunk_a],
+            relevant_ids=[chunk_a, chunk_b],
+            case_id="case-1",
+        )
+    ]
+
+    result = RetrievalMetricsService().evaluate(
+        evaluations=evaluations,
+        k=5,
+        context_chunk_ids=[[str(chunk_a), str(padded)]],
+    )
+
+    assert result.context_recall == pytest.approx(0.5)
+    assert result.context_precision == pytest.approx(0.5)
+
+
+def test_context_metric_input_length_must_match_evaluations():
+    evaluations = [
+        make_evaluation(
+            retrieved_ids=[uuid4()],
+            relevant_ids=[uuid4()],
+            case_id="case-1",
+        ),
+        make_evaluation(
+            retrieved_ids=[uuid4()],
+            relevant_ids=[uuid4()],
+            case_id="case-2",
+        ),
+    ]
+
+    with pytest.raises(ValueError, match="context_chunk_ids"):
+        RetrievalMetricsService().evaluate(
+            evaluations=evaluations,
+            k=5,
+            context_chunk_ids=[[str(uuid4())]],
+        )

@@ -59,9 +59,14 @@ class GenerationService:
 
         system_prompt = self._prompt_builder.build_system_prompt()
 
+        # `query` is the user's original question. Retrieval may have
+        # searched with a rewritten form, but the prompt must ask what
+        # the user actually asked.
+        context = self._context_builder.build(results)
+
         user_prompt = self._prompt_builder.build_user_prompt(
             query=query,
-            results=results,
+            context=context,
         )
 
         request = GenerationRequest(

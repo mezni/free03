@@ -31,21 +31,26 @@ class RetrievalEvaluationRunner:
         if k <= 0:
             raise ValueError("k must be greater than 0")
 
-        evaluations = [
-            self._evaluate_case(case, k)
-            for case in cases
-        ]
+        evaluations: list[RetrievalEvaluationResult] = []
+        context_chunk_ids: list[list[str]] = []
+
+        for case in cases:
+            evaluation, context_ids = self._evaluate_case(case, k)
+
+            evaluations.append(evaluation)
+            context_chunk_ids.append(context_ids)
 
         return self._metrics_service.evaluate(
             evaluations=evaluations,
             k=k,
+            context_chunk_ids=context_chunk_ids,
         )
 
     def _evaluate_case(
         self,
         case: RetrievalEvaluationCase,
         k: int,
-    ) -> RetrievalEvaluationResult:
+    ) -> tuple[RetrievalEvaluationResult, list[str]]:
         request = RetrievalQuery(
             query=case.query,
             top_k=k,
@@ -59,7 +64,7 @@ class RetrievalEvaluationRunner:
             )
         )
 
-        return RetrievalEvaluationResult(
+        evaluation = RetrievalEvaluationResult(
             case_id=case.case_id,
             retrieved_chunk_ids=[
                 result.chunk_id
@@ -67,3 +72,7 @@ class RetrievalEvaluationRunner:
             ],
             relevant_chunk_ids=relevant_chunk_ids,
         )
+
+        return evaluation, [
+            str(result.chunk_id) for result in results
+        ]
