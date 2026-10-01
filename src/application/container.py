@@ -125,6 +125,7 @@ class ApplicationContainer:
             api_key=(
                 self._settings.environment.openrouter_api_key
             ),
+            reliability=self._settings.reliability,
         )
 
     def generation_service(self) -> GenerationService:

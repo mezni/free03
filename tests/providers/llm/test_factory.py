@@ -11,7 +11,6 @@ def make_config(**overrides) -> LLMConfig:
         "model": "openai/gpt-oss-20b:free",
         "temperature": 0.0,
         "max_tokens": 1000,
-        "timeout_seconds": 60,
     }
     kwargs.update(overrides)
 

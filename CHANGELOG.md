@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
+| 0.2.12  | Observability | `ContextVar` request ID + `X-Request-ID` header, JSON log formatter with token usage, `Timer`, thread-safe `MetricsCollector` shared via a registry singleton, `GET /metrics`, instrumentation of retrieval/generation/RAG |
 | 0.2.11  | HTTP API | FastAPI + uvicorn, `create_app()`, `/health` and `POST /rag/query`, request-scoped session dependency, `RAGAPIError` handler, dependency-overridden tests with no network |
 | 0.2.10  | RAG Evaluation | `RAGEvaluationCase`/`Result`/`Metrics`, YAML dataset + loader, deterministic `CitationEvaluator`/`GroundingEvaluator`/`SimpleAnswerEvaluator` behind an `AnswerEvaluator` boundary, `RAGEvaluationService`/`Runner`, container wiring, `evaluate_rag` CLI |
 | 0.2.9   | RAG Generation | `LLMProvider` contract + `OpenRouterProvider` over `httpx`, `PromptBuilder`, `CitationExtractor`, `GroundingService`; `GenerationService`/`RAGService` returning a cited `RAGResponse`; `config/llm.yaml` with the key kept in `.env` |
@@ -59,6 +60,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 | 0.1.3   | Database      | SQLAlchemy `src/db` module, Alembic migrations |
 | 0.1.2   | Infrastructure | Docker Compose, Makefile, .env.example with DATABASE_URL |
 | 0.1.1   | Core          | Initial release with config, errors, ids, clock |
+
+## [0.2.12] - 2026-10-01
+
+### Added
+- **Observability package:** `src/observability/` — `context.py`, `logging.py`, `metrics.py`, `timer.py`, plus `registry.py` for the process-wide collector
+- **Request correlation:** `src/observability/context.py` — a `ContextVar` request ID with `create_request_id()` (UUID4), `get_request_id()`, and `set_request_id()`. `ContextVar` rather than a global so concurrent requests do not overwrite each other's ID
+- **`JsonFormatter`:** `src/observability/logging.py` — emits `level`, `logger`, `message`, and `request_id` when set, then any structured `extra` fields present on the record (`event`, `duration_ms`, `model`, `retrieved_count`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `status_code`, `path`, `method`, `error_type`) plus a formatted `exception` when `exc_info` is set. The field list is a module constant rather than a chain of `hasattr` blocks
+- **`configure_logging`:** `src/observability/logging.py` — clears root handlers, installs a stdout `StreamHandler` with `JsonFormatter`, and applies the requested level
+- **`Timer`:** `src/observability/timer.py` — a context manager around `perf_counter()` exposing `duration_ms` after exit. `duration_ms` is initialized to `0.0` and `_started_at` to `None` in `__init__`, so reading it inside the block or after an exception does not raise `AttributeError`
+- **`MetricsCollector`:** `src/observability/metrics.py` — thread-safe integer counters behind a `Lock`, with `increment(name, value=1)`, `get(name)`, and `snapshot()` returning a copy so callers cannot mutate internal state
+- **Metrics registry:** `src/observability/registry.py` — `get_metrics()` returns a lazily created double-checked-locked singleton, with `set_metrics()` and `reset_metrics()` for tests
+- **`ApplicationContainer.metrics`:** a property returning the shared collector, passed into `RetrievalPipeline`, `GenerationService`, and `RAGService`
+- **Retrieval instrumentation:** `RetrievalPipeline.execute()` now times search plus reranking, increments `retrieval.requests`, increments `retrieval.empty_results` when nothing is retrieved, and logs `retrieval.completed` with `duration_ms` and `retrieved_count`
+- **Generation instrumentation:** `GenerationService.generate()` increments `generation.requests`, wraps the provider call in a `Timer`, increments `generation.errors` and logs `generation.failed` with `logger.exception` on provider failure before re-raising, and logs `generation.completed` with `duration_ms`, `model`, and all three token counts
+- **Request instrumentation:** `RAGService.answer()` increments `rag.requests`
+- **Observability middleware:** `src/api/app.py` creates a request ID per HTTP request, times the downstream call, sets an `X-Request-ID` response header, and logs `http.request.completed` with `duration_ms`, `method`, `path`, and `status_code`
+- **Startup configuration:** `create_app()` calls `configure_logging(settings.logging.level)`, reusing the existing `logging: level: INFO` configuration
+- **Metrics endpoint:** `GET /metrics` in `src/api/routes/metrics.py`, returning the collector snapshot and injected through `get_metrics_collector` rather than a module global
+- **Observability tests:** `tests/observability/test_context.py` (6 — correlation round-trip, `set_request_id`, uniqueness, UUID validity, and a subprocess check that the default really is `None`), `tests/observability/test_timer.py` (6 — positive duration, duration scales with elapsed time, and duration recorded even when the block raises), `tests/observability/test_metrics.py` (12 — counting, custom increments, missing keys, snapshot isolation, and registry singleton/`set`/`reset` behavior)
+
+### Changed
+- `RetrievalPipeline.execute()` no longer returns early when no reranker is configured; search and reranking share one `Timer`, so the logged duration covers the whole retrieval path rather than only the search call
+
+### Known Limitations
+- **`rag.errors` and `rag.errors`-style top-level error counting are not implemented.** `generation.errors` covers provider failures only; retrieval and end-to-end failures still propagate without a counter
+- **`retrieval.requests` counts executions, not successes.** A retrieval that raises increments the counter before propagating, so the metric cannot distinguish attempted from completed retrievals
+- **The metrics collector is process-local.** Counters reset on restart and are not shared across uvicorn workers, so a multi-worker deployment will report per-worker totals that do not sum to true traffic. Exporting to Prometheus or OpenTelemetry, which the collector was designed to be replaced by, is still outstanding
+- **`/metrics` returns only counters that have been incremented.** A fresh process reports `{}`, with no zero-initialized baseline for the documented metric names
+- **`JsonFormatter` reads a fixed allow-list of `extra` fields.** Any structured field outside `_STRUCTURED_FIELDS` is silently dropped from the JSON payload, so new instrumentation fields require editing the constant
+- **`configure_logging()` clears root handlers each time `create_app()` runs.** Tests calling `create_app()` repeatedly mutate global logging state, and any other handler installed by an embedding application is removed
+- **Logging is configured as a side effect of building the app.** `create_app()` is not side-effect free, which slightly undercuts its value as a pure test factory
 
 ## [0.2.11] - 2026-10-01
 

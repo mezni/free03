@@ -4,11 +4,15 @@ import pytest
 
 from src.application.container import ApplicationContainer
 from src.config.settings import (
+    APIReliabilityConfig,
     ApplicationConfig,
     EmbeddingConfig,
     EnvironmentSettings,
     LLMConfig,
+    LLMReliabilityConfig,
     LoggingConfig,
+    ReliabilityConfig,
+    RetrievalReliabilityConfig,
     Settings,
 )
 
@@ -37,7 +41,20 @@ def create_test_settings(
             model="openai/gpt-oss-20b:free",
             temperature=0.0,
             max_tokens=1000,
-            timeout_seconds=60,
+        ),
+        reliability=ReliabilityConfig(
+            llm=LLMReliabilityConfig(
+                timeout_seconds=60,
+                max_retries=2,
+                retry_delay_seconds=1.0,
+            ),
+            retrieval=RetrievalReliabilityConfig(
+                timeout_seconds=10,
+            ),
+            api=APIReliabilityConfig(
+                max_query_length=5000,
+                max_top_k=20,
+            ),
         ),
     )
 

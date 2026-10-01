@@ -1,0 +1,12 @@
+reliability:
+  llm:
+    timeout_seconds: 60
+    max_retries: 2
+    retry_delay_seconds: 1.0
+
+  retrieval:
+    timeout_seconds: 10
+
+  api:
+    max_query_length: 5000
+    max_top_k: 20

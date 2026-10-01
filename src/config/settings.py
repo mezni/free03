@@ -37,7 +37,35 @@ class LLMConfig(BaseModel):
     model: str = Field(min_length=1, max_length=200)
     temperature: float = Field(ge=0.0, le=2.0)
     max_tokens: int = Field(gt=0, le=100_000)
+
+
+class LLMReliabilityConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     timeout_seconds: int = Field(gt=0, le=300)
+    max_retries: int = Field(ge=0, le=5)
+    retry_delay_seconds: float = Field(ge=0.0, le=30.0)
+
+
+class RetrievalReliabilityConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    timeout_seconds: int = Field(gt=0, le=120)
+
+
+class APIReliabilityConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    max_query_length: int = Field(gt=0, le=100_000)
+    max_top_k: int = Field(gt=0, le=100)
+
+
+class ReliabilityConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    llm: LLMReliabilityConfig
+    retrieval: RetrievalReliabilityConfig
+    api: APIReliabilityConfig
 
 
 class EnvironmentSettings(BaseSettings):
@@ -62,6 +90,7 @@ class Settings(BaseModel):
     logging: LoggingConfig
     embedding: EmbeddingConfig
     llm: LLMConfig
+    reliability: ReliabilityConfig
 
     @property
     def application_name(self) -> str:
@@ -90,6 +119,9 @@ def get_settings() -> Settings:
         CONFIG_DIR / "embedding.yaml"
     )
     llm_data = load_yaml_config(CONFIG_DIR / "llm.yaml")
+    reliability_data = load_yaml_config(
+        CONFIG_DIR / "reliability.yaml"
+    )
 
     return Settings(
         environment=environment,
@@ -103,4 +135,7 @@ def get_settings() -> Settings:
             embedding_data["embedding"]
         ),
         llm=LLMConfig.model_validate(llm_data["llm"]),
+        reliability=ReliabilityConfig.model_validate(
+            reliability_data["reliability"]
+        ),
     )
