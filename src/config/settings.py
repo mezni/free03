@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.config.loader import load_yaml_config
@@ -23,8 +23,10 @@ class LoggingConfig(BaseModel):
 
 
 class EmbeddingConfig(BaseModel):
-    provider: str = Field(min_length=1)
-    model: str = Field(min_length=1)
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = Field(min_length=1, max_length=100)
+    model: str = Field(min_length=1, max_length=200)
     dimensions: int = Field(gt=0)
 
 

@@ -10,7 +10,9 @@ class EmbeddingProviderFactory:
         self,
         config: EmbeddingConfig,
     ) -> EmbeddingProvider:
-        if config.provider == "local":
+        provider_name = config.provider.strip().lower()
+
+        if provider_name == "local":
             return LocalEmbeddingProvider(
                 dimensions=config.dimensions,
                 model_name=config.model,
