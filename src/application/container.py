@@ -7,14 +7,19 @@ from src.db.repositories.embeddings import EmbeddingRepository
 from src.db.repositories.index_versions import IndexVersionRepository
 from src.db.repositories.keyword_search import KeywordSearchRepository
 from src.db.repositories.vector_search import VectorSearchRepository
+from src.generation.context_builder import ContextBuilder
 from src.providers.embeddings.base import EmbeddingProvider
 from src.providers.embeddings.factory import EmbeddingProviderFactory
+from src.providers.llm.base import LLMProvider
+from src.providers.llm.factory import LLMProviderFactory
 from src.retrieval.pipeline import RetrievalPipeline
 from src.retrieval.rerank.simple import SimpleReranker
 from src.retrieval.search.hybrid import HybridSearchStrategy
 from src.retrieval.search.keyword import KeywordSearchStrategy
 from src.retrieval.search.vector import VectorSearchStrategy
 from src.services.evaluation_resolver import EvaluationResolver
+from src.services.generation_service import GenerationService
+from src.services.rag_service import RAGService
 from src.services.retrieval_evaluation_runner import RetrievalEvaluationRunner
 from src.services.retrieval_metrics_service import RetrievalMetricsService
 from src.services.retrieval_service import RetrievalService
@@ -90,6 +95,28 @@ class ApplicationContainer:
             document_repository=self.document_repository(),
             chunk_repository=self.chunk_repository(),
             index_version_repository=self.index_version_repository(),
+        )
+
+    def llm_provider(self) -> LLMProvider:
+        factory = LLMProviderFactory()
+
+        return factory.create(
+            config=self._settings.llm,
+            api_key=(
+                self._settings.environment.openrouter_api_key
+            ),
+        )
+
+    def generation_service(self) -> GenerationService:
+        return GenerationService(
+            llm_provider=self.llm_provider(),
+            context_builder=ContextBuilder(),
+        )
+
+    def rag_service(self) -> RAGService:
+        return RAGService(
+            retrieval_pipeline=self.retrieval_pipeline(),
+            generation_service=self.generation_service(),
         )
 
     def retrieval_evaluation_runner(self) -> RetrievalEvaluationRunner:

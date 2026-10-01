@@ -7,6 +7,7 @@ from src.config.settings import (
     ApplicationConfig,
     EmbeddingConfig,
     EnvironmentSettings,
+    LLMConfig,
     LoggingConfig,
     Settings,
 )
@@ -14,10 +15,12 @@ from src.config.settings import (
 
 def create_test_settings(
     embedding: EmbeddingConfig | None = None,
+    openrouter_api_key: str | None = None,
 ) -> Settings:
     return Settings(
         environment=EnvironmentSettings(
             database_url="postgresql://test:test@localhost/test",
+            openrouter_api_key=openrouter_api_key,
         ),
         application=ApplicationConfig(
             name="rag-system",
@@ -28,6 +31,13 @@ def create_test_settings(
             provider="local",
             model="local-dev",
             dimensions=8,
+        ),
+        llm=LLMConfig(
+            provider="openrouter",
+            model="openai/gpt-oss-20b:free",
+            temperature=0.0,
+            max_tokens=1000,
+            timeout_seconds=60,
         ),
     )
 
@@ -124,3 +134,47 @@ def test_container_rejects_unknown_embedding_provider():
         match="Unsupported embedding provider: unknown",
     ):
         container.embedding_provider()
+
+def test_container_creates_llm_provider():
+    session = MagicMock()
+
+    container = ApplicationContainer(
+        session=session,
+        settings=create_test_settings(
+            openrouter_api_key="test-key"
+        ),
+    )
+
+    provider = container.llm_provider()
+
+    assert provider.model_name == "openai/gpt-oss-20b:free"
+
+
+def test_container_requires_llm_api_key():
+    session = MagicMock()
+
+    container = ApplicationContainer(
+        session=session,
+        settings=create_test_settings(),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="OPENROUTER_API_KEY is required",
+    ):
+        container.llm_provider()
+
+
+def test_container_creates_rag_service():
+    session = MagicMock()
+
+    container = ApplicationContainer(
+        session=session,
+        settings=create_test_settings(
+            openrouter_api_key="test-key"
+        ),
+    )
+
+    rag_service = container.rag_service()
+
+    assert rag_service is not None

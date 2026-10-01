@@ -30,6 +30,16 @@ class EmbeddingConfig(BaseModel):
     dimensions: int = Field(gt=0)
 
 
+class LLMConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = Field(min_length=1, max_length=100)
+    model: str = Field(min_length=1, max_length=200)
+    temperature: float = Field(ge=0.0, le=2.0)
+    max_tokens: int = Field(gt=0, le=100_000)
+    timeout_seconds: int = Field(gt=0, le=300)
+
+
 class EnvironmentSettings(BaseSettings):
     """Environment-specific settings loaded from .env."""
 
@@ -51,6 +61,7 @@ class Settings(BaseModel):
     application: ApplicationConfig
     logging: LoggingConfig
     embedding: EmbeddingConfig
+    llm: LLMConfig
 
     @property
     def application_name(self) -> str:
@@ -78,6 +89,7 @@ def get_settings() -> Settings:
     embedding_data = load_yaml_config(
         CONFIG_DIR / "embedding.yaml"
     )
+    llm_data = load_yaml_config(CONFIG_DIR / "llm.yaml")
 
     return Settings(
         environment=environment,
@@ -90,4 +102,5 @@ def get_settings() -> Settings:
         embedding=EmbeddingConfig.model_validate(
             embedding_data["embedding"]
         ),
+        llm=LLMConfig.model_validate(llm_data["llm"]),
     )
