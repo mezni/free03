@@ -10,6 +10,8 @@ from src.db.repositories.vector_search import VectorSearchRepository
 from src.evaluation.answer.semantic import SimpleAnswerEvaluator
 from src.evaluation.citation.evaluator import CitationEvaluator
 from src.evaluation.grounding.evaluator import GroundingEvaluator
+from src.observability.metrics import MetricsCollector
+from src.observability.registry import get_metrics
 from src.generation.citations import CitationExtractor
 from src.generation.context_builder import ContextBuilder
 from src.generation.prompt_builder import PromptBuilder
@@ -43,6 +45,16 @@ class ApplicationContainer:
         self._session = session
         self._settings = settings
         self._embedding_factory = EmbeddingProviderFactory()
+        self._metrics = get_metrics()
+
+    @property
+    def metrics(self) -> MetricsCollector:
+        """Process-wide collector, shared across containers.
+
+        A collector built here would reset on every request, because the
+        API constructs a new container per request.
+        """
+        return self._metrics
 
     def document_repository(self) -> DocumentRepository:
         return DocumentRepository(self._session)
@@ -95,6 +107,7 @@ class ApplicationContainer:
         return RetrievalPipeline(
             retrieval_service=self.retrieval_service(),
             reranker=SimpleReranker(),
+            metrics=self._metrics,
         )
 
     def evaluation_resolver(self) -> EvaluationResolver:
@@ -121,12 +134,14 @@ class ApplicationContainer:
             prompt_builder=PromptBuilder(),
             citation_extractor=CitationExtractor(),
             grounding_service=GroundingService(),
+            metrics=self._metrics,
         )
 
     def rag_service(self) -> RAGService:
         return RAGService(
             retrieval_pipeline=self.retrieval_pipeline(),
             generation_service=self.generation_service(),
+            metrics=self._metrics,
         )
 
     def rag_evaluation_service(
