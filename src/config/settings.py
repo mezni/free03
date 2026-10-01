@@ -22,9 +22,10 @@ class LoggingConfig(BaseModel):
     level: str = "INFO"
 
 
-class YamlConfig(BaseModel):
-    application: ApplicationConfig
-    logging: LoggingConfig
+class EmbeddingConfig(BaseModel):
+    provider: str = Field(min_length=1)
+    model: str = Field(min_length=1)
+    dimensions: int = Field(gt=0)
 
 
 class EnvironmentSettings(BaseSettings):
@@ -45,15 +46,17 @@ class Settings(BaseModel):
     """Complete application configuration."""
 
     environment: EnvironmentSettings
-    yaml: YamlConfig
+    application: ApplicationConfig
+    logging: LoggingConfig
+    embedding: EmbeddingConfig
 
     @property
     def application_name(self) -> str:
-        return self.yaml.application.name
+        return self.application.name
 
     @property
     def environment_name(self) -> str:
-        return self.yaml.application.environment
+        return self.application.environment
 
     @property
     def database_url(self) -> str:
@@ -69,10 +72,20 @@ def get_settings() -> Settings:
     """Return cached application settings."""
     environment = EnvironmentSettings()
 
-    yaml_data = load_yaml_config(CONFIG_DIR / "settings.yaml")
-    yaml_config = YamlConfig.model_validate(yaml_data)
+    settings_data = load_yaml_config(CONFIG_DIR / "settings.yaml")
+    embedding_data = load_yaml_config(
+        CONFIG_DIR / "embedding.yaml"
+    )
 
     return Settings(
         environment=environment,
-        yaml=yaml_config,
+        application=ApplicationConfig.model_validate(
+            settings_data["application"]
+        ),
+        logging=LoggingConfig.model_validate(
+            settings_data["logging"]
+        ),
+        embedding=EmbeddingConfig.model_validate(
+            embedding_data["embedding"]
+        ),
     )

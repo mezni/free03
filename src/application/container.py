@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from src.config.settings import Settings
 from src.db.repositories.chunks import ChunkRepository
 from src.db.repositories.documents import DocumentRepository
 from src.db.repositories.embeddings import EmbeddingRepository
@@ -21,8 +22,13 @@ from src.services.retrieval_service import RetrievalService
 class ApplicationContainer:
     """Composition root for the RAG application."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session,
+        settings: Settings,
+    ) -> None:
         self._session = session
+        self._settings = settings
 
     def document_repository(self) -> DocumentRepository:
         return DocumentRepository(self._session)
@@ -43,7 +49,17 @@ class ApplicationContainer:
         return KeywordSearchRepository(self._session)
 
     def embedding_provider(self) -> LocalEmbeddingProvider:
-        return LocalEmbeddingProvider(dimensions=8)
+        config = self._settings.embedding
+
+        if config.provider != "local":
+            raise ValueError(
+                "Unsupported embedding provider: "
+                f"{config.provider}"
+            )
+
+        return LocalEmbeddingProvider(
+            dimensions=config.dimensions,
+        )
 
     def retrieval_service(self) -> RetrievalService:
         embedding_provider = self.embedding_provider()

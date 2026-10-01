@@ -1,0 +1,4 @@
+embedding:
+  provider: local
+  model: local-dev
+  dimensions: 8
