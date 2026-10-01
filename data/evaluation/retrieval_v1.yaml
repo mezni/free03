@@ -3,15 +3,18 @@ version: 1
 cases:
   - case_id: billing-policy-001
     query: "What is the billing dispute policy?"
-    relevant_chunk_ids:
-      - "00000000-0000-0000-0000-000000000001"
+    relevant_chunks:
+      - document: "data/raw/billing/sample-policy.md"
+        chunk_index: 0
 
   - case_id: refund-policy-001
     query: "How long does a customer have to request a refund?"
-    relevant_chunk_ids:
-      - "00000000-0000-0000-0000-000000000002"
+    relevant_chunks:
+      - document: "data/raw/billing/sample-policy.md"
+        chunk_index: 1
 
   - case_id: account-security-001
     query: "What should a customer do if their account is compromised?"
-    relevant_chunk_ids:
-      - "00000000-0000-0000-0000-000000000003"
+    relevant_chunks:
+      - document: "data/raw/security/account-security.md"
+        chunk_index: 0

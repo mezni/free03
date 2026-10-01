@@ -2,19 +2,34 @@ from uuid import uuid4
 
 import pytest
 
-from src.models.retrieval_evaluation import RetrievalEvaluationResult
+from src.models.retrieval_evaluation import (
+    EvaluationChunkReference,
+    RetrievalEvaluationResult,
+)
 from src.services.retrieval_metrics_service import RetrievalMetricsService
+
+DOC = "data/raw/billing/sample-policy.md"
+
+
+def make_reference(
+    document: str,
+    chunk_index: int,
+):
+    return EvaluationChunkReference(
+        document=document,
+        chunk_index=chunk_index,
+    )
 
 
 def make_evaluation(
     retrieved_ids,
-    relevant_ids,
+    relevant_chunks,
     case_id,
 ):
     return RetrievalEvaluationResult(
         case_id=case_id,
         retrieved_chunk_ids=retrieved_ids,
-        relevant_chunk_ids=relevant_ids,
+        relevant_chunks=relevant_chunks,
     )
 
 
@@ -26,12 +41,15 @@ def test_evaluate_returns_all_metrics():
     evaluations = [
         make_evaluation(
             retrieved_ids=[chunk_a, irrelevant],
-            relevant_ids=[chunk_a, chunk_b],
+            relevant_chunks=[
+                make_reference(document=DOC, chunk_index=0),
+                make_reference(document=DOC, chunk_index=1),
+            ],
             case_id="case-1",
         ),
         make_evaluation(
             retrieved_ids=[chunk_b, irrelevant],
-            relevant_ids=[chunk_b],
+            relevant_chunks=[make_reference(document=DOC, chunk_index=0)],
             case_id="case-2",
         ),
     ]

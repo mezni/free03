@@ -9,17 +9,33 @@ from src.evaluation.metrics.retrieval import (
     RecallAtK,
     ReciprocalRank,
 )
-from src.models.retrieval_evaluation import RetrievalEvaluationResult
+from src.models.retrieval_evaluation import (
+    EvaluationChunkReference,
+    RetrievalEvaluationResult,
+)
+
+DOC = "data/raw/billing/sample-policy.md"
+OTHER_DOC = "data/raw/security/account-security.md"
+
+
+def make_reference(
+    document: str,
+    chunk_index: int,
+):
+    return EvaluationChunkReference(
+        document=document,
+        chunk_index=chunk_index,
+    )
 
 
 def make_evaluation(
     retrieved_ids,
-    relevant_ids,
+    relevant_chunks,
 ):
     return RetrievalEvaluationResult(
         case_id="case-1",
         retrieved_chunk_ids=retrieved_ids,
-        relevant_chunk_ids=relevant_ids,
+        relevant_chunks=relevant_chunks,
     )
 
 
@@ -29,7 +45,10 @@ def test_recall_at_k_all_relevant_chunks_found():
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a, chunk_b],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = RecallAtK()
@@ -39,12 +58,14 @@ def test_recall_at_k_all_relevant_chunks_found():
 
 def test_recall_at_k_half_found():
     chunk_a = uuid4()
-    chunk_b = uuid4()
     chunk_c = uuid4()
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a, chunk_c],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = RecallAtK()
@@ -53,13 +74,14 @@ def test_recall_at_k_half_found():
 
 
 def test_recall_at_k_none_found():
-    chunk_a = uuid4()
-    chunk_b = uuid4()
     chunk_c = uuid4()
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_c],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = RecallAtK()
@@ -73,7 +95,10 @@ def test_recall_at_k_uses_only_top_k():
 
     evaluation = make_evaluation(
         retrieved_ids=[uuid4(), uuid4(), chunk_a, chunk_b],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = RecallAtK()
@@ -88,7 +113,9 @@ def test_recall_at_k_larger_than_results():
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a],
-        relevant_ids=[chunk_a],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = RecallAtK()
@@ -99,7 +126,9 @@ def test_recall_at_k_larger_than_results():
 def test_recall_at_k_rejects_invalid_k():
     evaluation = make_evaluation(
         retrieved_ids=[],
-        relevant_ids=[uuid4()],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = RecallAtK()
@@ -114,7 +143,10 @@ def test_precision_at_k_all_results_are_relevant():
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a, chunk_b],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = PrecisionAtK()
@@ -130,7 +162,10 @@ def test_precision_at_k_half_results_are_relevant():
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a, chunk_c, chunk_b, chunk_d],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = PrecisionAtK()
@@ -140,11 +175,12 @@ def test_precision_at_k_half_results_are_relevant():
 
 def test_precision_at_k_none_are_relevant():
     chunk_a = uuid4()
-    chunk_b = uuid4()
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a],
-        relevant_ids=[chunk_b],
+        relevant_chunks=[
+            make_reference(document=OTHER_DOC, chunk_index=0),
+        ],
     )
 
     metric = PrecisionAtK()
@@ -157,7 +193,9 @@ def test_precision_at_k_uses_only_top_k():
 
     evaluation = make_evaluation(
         retrieved_ids=[uuid4(), uuid4(), relevant_chunk],
-        relevant_ids=[relevant_chunk],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = PrecisionAtK()
@@ -169,7 +207,9 @@ def test_precision_at_k_uses_only_top_k():
 def test_precision_at_k_empty_results():
     evaluation = make_evaluation(
         retrieved_ids=[],
-        relevant_ids=[uuid4()],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = PrecisionAtK()
@@ -180,7 +220,9 @@ def test_precision_at_k_empty_results():
 def test_precision_at_k_rejects_invalid_k():
     evaluation = make_evaluation(
         retrieved_ids=[],
-        relevant_ids=[uuid4()],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = PrecisionAtK()
@@ -188,13 +230,16 @@ def test_precision_at_k_rejects_invalid_k():
     with pytest.raises(ValueError, match="k must be greater than 0"):
         metric.calculate(evaluation, k=0)
 
+
 def test_reciprocal_rank_first_result_is_relevant():
     chunk_a = uuid4()
     chunk_b = uuid4()
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a, chunk_b],
-        relevant_ids=[chunk_a],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = ReciprocalRank()
@@ -208,7 +253,9 @@ def test_reciprocal_rank_relevant_result_is_second():
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_b, chunk_a],
-        relevant_ids=[chunk_a],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = ReciprocalRank()
@@ -221,7 +268,9 @@ def test_reciprocal_rank_relevant_result_is_third():
 
     evaluation = make_evaluation(
         retrieved_ids=[uuid4(), uuid4(), chunk_a],
-        relevant_ids=[chunk_a],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = ReciprocalRank()
@@ -232,7 +281,9 @@ def test_reciprocal_rank_relevant_result_is_third():
 def test_reciprocal_rank_returns_zero_when_no_relevant_result():
     evaluation = make_evaluation(
         retrieved_ids=[uuid4(), uuid4()],
-        relevant_ids=[uuid4()],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = ReciprocalRank()
@@ -245,7 +296,9 @@ def test_reciprocal_rank_uses_only_top_k():
 
     evaluation = make_evaluation(
         retrieved_ids=[uuid4(), chunk_a],
-        relevant_ids=[chunk_a],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = ReciprocalRank()
@@ -257,7 +310,9 @@ def test_reciprocal_rank_uses_only_top_k():
 def test_reciprocal_rank_rejects_invalid_k():
     evaluation = make_evaluation(
         retrieved_ids=[],
-        relevant_ids=[uuid4()],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = ReciprocalRank()
@@ -274,15 +329,21 @@ def test_mean_reciprocal_rank():
     evaluations = [
         make_evaluation(
             retrieved_ids=[chunk_a, uuid4()],
-            relevant_ids=[chunk_a],
+            relevant_chunks=[
+                make_reference(document=DOC, chunk_index=0),
+            ],
         ),
         make_evaluation(
             retrieved_ids=[uuid4(), chunk_b],
-            relevant_ids=[chunk_b],
+            relevant_chunks=[
+                make_reference(document=DOC, chunk_index=1),
+            ],
         ),
         make_evaluation(
             retrieved_ids=[uuid4(), uuid4(), chunk_c],
-            relevant_ids=[chunk_c],
+            relevant_chunks=[
+                make_reference(document=OTHER_DOC, chunk_index=0),
+            ],
         ),
     ]
 
@@ -314,7 +375,10 @@ def test_ndcg_at_k_ideal_ranking():
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a, chunk_b],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = NDCGAtK()
@@ -328,7 +392,10 @@ def test_ndcg_at_k_partial_relevance():
 
     evaluation = make_evaluation(
         retrieved_ids=[chunk_a, uuid4(), chunk_b],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = NDCGAtK()
@@ -341,7 +408,9 @@ def test_ndcg_at_k_partial_relevance():
 def test_ndcg_at_k_no_relevant_results():
     evaluation = make_evaluation(
         retrieved_ids=[uuid4(), uuid4()],
-        relevant_ids=[uuid4()],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = NDCGAtK()
@@ -355,12 +424,18 @@ def test_ndcg_at_k_rewards_relevant_results_near_top():
 
     early = make_evaluation(
         retrieved_ids=[chunk_a, chunk_b, uuid4()],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     late = make_evaluation(
         retrieved_ids=[uuid4(), chunk_a, chunk_b],
-        relevant_ids=[chunk_a, chunk_b],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+            make_reference(document=DOC, chunk_index=1),
+        ],
     )
 
     metric = NDCGAtK()
@@ -374,7 +449,9 @@ def test_ndcg_at_k_rewards_relevant_results_near_top():
 def test_ndcg_at_k_rejects_invalid_k():
     evaluation = make_evaluation(
         retrieved_ids=[],
-        relevant_ids=[uuid4()],
+        relevant_chunks=[
+            make_reference(document=DOC, chunk_index=0),
+        ],
     )
 
     metric = NDCGAtK()

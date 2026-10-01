@@ -17,8 +17,9 @@ version: 1
 cases:
   - case_id: billing-001
     query: "What is the billing policy?"
-    relevant_chunk_ids:
-      - "00000000-0000-0000-0000-000000000001"
+    relevant_chunks:
+      - document: "data/raw/billing/sample-policy.md"
+        chunk_index: 0
 """,
         encoding="utf-8",
     )
@@ -31,6 +32,10 @@ cases:
     assert len(dataset.cases) == 1
     assert dataset.cases[0].case_id == "billing-001"
     assert dataset.cases[0].query == "What is the billing policy?"
+    assert dataset.cases[0].relevant_chunks[0].document == (
+        "data/raw/billing/sample-policy.md"
+    )
+    assert dataset.cases[0].relevant_chunks[0].chunk_index == 0
 
 
 def test_load_missing_dataset():
@@ -53,7 +58,7 @@ version: 1
 cases:
   - case_id: billing-001
     query: "What is the billing policy?"
-    relevant_chunk_ids: []
+    relevant_chunks: []
 """,
         encoding="utf-8",
     )
@@ -106,8 +111,9 @@ author: someone
 cases:
   - case_id: billing-001
     query: "What is the billing policy?"
-    relevant_chunk_ids:
-      - "00000000-0000-0000-0000-000000000001"
+    relevant_chunks:
+      - document: "data/raw/billing/sample-policy.md"
+        chunk_index: 0
 """,
         encoding="utf-8",
     )
@@ -128,3 +134,11 @@ def test_load_repository_dataset():
     assert dataset.version == 1
     assert len(dataset.cases) == 3
     assert dataset.cases[0].case_id == "billing-policy-001"
+    assert dataset.cases[0].relevant_chunks[0].document == (
+        "data/raw/billing/sample-policy.md"
+    )
+    assert dataset.cases[0].relevant_chunks[0].chunk_index == 0
+    assert dataset.cases[1].relevant_chunks[0].chunk_index == 1
+    assert dataset.cases[2].relevant_chunks[0].document == (
+        "data/raw/security/account-security.md"
+    )

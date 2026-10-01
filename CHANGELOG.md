@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 
 | Version | Feature Domain | Key Objectives |
 |---------|---------------|----------------|
-| 0.2.6   | Evaluation Metrics | `RetrievalEvaluationRunner` + YAML dataset loader executing eval cases against `RetrievalPipeline` and aggregating Recall@K/Precision@K/MRR/NDCG@K into a typed `RetrievalMetrics`; 41 evaluation tests |
+| 0.2.6   | Evaluation Metrics | `RetrievalEvaluationRunner` + YAML dataset loader; relevance expressed as stable `EvaluationChunkReference(document, chunk_index)` instead of chunk UUIDs; 41 evaluation tests (23 pending reference resolution) |
 | 0.2.5   | Reranking | `Reranker` contract + `SimpleReranker`, `RetrievalPipeline` reranking stage, `candidate_k` candidate-pool control |
 | 0.2.4   | Hybrid Retrieval | `reciprocal_rank_fusion()` helper, `HybridSearchStrategy` fusing vector + keyword results via RRF |
 | 0.2.3   | Keyword Retrieval | PostgreSQL full-text search (`search_vector` TSVECTOR + GIN + trigger), `KeywordSearchRepository`/`KeywordSearchStrategy`, `SearchStrategy` accepts `RetrievalQuery` |
@@ -58,7 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 ## [0.2.6] - 2026-09-25
 
 ### Added
-- **Evaluation models:** `RetrievalEvaluationCase` and `RetrievalEvaluationResult` in `src/models/retrieval_evaluation.py` — a ground-truth evaluation case (`case_id`, `query`, `relevant_chunk_ids`) and a comparable outcome (`case_id`, `retrieved_chunk_ids`, `relevant_chunk_ids`), both frozen with `extra="forbid"`
+- **Evaluation models:** `EvaluationChunkReference`, `RetrievalEvaluationCase`, and `RetrievalEvaluationResult` in `src/models/retrieval_evaluation.py` — a stable `(document, chunk_index)` reference, a ground-truth case (`case_id`, `query`, `relevant_chunks`), and a comparable outcome (`case_id`, `retrieved_chunk_ids`, `relevant_chunks`), all frozen with `extra="forbid"`
+- **Stable chunk references:** relevance is expressed as `EvaluationChunkReference(document, chunk_index)` instead of database chunk UUIDs, so an evaluation dataset survives reindexing and does not encode storage-layer identifiers; retrieved results keep their UUIDs because those come straight from the index
 - **`RetrievalEvaluationService`:** `src/services/retrieval_evaluation_service.py` — `evaluate_case(case, results)` builds a `RetrievalEvaluationResult` from retrieval output and the ground-truth case, so metrics can be computed without re-running retrieval
 - **Evaluation package:** `src/evaluation/` with `src/evaluation/metrics/retrieval.py`
 - **`RecallAtK`:** fraction of relevant chunks found in the top-`k` retrieved chunks; empty relevance set returns `0.0`, `k <= 0` raises `ValueError`
@@ -71,10 +72,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 - **`RetrievalEvaluationRunner`:** `src/services/retrieval_evaluation_runner.py` — end-to-end entry point that turns `RetrievalEvaluationCase`s into live `RetrievalPipeline.execute()` calls (`top_k=k`), maps each response to a `RetrievalEvaluationResult`, and delegates aggregation to `RetrievalMetricsService`
 - **`RetrievalEvaluationDataset` model:** `src/models/retrieval_evaluation_dataset.py` — frozen, `extra="forbid"` wrapper pairing a `version` (`ge=1`) with a non-empty `cases` list, so a dataset file is schema-validated before it reaches the application layer
 - **`RetrievalEvaluationDatasetLoader`:** `src/evaluation/dataset_loader.py` — `load(path)` reads YAML via `yaml.safe_load`, raises `FileNotFoundError` for a missing path and `ValueError` when the root is not a mapping, then returns a validated `RetrievalEvaluationDataset`
-- **Evaluation dataset:** `data/evaluation/retrieval_v1.yaml` — three seed cases (billing dispute, refund window, account compromise) carrying **placeholder** chunk UUIDs (`00000000-...-0001/2/3`) to be replaced with real chunk IDs once documents are indexed
+- **Evaluation dataset:** `data/evaluation/retrieval_v1.yaml` — three seed cases (billing dispute, refund window, account compromise) referencing chunks by `document` + `chunk_index`; the document paths and chunk indexes are examples to be confirmed against the real evaluation corpus
 - **Testing:** `tests/evaluation/test_dataset_loader.py` (valid load, missing file, non-mapping root, empty case list, unknown field rejection, and the shipped dataset parsing); `tests/services/test_retrieval_evaluation_service.py` (case→result mapping), `tests/services/test_retrieval_metrics_service.py` (all-metrics, empty dataset, invalid `k`), `tests/services/test_retrieval_evaluation_runner.py` (single case + request assertions, multi-case aggregation, invalid `k`, empty case list), and `tests/evaluation/metrics/test_retrieval.py` (26 tests: 6 per metric, plus MRR averaging/empty-dataset and NDCG ideal/partial/miss/position-sensitivity cases)
 
 ### Changed
+- **BREAKING (staged):** `RetrievalEvaluationCase.relevant_chunk_ids` and `RetrievalEvaluationResult.relevant_chunk_ids` are replaced by `relevant_chunks: list[EvaluationChunkReference]`. The metric implementations in `src/evaluation/metrics/retrieval.py` still read `relevant_chunk_ids`, so 23 metric/runner/metrics-service tests fail with `AttributeError` until references are resolved to UUIDs — this migration lands the data model first, resolution second
 - Raw `retrieved_chunk_ids`/`relevant_chunk_ids` pairs are the single metric input, so all metrics share one comparable result shape and no retrieval re-execution is needed per metric
 - `MeanReciprocalRank` is the first metric consuming a *list* of results, setting the pattern for dataset-level aggregates
 - `RetrievalMetricsService` owns the metric instances and exposes one `evaluate()` call, so callers never construct metrics directly or hand-average scores

@@ -22,5 +22,5 @@ class RetrievalEvaluationService:
                 result.chunk_id
                 for result in results
             ],
-            relevant_chunk_ids=case.relevant_chunk_ids,
+            relevant_chunks=case.relevant_chunks,
         )

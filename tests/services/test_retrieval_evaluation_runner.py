@@ -3,7 +3,10 @@ from uuid import uuid4
 import pytest
 
 from src.models.retrieval import RetrievalResult
-from src.models.retrieval_evaluation import RetrievalEvaluationCase
+from src.models.retrieval_evaluation import (
+    EvaluationChunkReference,
+    RetrievalEvaluationCase,
+)
 from src.services.retrieval_evaluation_runner import (
     RetrievalEvaluationRunner,
 )
@@ -24,6 +27,19 @@ class FakeRetrievalPipeline:
             request.query,
             [],
         )
+
+
+DOC = "data/raw/billing/sample-policy.md"
+
+
+def make_reference(
+    document: str,
+    chunk_index: int,
+):
+    return EvaluationChunkReference(
+        document=document,
+        chunk_index=chunk_index,
+    )
 
 
 def make_result(chunk_id):
@@ -60,7 +76,7 @@ def test_runner_executes_retrieval_cases():
         RetrievalEvaluationCase(
             case_id="billing-001",
             query="What is billing?",
-            relevant_chunk_ids=[relevant_chunk],
+            relevant_chunks=[make_reference(document=DOC, chunk_index=0)],
         )
     ]
 
@@ -102,12 +118,12 @@ def test_runner_aggregates_multiple_cases():
         RetrievalEvaluationCase(
             case_id="case-a",
             query="query-a",
-            relevant_chunk_ids=[chunk_a],
+            relevant_chunks=[make_reference(document=DOC, chunk_index=0)],
         ),
         RetrievalEvaluationCase(
             case_id="case-b",
             query="query-b",
-            relevant_chunk_ids=[chunk_b],
+            relevant_chunks=[make_reference(document=DOC, chunk_index=1)],
         ),
     ]
 

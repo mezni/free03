@@ -1,8 +1,23 @@
 from uuid import uuid4
 
 from src.models.retrieval import RetrievalResult
-from src.models.retrieval_evaluation import RetrievalEvaluationCase
+from src.models.retrieval_evaluation import (
+    EvaluationChunkReference,
+    RetrievalEvaluationCase,
+)
 from src.services.retrieval_evaluation_service import RetrievalEvaluationService
+
+DOC = "data/raw/billing/sample-policy.md"
+
+
+def make_reference(
+    document: str,
+    chunk_index: int,
+):
+    return EvaluationChunkReference(
+        document=document,
+        chunk_index=chunk_index,
+    )
 
 
 def make_result(chunk_id):
@@ -18,20 +33,25 @@ def make_result(chunk_id):
 
 
 def test_evaluate_case():
-    relevant_chunk_id = uuid4()
-    irrelevant_chunk_id = uuid4()
+    relevant_reference = make_reference(
+        document=DOC,
+        chunk_index=0,
+    )
+
+    chunk_a = uuid4()
+    chunk_b = uuid4()
 
     case = RetrievalEvaluationCase(
         case_id="refund-001",
         query="What is the refund policy?",
-        relevant_chunk_ids=[
-            relevant_chunk_id,
+        relevant_chunks=[
+            relevant_reference,
         ],
     )
 
     results = [
-        make_result(relevant_chunk_id),
-        make_result(irrelevant_chunk_id),
+        make_result(chunk_a),
+        make_result(chunk_b),
     ]
 
     service = RetrievalEvaluationService()
@@ -44,10 +64,10 @@ def test_evaluate_case():
     assert evaluation.case_id == "refund-001"
 
     assert evaluation.retrieved_chunk_ids == [
-        relevant_chunk_id,
-        irrelevant_chunk_id,
+        chunk_a,
+        chunk_b,
     ]
 
-    assert evaluation.relevant_chunk_ids == [
-        relevant_chunk_id,
+    assert evaluation.relevant_chunks == [
+        relevant_reference,
     ]
