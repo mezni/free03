@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.core.enums import DocumentLifecycleStatus
@@ -69,8 +69,40 @@ class DocumentRepository:
             updated_at=document.updated_at,
         )
 
-    def delete(self, document: DocumentDB) -> None:
-        self.session.delete(document)
+    def list(
+        self,
+        source: str | None = None,
+        status: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[Document], int]:
+        query = select(DocumentDB)
+
+        if source is not None:
+            query = query.where(DocumentDB.source == source)
+
+        if status is not None:
+            query = query.where(DocumentDB.status == status)
+
+        count_query = select(func.count()).select_from(DocumentDB)
+
+        if source is not None:
+            count_query = count_query.where(DocumentDB.source == source)
+
+        if status is not None:
+            count_query = count_query.where(DocumentDB.status == status)
+
+        count_result = self.session.execute(count_query)
+        total = count_result.scalar_one()
+
+        query = query.offset(offset).limit(limit)
+
+        result = self.session.execute(query)
+        documents = result.scalars().all()
+
+        domain_documents = [self.to_domain(doc) for doc in documents]
+
+        return domain_documents, total
 
     def update_content_hash(
         self,

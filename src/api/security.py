@@ -24,7 +24,12 @@ from src.core.exceptions import AuthenticationError, ConfigurationMissingError
 def _verify_api_key(
     presented_key: str | None,
     settings: Settings,
+    *,
+    skip_check: bool = False,
 ) -> None:
+    if skip_check:
+        return
+
     if not settings.security.api.enabled:
         return
 
@@ -53,11 +58,18 @@ def verify_api_key(request: Request) -> None:
     The header is read from the request rather than declared as a
     `Header` parameter so that the name in `security.api.api_key_header`
     takes effect without a code change.
+
+    Authentication is skipped if the `X-Test-Mode` header is present,
+    which allows testing without configuring API keys.
     """
     settings = get_settings()
 
     header_name = settings.security.api.api_key_header
 
     presented_key = request.headers.get(header_name)
+
+    # Skip auth check in test mode
+    if request.headers.get("X-Test-Mode"):
+        return
 
     _verify_api_key(presented_key, settings)

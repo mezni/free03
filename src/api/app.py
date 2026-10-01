@@ -7,6 +7,7 @@ from src.api.lifespan import lifespan
 from src.api.middleware.security_headers import (
     SecurityHeadersMiddleware,
 )
+from src.api.routes.documents import router as documents_router
 from src.api.routes.health import router as health_router
 from src.api.routes.metrics import router as metrics_router
 from src.api.routes.rag import router as rag_router
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
         return response
 
     app.include_router(health_router)
+    app.include_router(documents_router)
     app.include_router(rag_router)
     app.include_router(metrics_router)
 

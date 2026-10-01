@@ -34,9 +34,11 @@ from src.retrieval.rerank.simple import SimpleReranker
 from src.retrieval.search.hybrid import HybridSearchStrategy
 from src.retrieval.search.keyword import KeywordSearchStrategy
 from src.retrieval.search.vector import VectorSearchStrategy
+from src.services.document_service import DocumentService
 from src.services.evaluation_resolver import EvaluationResolver
 from src.services.generation_service import GenerationService
 from src.services.grounding_service import GroundingService
+from src.services.ingestion_service import IngestionService
 from src.services.rag_evaluation_service import RAGEvaluationService
 from src.services.rag_service import RAGService
 from src.services.retrieval_evaluation_runner import RetrievalEvaluationRunner
@@ -65,6 +67,9 @@ class ApplicationContainer:
         API constructs a new container per request.
         """
         return self._metrics
+
+    def document_service(self) -> DocumentService:
+        return DocumentService(session=self._session)
 
     def document_repository(self) -> DocumentRepository:
         return DocumentRepository(self._session)
@@ -195,6 +200,39 @@ class ApplicationContainer:
             generation_service=self.generation_service(),
             metrics=self._metrics,
         )
+
+    def ingestion_service(self) -> IngestionService:
+        from src.ingestion.chunkers.text import CharacterTextChunker
+        from src.ingestion.cleaners.text import TextDocumentCleaner
+        from src.ingestion.loaders.filesystem import FilesystemLoader
+        from src.ingestion.metadata import MetadataExtractor
+        from src.ingestion.parsers.registry import ParserRegistry
+        from src.ingestion.pipeline import IngestionPipeline
+        from src.ingestion.sources.filesystem import FilesystemSource
+        from src.ingestion.stages.finalizer import FileFinalizer
+
+        source = FilesystemSource(base_path=self._settings.ingestion.root_path)
+        loader = FilesystemLoader()
+        parser = ParserRegistry()
+        cleaner = TextDocumentCleaner()
+        metadata_extractor = MetadataExtractor()
+        chunker = CharacterTextChunker()
+        embedding_provider = self.embedding_provider()
+        finalizer = FileFinalizer()
+
+        pipeline = IngestionPipeline(
+            source=source,
+            loader=loader,
+            parser=parser,
+            cleaner=cleaner,
+            metadata_extractor=metadata_extractor,
+            chunker=chunker,
+            embedding_provider=embedding_provider,
+            finalizer=finalizer,
+            session=self._session,
+        )
+
+        return IngestionService(pipeline=pipeline)
 
     def rag_evaluation_service(
         self,
