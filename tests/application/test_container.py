@@ -178,3 +178,43 @@ def test_container_creates_rag_service():
     rag_service = container.rag_service()
 
     assert rag_service is not None
+
+
+def test_container_creates_rag_evaluation_service():
+    from src.evaluation.answer.semantic import (
+        SimpleAnswerEvaluator,
+    )
+    from src.evaluation.citation.evaluator import (
+        CitationEvaluator,
+    )
+    from src.evaluation.grounding.evaluator import (
+        GroundingEvaluator,
+    )
+    from src.services.rag_evaluation_service import (
+        RAGEvaluationService,
+    )
+
+    session = MagicMock()
+
+    container = ApplicationContainer(
+        session=session,
+        settings=create_test_settings(
+            openrouter_api_key="test-key"
+        ),
+    )
+
+    service = container.rag_evaluation_service()
+
+    assert isinstance(service, RAGEvaluationService)
+    assert isinstance(
+        service._answer_evaluator,
+        SimpleAnswerEvaluator,
+    )
+    assert isinstance(
+        service._citation_evaluator,
+        CitationEvaluator,
+    )
+    assert isinstance(
+        service._grounding_evaluator,
+        GroundingEvaluator,
+    )

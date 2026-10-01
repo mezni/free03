@@ -1,0 +1,26 @@
+version: 1
+
+cases:
+  - case_id: billing-policy-answer-001
+    query: "What is the billing dispute policy?"
+    reference_answer: >
+      Customers can dispute billing charges according to the billing
+      dispute policy.
+    expected_citations:
+      - SOURCE-1
+
+  - case_id: refund-policy-answer-001
+    query: "How long does a customer have to request a refund?"
+    reference_answer: >
+      The refund policy specifies the period during which a customer
+      can request a refund.
+    expected_citations:
+      - SOURCE-1
+
+  - case_id: account-security-answer-001
+    query: "What should a customer do if their account is compromised?"
+    reference_answer: >
+      A customer with a compromised account should follow the account
+      security procedure described in the security documentation.
+    expected_citations:
+      - SOURCE-1
