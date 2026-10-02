@@ -1,0 +1,62 @@
+[
+  {
+    "ticket_id": "T-1001",
+    "customer_id": "C-1001",
+    "subject": "Internet connection is down",
+    "description": "My internet has been down since this morning and none of my devices can connect."
+  },
+  {
+    "ticket_id": "T-1002",
+    "customer_id": "C-1002",
+    "subject": "Cannot log in to the portal",
+    "description": "I get an invalid credentials error every time I try to sign in."
+  },
+  {
+    "ticket_id": "T-1003",
+    "customer_id": "C-1003",
+    "subject": "Password reset email not received",
+    "description": "I requested a password reset two hours ago but never received the email."
+  },
+  {
+    "ticket_id": "T-1004",
+    "customer_id": "C-1004",
+    "subject": "Billing invoice is incorrect",
+    "description": "The invoice for this month shows double the amount I expected."
+  },
+  {
+    "ticket_id": "T-1005",
+    "customer_id": "C-1005",
+    "subject": "Mobile app crashes on startup",
+    "description": "The app crashes immediately after the splash screen on both my phone and tablet."
+  },
+  {
+    "ticket_id": "T-1006",
+    "customer_id": "C-1006",
+    "subject": "Request a refund",
+    "description": "I would like a full refund for the annual plan I purchased two days ago."
+  },
+  {
+    "ticket_id": "T-1007",
+    "customer_id": "C-1007",
+    "subject": "Two-factor authentication not working",
+    "description": "The verification code is never delivered to my phone."
+  },
+  {
+    "ticket_id": "T-1008",
+    "customer_id": "C-1008",
+    "subject": "Update account email address",
+    "description": "I changed jobs and need to update the email address on my account."
+  },
+  {
+    "ticket_id": "T-1009",
+    "customer_id": "C-1009",
+    "subject": "Data export is incomplete",
+    "description": "My data export only contains half of my expected records."
+  },
+  {
+    "ticket_id": "T-1010",
+    "customer_id": "C-1010",
+    "subject": "Feature request: dark mode",
+    "description": "Please add a dark mode option to reduce eye strain during night use."
+  }
+]

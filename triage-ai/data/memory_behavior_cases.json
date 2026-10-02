@@ -1,0 +1,35 @@
+[
+  {
+    "name": "current_language_overrides_memory",
+    "memory": [
+      {
+        "key": "preferred_language",
+        "value": "French"
+      }
+    ],
+    "message": "Please answer me in English.",
+    "expected_behavior": "Respond in English."
+  },
+  {
+    "name": "current_contact_request_overrides_preference",
+    "memory": [
+      {
+        "key": "preferred_contact_method",
+        "value": "email"
+      }
+    ],
+    "message": "Please call me about this issue.",
+    "expected_behavior": "Follow the current request to call."
+  },
+  {
+    "name": "memory_can_provide_context",
+    "memory": [
+      {
+        "key": "product",
+        "value": "mobile application"
+      }
+    ],
+    "message": "The application keeps crashing.",
+    "expected_behavior": "Use the product context when handling the request."
+  }
+]

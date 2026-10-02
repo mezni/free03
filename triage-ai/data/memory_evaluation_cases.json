@@ -1,0 +1,20 @@
+[
+  {
+    "name": "always_relevant_preference",
+    "customer_id": "C001",
+    "query": "I have a billing problem.",
+    "expected_memory_key": "preferred_contact_method"
+  },
+  {
+    "name": "product_relevance",
+    "customer_id": "C001",
+    "query": "The mobile application crashes.",
+    "expected_memory_key": "product"
+  },
+  {
+    "name": "irrelevant_product_memory",
+    "customer_id": "C001",
+    "query": "I was charged twice.",
+    "expected_memory_key": null
+  }
+]
