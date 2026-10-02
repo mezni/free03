@@ -1,6 +1,0 @@
-application:
-  name: rag-system
-  environment: dev
-
-logging:
-  level: INFO
