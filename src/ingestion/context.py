@@ -15,6 +15,7 @@ class DocumentInput(BaseModel):
         frozen=True,
     )
 
+    knowledge_base_id: UUID
     source: str
     source_uri: str
     path: Path

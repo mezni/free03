@@ -20,6 +20,7 @@ def query_rag(
     rag_service: RAGService = Depends(get_rag_service),
 ) -> RAGQueryResponse:
     retrieval_query = RetrievalQuery(
+        knowledge_base_id=request.knowledge_base_id,
         query=request.query,
         top_k=request.top_k,
     )

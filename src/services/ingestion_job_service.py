@@ -1,8 +1,8 @@
 from uuid import UUID
 
+from src.db.models.ingestion_job import IngestionJobDB
 from src.db.repositories.ingestion_jobs import IngestionJobRepository
 from src.models.ingestion_job import IngestionJob, IngestionJobStatus
-from src.db.models.ingestion_job import IngestionJobDB
 
 
 class IngestionJobService:

@@ -8,6 +8,8 @@ class RAGQueryRequest(BaseModel):
         extra="forbid",
     )
 
+    knowledge_base_id: UUID = Field(...)
+
     query: str = Field(
         min_length=1,
         max_length=5000,

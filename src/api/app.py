@@ -9,9 +9,9 @@ from src.api.middleware.security_headers import (
 )
 from src.api.routes.documents import router as documents_router
 from src.api.routes.health import router as health_router
+from src.api.routes.ingestion import router as ingestion_router
 from src.api.routes.metrics import router as metrics_router
 from src.api.routes.rag import router as rag_router
-from src.api.routes.ingestion import router as ingestion_router
 from src.config.settings import get_settings
 from src.observability.context import create_request_id
 from src.observability.logging import configure_logging

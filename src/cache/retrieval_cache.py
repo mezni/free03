@@ -26,6 +26,7 @@ def make_cache_key(
     candidate_k: int | None,
     filters: RetrievalFilter | None,
     index_version_id: Any,
+    knowledge_base_id: UUID,
 ) -> str:
     """Build a deterministic cache key for retrieval results.
 
@@ -49,7 +50,10 @@ def make_cache_key(
     # Index version ID as hex string
     vid = str(index_version_id) if index_version_id is not None else "None"
 
-    return ":".join([qhash, kpart, cpart, fpart, vid])
+    # Knowledge base ID for isolation boundary
+    kb_id = str(knowledge_base_id)
+
+    return ":".join([qhash, kpart, cpart, fpart, vid, kb_id])
 
 
 class RetrievalCache:

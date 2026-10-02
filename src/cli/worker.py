@@ -4,16 +4,10 @@ Run with: uv run python -m src.cli.worker
 """
 
 import argparse
-import sys
-
-from sqlalchemy.orm import Session
 
 from src.application.container import ApplicationContainer
 from src.config.settings import get_settings
 from src.db.session import SessionLocal
-from src.services.ingestion_service import IngestionService
-from src.services.ingestion_job_service import IngestionJobService
-from src.db.repositories.ingestion_jobs import IngestionJobRepository
 from src.workers.ingestion_worker import IngestionWorker
 
 

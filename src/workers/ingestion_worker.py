@@ -1,6 +1,6 @@
-from src.services.ingestion_service import IngestionService
-from src.services.ingestion_job_service import IngestionJobService
 from src.db.repositories.ingestion_jobs import IngestionJobRepository
+from src.services.ingestion_job_service import IngestionJobService
+from src.services.ingestion_service import IngestionService
 
 
 class IngestionWorker:

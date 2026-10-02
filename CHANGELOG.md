@@ -64,6 +64,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec.php#pe
 | 0.1.2   | Infrastructure | Docker Compose, Makefile, .env.example with DATABASE_URL |
 | 0.1.1   | Core          | Initial release with config, errors, ids, clock |
 
+## [0.2.14] - 2026-10-01
+
+### Added
+- **Knowledge Bases & Isolation (Phase 16):** Complete architectural separation of knowledge bases into isolated collections
+- **KnowledgeBase model:** `src/models/knowledge_base.py` — `KnowledgeBaseCreate` and `KnowledgeBase` pydantic models with name, slug, description fields
+- **KnowledgeBaseDB model:** `src/db/models/knowledge_base.py` — PostgreSQL `knowledge_bases` table with id, name, slug, description, created_at, updated_at
+- **Migration:** `migrations/versions/e3abe80eea9f_add_knowledge_bases_and_link_to_.py` — Creates knowledge_bases table, inserts default KB 'default', adds `documents.knowledge_base_id` column (nullable→NOT NULL), foreign key with RESTRICT, index
+- **Document model update:** `src/models/document.py` — Added `knowledge_base_id: UUID` to `Document` and `DocumentCreate`
+- **DocumentInput update:** `src/ingestion/context.py` — Added `knowledge_base_id: UUID` to carry the KB boundary from ingestion
+- **Repository:** `src/db/repositories/knowledge_bases.py` — `create`, `get_by_id`, `get_by_slug`, `list`, `delete` (fails if documents exist)
+- **Service:** `src/services/knowledge_base_service.py` — `create_knowledge_base`, `get_knowledge_base`, `list_knowledge_bases`, `delete_knowledge_base` (enforces non-empty constraint)
+- **API routes:** `src/api/routes/knowledge_bases.py` — `POST /knowledge-bases`, `GET /knowledge-bases`, `GET /knowledge-bases/{id}`, `DELETE /knowledge-bases/{id}`
+- **RetrievalQuery update:** `src/models/retrieval.py` — Added `knowledge_base_id: UUID` as required field
+- **VectorSearch filtering:** `src/db/repositories/vector_search.py` — Added `knowledge_base_id` filter to all retrieval strategies
+- **KeywordSearch filtering:** `src/db/repositories/keyword_search.py` — Added `knowledge_base_id` filter
+- **Cache key update:** `src/cache/retrieval_cache.py` — Added `knowledge_base_id` to deterministic cache key construction
+- **RAG API update:** `src/api/routes/rag.py` — `POST /rag/query` now requires `knowledge_base_id` in request body
+- **RAGQueryRequest model:** `src/models/api.py` — Added `knowledge_base_id: UUID` field
+- **Evaluation model:** `src/models/rag_evaluation.py` — Added `knowledge_base_id: UUID` (alias `knowledge_base: str`) to `RAGEvaluationCase`
+- **ApplicationContainer:** Added `knowledge_base_service` property
+- **Isolation test suite:** `tests/retrieval/test_knowledge_base_isolation.py` — Tests for KB isolation (5 test cases)
+- **Knowledge base service tests:** `tests/services/test_knowledge_base_service.py`
+- **Knowledge base API tests:** `tests/api/test_knowledge_bases.py`
+
+### Changed
+- **Retrieval invariant:** Query → Knowledge Base → Active Index Version → Retrieval (never all documents)
+- **Index version isolation:** `index_versions` now scoped by `knowledge_base_id`; version numbers unique within a KB
+- **Document relationship:** `documents.knowledge_base_id` with ForeignKey → `knowledge_bases.id` ondelete="RESTRICT"
+- **Retrieval SQL:** Every path (VectorSearch, KeywordSearch, HybridSearch) filters by `documents.knowledge_base_id`
+- **Version uniqueness:** `UNIQUE (knowledge_base_id, version_number)` instead of global UNIQUE
+- **Active index lookup:** `get_active(knowledge_base_id: UUID)` instead of `get_active()`
+- **Cache safety:** Cache key now explicitly includes `knowledge_base_id` for isolation boundary
+- **Deletion behavior:** `delete()` fails with 409 Conflict if documents still belong to the KB
+- **Error codes:** `knowledge_base_not_found`, `knowledge_base_not_empty`
+
+### Known Limitations
+- No users, organizations, OAuth, or billing implemented (separate concerns)
+- Knowledge Base = logical isolation boundary only (not separate databases/schemas)
+- Version numbers unique per knowledge base, not globally
+- Single default KB exists for migrating existing documents
+
 ## [0.2.13] - 2026-10-01
 
 ### Added

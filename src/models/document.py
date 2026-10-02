@@ -11,6 +11,7 @@ class DocumentCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    knowledge_base_id: UUID = Field(...)
     source: str = Field(min_length=1, max_length=100)
     source_uri: str = Field(min_length=1)
     title: str | None = Field(default=None, max_length=500)
@@ -31,6 +32,7 @@ class Document(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: UUID | None = None
+    knowledge_base_id: UUID = Field(...)
 
     source: str = Field(min_length=1, max_length=100)
     source_uri: str = Field(min_length=1)

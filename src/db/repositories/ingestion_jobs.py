@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
 
-from src.db.repositories.base import Repository
-from src.db.models.ingestion_job import IngestionJobDB
 from src.core.enums import IngestionJobStatus
+from src.db.models.ingestion_job import IngestionJobDB
+from src.db.repositories.base import Repository
 
 
 class IngestionJobRepository(Repository):
@@ -82,4 +82,4 @@ class IngestionJobRepository(Repository):
 
 def _get_current_time(self) -> datetime:
         """Get current UTC time."""
-        return datetime.now(tz=timezone.utc)
+        return datetime.now(tz=UTC)

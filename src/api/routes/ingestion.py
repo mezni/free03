@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.api.dependencies import get_ingestion_job_service, get_document_service
-from src.models.ingestion_job import IngestionJob
+from src.api.dependencies import get_document_service, get_ingestion_job_service
 from src.models.ingestion_api import (
     CreateIngestionJobRequest,
     CreateIngestionJobResponse,

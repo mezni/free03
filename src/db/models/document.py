@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -54,6 +54,21 @@ class DocumentDB(Base):
         String(50),
         nullable=False,
         default="active",
+    )
+
+    knowledge_base_id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey(
+            "knowledge_bases.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    knowledge_base = relationship(
+        "KnowledgeBaseDB",
+        back_populates="documents",
     )
 
     created_at: Mapped[datetime] = mapped_column(

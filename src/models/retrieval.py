@@ -30,9 +30,15 @@ class RetrievalQuery(BaseModel):
         frozen=True,
     )
 
+    knowledge_base_id: UUID
+
     query: str = Field(min_length=1)
 
-    top_k: int = Field(default=5, ge=1, le=100)
+    top_k: int = Field(
+        default=5,
+        ge=1,
+        le=100,
+    )
 
     candidate_k: int | None = Field(
         default=None,

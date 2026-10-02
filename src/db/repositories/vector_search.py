@@ -21,6 +21,7 @@ class VectorSearchRepository:
         index_version_id: UUID,
         top_k: int,
         filters: RetrievalFilter | None = None,
+        knowledge_base_id: UUID | None = None,
     ) -> list[tuple[ChunkDB, float]]:
         distance = EmbeddingDB.vector.cosine_distance(query_vector)
 
@@ -43,6 +44,11 @@ class VectorSearchRepository:
             .order_by(distance)
             .limit(top_k)
         )
+
+        if knowledge_base_id is not None:
+            statement = statement.where(
+                DocumentDB.knowledge_base_id == knowledge_base_id,
+            )
 
         if filters is not None:
             if filters.source is not None:

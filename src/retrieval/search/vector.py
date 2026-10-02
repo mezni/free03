@@ -36,6 +36,7 @@ class VectorSearchStrategy(SearchStrategy):
             index_version_id=index_version_id,
             top_k=request.top_k,
             filters=request.filters,
+            knowledge_base_id=request.knowledge_base_id,
         )
 
         return [

@@ -8,6 +8,7 @@ from src.config.settings import get_settings
 from src.db.session import SessionLocal
 from src.services.document_service import DocumentService
 from src.services.ingestion_service import IngestionService
+from src.services.knowledge_base_service import KnowledgeBaseService
 from src.services.rag_service import RAGService
 
 
@@ -56,3 +57,14 @@ def get_ingestion_service(
     )
 
     return container.ingestion_service()
+
+
+def get_knowledge_base_service(
+    session: Session = Depends(get_db_session),
+) -> KnowledgeBaseService:
+    container = ApplicationContainer(
+        session=session,
+        settings=get_settings(),
+    )
+
+    return container.knowledge_base_service()

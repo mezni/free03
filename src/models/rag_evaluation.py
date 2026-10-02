@@ -12,6 +12,11 @@ class RAGEvaluationCase(BaseModel):
         max_length=100,
     )
 
+    knowledge_base: str = Field(
+        min_length=1,
+        max_length=100,
+    )
+
     query: str = Field(
         min_length=1,
     )
