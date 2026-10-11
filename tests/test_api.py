@@ -7,6 +7,8 @@ from ticket_triage.classification import FakeClassifier
 from ticket_triage.classification_worker import handle_classification_job
 from ticket_triage.domain import CaseStatus
 from ticket_triage.job_queue import SQLiteJobQueue, process_one
+from ticket_triage.outbox import SQLiteOutbox
+from ticket_triage.outbox_dispatcher import dispatch_pending_events
 from ticket_triage.policy import RecommendationPolicy
 from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
@@ -66,6 +68,19 @@ def test_create_case_endpoint(tmp_path):
     assert body["case_id"] == "CASE-701"
     assert body["ticket_id"] == "T-701"
     assert body["status"] == "received"
+
+
+def test_create_case_records_classification_event(tmp_path):
+    client = make_client(tmp_path)
+
+    response = client.post("/cases", json=new_case("CASE-710", "T-710"))
+    assert response.status_code == 201
+
+    # The case and its classification event are committed together.
+    outbox = SQLiteOutbox(str(tmp_path / "api-test.db"))
+    events = outbox.pending_events()
+    assert [event.event_id for event in events] == ["classify:CASE-710"]
+    assert events[0].payload == {"case_id": "CASE-710"}
 
 
 def test_retrieve_case_endpoint(tmp_path):
@@ -307,3 +322,45 @@ def test_async_classification_end_to_end(tmp_path):
     body = client.get("/cases/CASE-900").json()
     assert body["status"] == "pending_approval"
     assert body["recommendation"]["category"] == "billing"
+
+
+def test_outbox_dispatch_then_worker_end_to_end(tmp_path):
+    database_path = str(tmp_path / "outbox-flow.db")
+    service = TriageApplicationService(SQLiteCaseRepository(database_path))
+    classifier = FakeClassifier()
+    policy = make_policy()
+    queue = SQLiteJobQueue(database_path)
+    outbox = SQLiteOutbox(database_path)
+
+    app = create_app(
+        service=service,
+        classifier=classifier,
+        policy=policy,
+        job_queue=queue,
+    )
+    app.dependency_overrides[get_current_principal] = lambda: Principal(
+        subject="test-submitter",
+        roles=frozenset({"submitter"}),
+    )
+    client = TestClient(app)
+
+    # POST /cases commits the case and its event atomically.
+    assert client.post("/cases", json=new_case("CASE-910", "T-910")).status_code == 201
+    assert service.get_case("CASE-910").status == CaseStatus.RECEIVED
+
+    # The dispatcher only publishes; it does not run classification.
+    assert dispatch_pending_events(outbox, queue) == 1
+    assert service.get_case("CASE-910").status == CaseStatus.RECEIVED
+    assert outbox.pending_events() == []
+
+    # The worker performs the classification.
+    assert process_one(
+        queue,
+        lambda job: handle_classification_job(
+            job,
+            service=service,
+            classifier=classifier,
+            policy=policy,
+        ),
+    )
+    assert service.get_case("CASE-910").status == CaseStatus.PENDING_APPROVAL

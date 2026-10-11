@@ -41,6 +41,7 @@ class TriageApplicationService:
         *,
         case_id: str,
         ticket: Ticket,
+        schedule_classification: bool = False,
     ) -> TriageCase:
         if not case_id.strip():
             raise ApplicationError("Case ID must not be empty.")
@@ -49,7 +50,12 @@ class TriageApplicationService:
             raise ApplicationError("; ".join(errors))
 
         case = TriageCase(case_id=case_id, ticket=ticket)
-        self.repository.create(case)
+        if schedule_classification:
+            # Persist the case and its classification event in one transaction
+            # so the case cannot exist without a durable record of the work.
+            self.repository.create_case_with_classification_event(case)
+        else:
+            self.repository.create(case)
         logger.info(
             "case_created",
             extra={

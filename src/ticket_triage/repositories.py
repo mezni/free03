@@ -23,6 +23,15 @@ class CaseRepository(Protocol):
         """Insert a new case, failing if the case ID already exists."""
         ...
 
+    def create_case_with_classification_event(self, case: TriageCase) -> None:
+        """Insert a case and its classification outbox event atomically.
+
+        Both records commit together or neither does, so a case can never be
+        persisted without a durable record of the classification work it
+        requires. Fails if the case ID already exists.
+        """
+        ...
+
     def save(self, case: TriageCase) -> None:
         """Persist a triage case, inserting or overwriting it."""
         ...

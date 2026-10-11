@@ -68,7 +68,38 @@ def apply_routing_operations_schema(connection: sqlite3.Connection) -> None:
     )
 
 
+def apply_outbox_schema(connection: sqlite3.Connection) -> None:
+    """Create the Day 27 ``outbox_events`` table.
+
+    An outbox event is a durable record of work that still needs dispatching.
+    It is written in the *same transaction* as the business change it describes
+    (see ``SQLiteCaseRepository.create_case_with_classification_event``), so a
+    case cannot be committed without a record of the work it requires.
+    """
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS outbox_events (
+            event_id TEXT PRIMARY KEY,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'published')),
+            attempts INTEGER NOT NULL DEFAULT 0,
+            created_at REAL NOT NULL,
+            published_at REAL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_outbox_events_pending
+        ON outbox_events (status, created_at)
+        """
+    )
+
+
 def apply_all(connection: sqlite3.Connection) -> None:
     """Apply every migration in dependency order."""
     apply_case_schema(connection)
     apply_routing_operations_schema(connection)
+    apply_outbox_schema(connection)

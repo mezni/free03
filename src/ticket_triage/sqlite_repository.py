@@ -31,8 +31,10 @@ from ticket_triage.domain import (
 from ticket_triage.errors import ConcurrentUpdateError, DuplicateCaseError
 from ticket_triage.migrations import (
     apply_case_schema,
+    apply_outbox_schema,
     apply_routing_operations_schema,
 )
+from ticket_triage.outbox import insert_event_in_transaction
 from ticket_triage.repositories import CaseRecord
 
 
@@ -147,6 +149,7 @@ class SQLiteCaseRepository:
     def _initialize_schema(self) -> None:
         with self._connection:
             apply_case_schema(self._connection)
+            apply_outbox_schema(self._connection)
 
     def close(self) -> None:
         """Release the underlying connection."""
@@ -161,6 +164,35 @@ class SQLiteCaseRepository:
                     "INSERT INTO triage_cases (case_id, revision, payload) "
                     "VALUES (?, 0, ?)",
                     (case.case_id, payload),
+                )
+        except sqlite3.IntegrityError as exc:
+            if "UNIQUE constraint failed" in str(exc) or "PRIMARY KEY" in str(exc):
+                raise DuplicateCaseError(
+                    f"Case {case.case_id} already exists."
+                ) from exc
+            raise
+
+    def create_case_with_classification_event(self, case: TriageCase) -> None:
+        """Insert a case and its classification event in one transaction.
+
+        Both rows commit together or neither does. The event is written on the
+        repository's connection through ``insert_event_in_transaction`` so no
+        second connection can break the atomicity. ``with self._connection``
+        commits on success and rolls back if any statement raises.
+        """
+        payload = json.dumps(case_to_payload(case))
+        try:
+            with self._connection:
+                self._connection.execute(
+                    "INSERT INTO triage_cases (case_id, revision, payload) "
+                    "VALUES (?, 0, ?)",
+                    (case.case_id, payload),
+                )
+                insert_event_in_transaction(
+                    self._connection,
+                    event_id=f"classify:{case.case_id}",
+                    event_type="classification_requested",
+                    payload={"case_id": case.case_id},
                 )
         except sqlite3.IntegrityError as exc:
             if "UNIQUE constraint failed" in str(exc) or "PRIMARY KEY" in str(exc):

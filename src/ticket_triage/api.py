@@ -160,6 +160,9 @@ def create_app(
             case = service.create_case(
                 case_id=request.case_id,
                 ticket=ticket,
+                # Record the classification event in the same transaction as
+                # the case. A dispatcher publishes it to the job queue later.
+                schedule_classification=True,
             )
         except DuplicateCaseError as exc:
             raise HTTPException(
