@@ -14,7 +14,7 @@ concurrent execution.
 
 import json
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ticket_triage.domain import (
@@ -23,11 +23,33 @@ from ticket_triage.domain import (
     DecisionType,
     Priority,
     Recommendation,
+    RoutingOperation,
+    RoutingStatus,
     Ticket,
     TriageCase,
 )
 from ticket_triage.errors import ConcurrentUpdateError, DuplicateCaseError
+from ticket_triage.migrations import (
+    apply_case_schema,
+    apply_routing_operations_schema,
+)
 from ticket_triage.repositories import CaseRecord
+
+
+def _connect(database_path: str, timeout: float) -> sqlite3.Connection:
+    """Open a connection with the settings every adapter relies on."""
+    if database_path != ":memory:":
+        Path(database_path).parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(
+        database_path,
+        timeout=timeout,
+        check_same_thread=False,
+    )
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    if database_path != ":memory:":
+        connection.execute("PRAGMA journal_mode = WAL")
+    return connection
 
 
 def _recommendation_to_payload(
@@ -119,47 +141,16 @@ class SQLiteCaseRepository:
 
     def __init__(self, database_path: str, *, timeout: float = 5.0) -> None:
         self.database_path = database_path
-        if database_path != ":memory:":
-            Path(database_path).parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(
-            database_path,
-            timeout=timeout,
-            check_same_thread=False,
-        )
-        self._connection.row_factory = sqlite3.Row
-        self._connection.execute("PRAGMA foreign_keys = ON")
-        if database_path != ":memory:":
-            self._connection.execute("PRAGMA journal_mode = WAL")
+        self._connection = _connect(database_path, timeout)
         self._initialize_schema()
 
     def _initialize_schema(self) -> None:
         with self._connection:
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS triage_cases (
-                    case_id TEXT PRIMARY KEY,
-                    revision INTEGER NOT NULL DEFAULT 0,
-                    payload TEXT NOT NULL
-                )
-                """
-            )
-            self._migrate_revision_column()
+            apply_case_schema(self._connection)
 
-    def _migrate_revision_column(self) -> None:
-        """Add the revision column to databases created before Day 23.
-
-        ``CREATE TABLE IF NOT EXISTS`` never alters an existing table, so older
-        databases need an explicit migration.
-        """
-        columns = {
-            row["name"]
-            for row in self._connection.execute("PRAGMA table_info(triage_cases)")
-        }
-        if "revision" not in columns:
-            self._connection.execute(
-                "ALTER TABLE triage_cases "
-                "ADD COLUMN revision INTEGER NOT NULL DEFAULT 0"
-            )
+    def close(self) -> None:
+        """Release the underlying connection."""
+        self._connection.close()
 
     def create(self, case: TriageCase) -> None:
         """Insert a new case, raising ``DuplicateCaseError`` on conflict."""
@@ -230,3 +221,218 @@ class SQLiteCaseRepository:
             return True
         except sqlite3.Error:
             return False
+
+
+def _routing_row_to_operation(row: sqlite3.Row) -> RoutingOperation:
+    return RoutingOperation(
+        operation_id=row["operation_id"],
+        case_id=row["case_id"],
+        approval_decision_id=row["approval_decision_id"],
+        recommendation_version=row["recommendation_version"],
+        idempotency_key=row["idempotency_key"],
+        ticket_id=row["ticket_id"],
+        destination=row["destination"],
+        status=RoutingStatus(row["status"]),
+        attempts=row["attempts"],
+        external_reference=row["external_reference"],
+        last_error_code=row["last_error_code"],
+    )
+
+
+class SQLiteRoutingOperationRepository:
+    """Persist routing operations so intent survives a process restart."""
+
+    def __init__(self, database_path: str, *, timeout: float = 5.0) -> None:
+        self.database_path = database_path
+        self._connection = _connect(database_path, timeout)
+        self._initialize_schema()
+
+    def _initialize_schema(self) -> None:
+        with self._connection:
+            apply_case_schema(self._connection)
+            apply_routing_operations_schema(self._connection)
+
+    def close(self) -> None:
+        """Release the underlying connection."""
+        self._connection.close()
+
+    def create_or_get(
+        self,
+        operation: RoutingOperation,
+    ) -> tuple[RoutingOperation, bool]:
+        """Insert the operation, or return the existing one for its key.
+
+        Returns ``(operation, created)``. The unique ``idempotency_key`` makes
+        this safe under concurrent retries: exactly one caller creates the row.
+        """
+        timestamp = datetime.now(UTC).isoformat()
+        try:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    INSERT INTO routing_operations (
+                        operation_id,
+                        case_id,
+                        approval_decision_id,
+                        recommendation_version,
+                        idempotency_key,
+                        ticket_id,
+                        destination,
+                        status,
+                        attempts,
+                        external_reference,
+                        last_error_code,
+                        created_at,
+                        updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        operation.operation_id,
+                        operation.case_id,
+                        operation.approval_decision_id,
+                        operation.recommendation_version,
+                        operation.idempotency_key,
+                        operation.ticket_id,
+                        operation.destination,
+                        operation.status.value,
+                        operation.attempts,
+                        operation.external_reference,
+                        operation.last_error_code,
+                        timestamp,
+                        timestamp,
+                    ),
+                )
+        except sqlite3.IntegrityError as exc:
+            if "UNIQUE constraint failed" in str(exc) or "PRIMARY KEY" in str(exc):
+                existing = self.get_by_idempotency_key(operation.idempotency_key)
+                if existing is not None:
+                    return existing, False
+            raise
+        stored = self.get(operation.operation_id)
+        if stored is None:
+            raise RuntimeError("Routing operation vanished after insert.")
+        return stored, True
+
+    def get(self, operation_id: str) -> RoutingOperation | None:
+        row = self._connection.execute(
+            "SELECT * FROM routing_operations WHERE operation_id = ?",
+            (operation_id,),
+        ).fetchone()
+        return None if row is None else _routing_row_to_operation(row)
+
+    def get_by_idempotency_key(
+        self,
+        idempotency_key: str,
+    ) -> RoutingOperation | None:
+        row = self._connection.execute(
+            "SELECT * FROM routing_operations WHERE idempotency_key = ?",
+            (idempotency_key,),
+        ).fetchone()
+        return None if row is None else _routing_row_to_operation(row)
+
+    def list_unresolved(self) -> list[RoutingOperation]:
+        """Return operations that have not reached a confirmed outcome.
+
+        This is the recovery set: pending, in-progress, unknown, and
+        reconciliation-required operations are all discovered on restart.
+        """
+        unresolved = {
+            RoutingStatus.PENDING.value,
+            RoutingStatus.IN_PROGRESS.value,
+            RoutingStatus.OUTCOME_UNKNOWN.value,
+            RoutingStatus.RECONCILIATION_REQUIRED.value,
+        }
+        rows = self._connection.execute(
+            "SELECT * FROM routing_operations WHERE status IN (?, ?, ?, ?) "
+            "ORDER BY created_at",
+            tuple(sorted(unresolved)),
+        ).fetchall()
+        return [_routing_row_to_operation(row) for row in rows]
+
+    def _update(
+        self,
+        operation_id: str,
+        *,
+        status: RoutingStatus,
+        external_reference: str | None = None,
+        last_error_code: str | None = None,
+        increment_attempts: bool = False,
+    ) -> None:
+        timestamp = datetime.now(UTC).isoformat()
+        attempts_expression = "attempts + 1" if increment_attempts else "attempts"
+        with self._connection:
+            cursor = self._connection.execute(
+                f"""
+                UPDATE routing_operations
+                SET status = ?,
+                    external_reference = ?,
+                    last_error_code = ?,
+                    attempts = {attempts_expression},
+                    updated_at = ?
+                WHERE operation_id = ?
+                """,
+                (
+                    status.value,
+                    external_reference,
+                    last_error_code,
+                    timestamp,
+                    operation_id,
+                ),
+            )
+        if cursor.rowcount != 1:
+            raise LookupError(f"Unknown routing operation {operation_id}.")
+
+    def mark_in_progress(self, operation_id: str) -> None:
+        self._update(
+            operation_id,
+            status=RoutingStatus.IN_PROGRESS,
+            increment_attempts=True,
+        )
+
+    def mark_succeeded(
+        self,
+        operation_id: str,
+        *,
+        external_reference: str,
+    ) -> None:
+        self._update(
+            operation_id,
+            status=RoutingStatus.SUCCEEDED,
+            external_reference=external_reference,
+        )
+
+    def mark_failed(
+        self,
+        operation_id: str,
+        *,
+        error_code: str | None,
+    ) -> None:
+        self._update(
+            operation_id,
+            status=RoutingStatus.FAILED,
+            last_error_code=error_code,
+        )
+
+    def mark_outcome_unknown(
+        self,
+        operation_id: str,
+        *,
+        error_code: str | None,
+    ) -> None:
+        self._update(
+            operation_id,
+            status=RoutingStatus.OUTCOME_UNKNOWN,
+            last_error_code=error_code,
+        )
+
+    def mark_reconciliation_required(
+        self,
+        operation_id: str,
+        *,
+        error_code: str | None = None,
+    ) -> None:
+        self._update(
+            operation_id,
+            status=RoutingStatus.RECONCILIATION_REQUIRED,
+            last_error_code=error_code,
+        )

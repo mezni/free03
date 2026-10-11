@@ -17,8 +17,35 @@ class PolicyViolationError(ValueError):
     """The recommendation violates application policy."""
 
 
-class RoutingOutcomeUnknownError(RuntimeError):
-    """The external routing operation may have succeeded."""
+class RoutingProviderError(RuntimeError):
+    """Base class for errors raised by an external routing provider."""
+
+
+class RoutingConfirmedFailure(RoutingProviderError):
+    """The provider guarantees the routing operation did not occur.
+
+    Only raise this when the provider's response is trustworthy evidence that
+    no side effect was committed. A timeout or connection loss is not evidence
+    of failure and must not be reported as this error.
+    """
+
+
+class RoutingOutcomeUnknownError(RoutingProviderError):
+    """The external routing operation may have succeeded.
+
+    Used for timeouts, connection loss, and any response the application cannot
+    trust as confirmation. The operation must be reconciled, not retried
+    blindly.
+    """
+
+
+class RoutingLookupInconclusiveError(RoutingProviderError):
+    """A provider lookup cannot determine whether the operation occurred.
+
+    This is distinct from a lookup that definitively finds no matching
+    operation. An inconclusive lookup must never be treated as proof that the
+    original request was not accepted.
+    """
 
 
 class ApplicationError(RuntimeError):
@@ -39,3 +66,7 @@ class InvalidCaseStateError(ApplicationError):
 
 class ConcurrentUpdateError(ApplicationError):
     """Raised when a conditional write loses a race to another writer."""
+
+
+class RoutingOperationNotFoundError(ApplicationError):
+    """Raised when a requested routing operation does not exist."""

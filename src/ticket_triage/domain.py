@@ -63,14 +63,26 @@ class RoutingStatus(StrEnum):
 
 @dataclass
 class RoutingOperation:
+    """The durable record of one intended external routing effect.
+
+    ``operation_id`` identifies this row; ``idempotency_key`` identifies the
+    intended external effect. Retries for the same case and recommendation
+    version reuse the same key, so a unique constraint prevents duplicate
+    operations locally. ``status`` records only what the application knows:
+    anything short of ``SUCCEEDED`` means the outcome is not yet confirmed.
+    """
+
     operation_id: str
     case_id: str
     approval_decision_id: str
+    recommendation_version: int
     idempotency_key: str
+    ticket_id: str
+    destination: str
     status: RoutingStatus = RoutingStatus.PENDING
     attempts: int = 0
-    external_operation_id: str | None = None
-    error_message: str | None = None
+    external_reference: str | None = None
+    last_error_code: str | None = None
 
 
 @dataclass
