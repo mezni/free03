@@ -11,7 +11,9 @@ src/ticket_triage/domain.py
 src/ticket_triage/errors.py
 src/ticket_triage/evaluation.py
 src/ticket_triage/llm_classifier.py
+src/ticket_triage/logging_config.py
 src/ticket_triage/main.py
+src/ticket_triage/metrics.py
 src/ticket_triage/observability.py
 src/ticket_triage/openai_client.py
 src/ticket_triage/policy.py
@@ -30,6 +32,7 @@ tests/test_config.py
 tests/test_domain.py
 tests/test_evaluation.py
 tests/test_llm_classifier.py
+tests/test_logging_config.py
 tests/test_observability.py
 tests/test_openai_client.py
 tests/test_policy.py

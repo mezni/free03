@@ -13,3 +13,7 @@ class CaseRepository(Protocol):
     def get(self, case_id: str) -> TriageCase | None:
         """Return a case, or None if it does not exist."""
         ...
+
+    def health_check(self) -> bool:
+        """Return whether the repository can serve basic operations."""
+        ...

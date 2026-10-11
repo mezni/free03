@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 
 from ticket_triage.api_schemas import (
     CaseResponse,
@@ -24,6 +24,13 @@ from ticket_triage.domain import CaseStatus, DecisionType, Ticket
 from ticket_triage.logging_config import (
     correlation_id_var,
     valid_correlation_id,
+)
+from ticket_triage.metrics import (
+    CLASSIFICATION_ATTEMPTS,
+    CLASSIFICATION_DURATION,
+    HTTP_REQUEST_DURATION,
+    HTTP_REQUESTS,
+    render_metrics,
 )
 from ticket_triage.policy import RecommendationPolicy
 
@@ -84,7 +91,15 @@ def create_app(
             )
             raise
         finally:
-            duration_ms = round((time.perf_counter() - started) * 1000, 2)
+            duration_seconds = time.perf_counter() - started
+            HTTP_REQUESTS.labels(
+                method=request.method,
+                status=str(status_code),
+            ).inc()
+            HTTP_REQUEST_DURATION.labels(method=request.method).observe(
+                duration_seconds
+            )
+            duration_ms = round(duration_seconds * 1000, 2)
             logger.info(
                 "http_request_completed",
                 extra={
@@ -100,6 +115,24 @@ def create_app(
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/health/live")
+    def health_live() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/health/ready")
+    def health_ready() -> dict[str, str]:
+        if not service.health_check():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Service is not ready.",
+            )
+        return {"status": "ok"}
+
+    @app.get("/metrics")
+    def metrics() -> Response:
+        content, media_type = render_metrics()
+        return Response(content=content, media_type=media_type)
 
     @app.post(
         "/cases",
@@ -158,11 +191,23 @@ def create_app(
                 case = service.start_processing(case_id)
             if case.status == CaseStatus.PENDING_APPROVAL:
                 return to_case_response(case)
-            case = service.classify_case(
-                case_id,
-                classifier=classifier,
-                policy=policy,
-            )
+            started = time.perf_counter()
+            try:
+                case = service.classify_case(
+                    case_id,
+                    classifier=classifier,
+                    policy=policy,
+                )
+            except ApplicationError:
+                CLASSIFICATION_ATTEMPTS.labels(outcome="application_error").inc()
+                raise
+            except Exception:
+                CLASSIFICATION_ATTEMPTS.labels(outcome="unexpected_error").inc()
+                raise
+            else:
+                CLASSIFICATION_ATTEMPTS.labels(outcome="success").inc()
+            finally:
+                CLASSIFICATION_DURATION.observe(time.perf_counter() - started)
         except ApplicationError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

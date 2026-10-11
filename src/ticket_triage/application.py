@@ -27,6 +27,9 @@ class TriageApplicationService:
     def __init__(self, repository: CaseRepository) -> None:
         self.repository = repository
 
+    def health_check(self) -> bool:
+        return self.repository.health_check()
+
     def create_case(
         self,
         *,
