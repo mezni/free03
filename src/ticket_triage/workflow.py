@@ -13,7 +13,7 @@ backend must also enforce authorization and persist state changes safely,
 including protection against concurrent requests.
 """
 
-from ticket_triage.domain import CaseStatus
+from ticket_triage.domain import CaseStatus, TriageCase
 
 ALLOWED_TRANSITIONS: dict[CaseStatus, set[CaseStatus]] = {
     CaseStatus.RECEIVED: {
@@ -45,3 +45,18 @@ ALLOWED_TRANSITIONS: dict[CaseStatus, set[CaseStatus]] = {
 
 class InvalidTransitionError(ValueError):
     """Raised when a case attempts an illegal state transition."""
+
+
+def transition_case(case: TriageCase, new_status: CaseStatus) -> None:
+    """Move a case to a new status when the transition is allowed.
+
+    The case is left untouched when the transition is illegal, so callers never
+    observe a partially applied state change.
+    """
+    allowed = ALLOWED_TRANSITIONS.get(case.status, set())
+    if new_status not in allowed:
+        raise InvalidTransitionError(
+            f"Cannot transition case {case.case_id} from "
+            f"{case.status.value} to {new_status.value}."
+        )
+    case.status = new_status

@@ -23,6 +23,7 @@ from ticket_triage.domain import CaseStatus, DecisionType, Ticket
 from ticket_triage.errors import (
     ApplicationError,
     CaseNotFoundError,
+    ConcurrentUpdateError,
     DuplicateCaseError,
     InvalidCaseStateError,
 )
@@ -163,6 +164,11 @@ def create_app(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Case already exists.",
             ) from exc
+        except ConcurrentUpdateError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
         except ApplicationError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -228,6 +234,11 @@ def create_app(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Case not found.",
             ) from exc
+        except ConcurrentUpdateError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
         except InvalidCaseStateError as exc:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -266,6 +277,11 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Case not found.",
+            ) from exc
+        except ConcurrentUpdateError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
             ) from exc
         except InvalidCaseStateError as exc:
             raise HTTPException(

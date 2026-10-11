@@ -81,3 +81,18 @@ class TriageCase:
     recommendation: Recommendation | None = None
     recommendation_version: int = 0
     approval_decision: ApprovalDecision | None = None
+
+
+def validate_ticket(ticket: Ticket) -> list[str]:
+    """Return the list of validation errors for a ticket.
+
+    An empty list means the ticket is valid.
+    """
+    errors: list[str] = []
+    if not ticket.ticket_id.strip():
+        errors.append("Ticket ID must not be empty.")
+    if not ticket.subject.strip():
+        errors.append("Subject must not be empty.")
+    if not ticket.description.strip():
+        errors.append("Description must not be empty.")
+    return errors

@@ -1,11 +1,11 @@
 from fastapi.testclient import TestClient
-from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
 from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
 from ticket_triage.auth import Principal, get_current_principal
 from ticket_triage.classification import FakeClassifier
 from ticket_triage.policy import RecommendationPolicy
+from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
 
 def make_client(tmp_path):
@@ -96,7 +96,11 @@ def test_case_endpoint_requires_authentication(tmp_path):
             "general-support",
         },
     )
-    app = create_app(service, FakeClassifier(), policy)
+    app = create_app(
+        service=service,
+        classifier=FakeClassifier(),
+        policy=policy,
+    )
     client = TestClient(app)
 
     response = client.get("/cases/missing-case")
@@ -180,6 +184,10 @@ def test_submitter_cannot_reject_case(tmp_path):
 
 def test_decision_body_cannot_override_actor_identity(tmp_path):
     client = make_client(tmp_path)
+    client.app.dependency_overrides[get_current_principal] = lambda: Principal(
+        subject="reviewer-1",
+        roles=frozenset({"reviewer"}),
+    )
 
     response = client.post(
         "/cases/case-200/decision",

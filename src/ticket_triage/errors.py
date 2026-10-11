@@ -35,3 +35,7 @@ class DuplicateCaseError(ApplicationError):
 
 class InvalidCaseStateError(ApplicationError):
     """Raised when an operation is not valid for the current case state."""
+
+
+class ConcurrentUpdateError(ApplicationError):
+    """Raised when a conditional write loses a race to another writer."""
