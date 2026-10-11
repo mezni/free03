@@ -19,9 +19,9 @@ I also raised `requires-python` from `>=3.10` to `>=3.11`. The configured `targe
 
 ### `.github/workflows/ci.yml`
 
-Runs on every push and pull request to `main`, on `ubuntu-latest` with Python 3.11:
+Triggered on `push`, `pull_request`, and `workflow_dispatch`, with `contents: read` permissions and a concurrency group that cancels superseded runs. On `ubuntu-latest` with Python 3.11:
 
-1. `pip install -e ".[dev]"`
+1. `python -m pip install -e ".[dev]"`
 2. `ruff format --check .`
 3. `ruff check .`
 4. `pytest --cov=ticket_triage --cov-report=term-missing --cov-fail-under=60`
