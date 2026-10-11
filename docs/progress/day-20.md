@@ -24,15 +24,22 @@ Local bearer-token authentication in `auth.py` is a learning mechanism, **not** 
 
 ## Threats and mitigations
 
-| Threat | Mitigation | Test |
+| Threat | Mitigation | Test / status |
 | --- | --- | --- |
-| Unauthorized approval | Reviewer/admin role enforcement (`require_roles`) | `test_submitter_cannot_approve` (403), `test_submitter_cannot_reject_case` (403) |
-| Identity spoofing | Actor identity derived from `Principal.subject`; request schema forbids extra fields | `test_decision_body_cannot_override_actor_identity` (422) |
-| Prompt injection | Ticket text treated as data; deterministic policy still enforces the allowlist | `test_prompt_injection_cannot_widen_destination_allowlist` |
-| Invalid model output | Strict parsing/schema validation; unrelated categories/destinations rejected | `test_rejects_unknown_category`, `test_rejects_unknown_destination`, `test_rejects_schema_violations`, `test_rejects_invalid_json` |
-- Invalid routing destination → blocked by `test_rejects_unknown_destination`.
-- Sensitive-data leakage → reviewed statically (see below); no description/token is logged.
-- Resource exhaustion → input limits exist (`CreateCaseRequest` field lengths); rate limiting is **not** implemented.
+| Unauthorized approval | Reviewer/admin role enforcement (`require_roles`) | `test_submitter_cannot_approve`, `test_submitter_cannot_reject_case` → 403 |
+| Identity spoofing | Actor identity derived from `Principal.subject`; request schema forbids extra fields | `test_decision_body_cannot_override_actor_identity` → 422 |
+| Prompt injection | Ticket text treated as data; deterministic policy still enforces the allowlist | `test_prompt_injection_cannot_widen_destination_allowlist`, `test_ticket_content_is_data_not_instructions` |
+| Invalid model output | Strict parsing/schema validation; fail closed | `test_incomplete_response_fails_closed`, `test_rejects_invalid_json`, `test_rejects_schema_violations` → `ClassificationError` |
+| Invalid routing destination | Server-side destination allowlist | `test_rejects_unknown_destination` |
+| Invalid category | Server-side category allowlist | `test_rejects_unknown_category` |
+| LLM bypassing approval | Workflow must pass through `PENDING_APPROVAL` before `APPROVED` | `test_model_output_cannot_bypass_approval` |
+| Rejected case routed | Transition table forbids `REJECTED → ROUTING` | `test_rejected_cases_cannot_be_routed` |
+| Approval skipped | Transition table forbids `PENDING_APPROVAL → ROUTING` | `test_approval_cannot_be_skipped_to_routing` |
+| Only approved cases routed | `ROUTING` reachable only from `APPROVED` | `test_only_approved_cases_can_be_routed` |
+| Stale recommendation version | Recommendation-version check on the decision | **Not implemented** (`record_decision` does not exist) |
+| Duplicate/conflicting decision | State checks + durable uniqueness | **Not implemented** |
+| Sensitive-data leakage | Structured, redacted logs | Static review (below); no change needed |
+| Resource exhaustion | Input field-length limits, provider timeouts/retries | Limits present; rate limiting **not implemented** |
 
 ## What I implemented
 
@@ -43,9 +50,17 @@ Local bearer-token authentication in `auth.py` is a learning mechanism, **not** 
 - `tests/test_api.py`:
   - `test_submitter_cannot_reject_case` — a submitter receives `403` for a `reject` decision (complementing the existing approve test).
   - `test_decision_body_cannot_override_actor_identity` — an undeclared `actor_id` in the decision body is rejected with `422` (the decision schema forbids extra fields; identity comes only from `Principal.subject`).
-- Verified existing controls: `test_submitter_cannot_approve` (403), `test_case_endpoint_requires_authentication` (401), and the malformed-model-output tests in `tests/test_llm_classifier.py` (`test_rejects_invalid_json`, `test_rejects_schema_violations`, `test_rejects_unsupported_priority`) which show a malformed/incomplete LLM response raises `ClassificationError`.
+- `tests/test_llm_classifier.py`:
+  - `test_incomplete_response_fails_closed` — an incomplete (missing-field) response raises `ClassificationError`.
+  - `test_ticket_content_is_data_not_instructions` — injection text in the description is embedded in the prompt as ticket data and does not change the parsed outcome.
+- `tests/test_security_invariants.py` — reads `ALLOWED_TRANSITIONS` directly, so it runs even though `transition_case()` is unimplemented:
+  - `test_model_output_cannot_bypass_approval` — `RECEIVED`/`PROCESSING` cannot transition directly to `APPROVED`.
+  - `test_rejected_cases_cannot_be_routed` — `REJECTED → ROUTING` is forbidden.
+  - `test_approval_cannot_be_skipped_to_routing` — `PENDING_APPROVAL → ROUTING` is forbidden.
+  - `test_only_approved_cases_can_be_routed` — `ROUTING` is reachable only from `APPROVED`.
+- Verified existing controls: `test_submitter_cannot_approve` (403), `test_case_endpoint_requires_authentication` (401), and the malformed-output/schema tests in `tests/test_llm_classifier.py`.
 
-The approval-integrity tests requested for recommendation-version and routing invariants were **not** added: they target `record_decision` / `authorize_routing`, which do not exist in this repository (`ticket_triage.approval` is missing and `authorize_routing` is unimplemented). See Remaining risks.
+Two categories remain **not implemented** because their target code does not exist: (1) the recommendation-version check ("stale approval") and duplicate-decision uniqueness, which belong to `record_decision` / `authorize_routing` (`ticket_triage.approval` is missing and `authorize_routing` is unimplemented); and (2) the application-level "malformed output never creates a case in `pending_approval`" assertion, which requires importing `TriageApplicationService` and is blocked by the missing `transition_case`. See Remaining risks.
 
 ## Sensitive-data and error-response review
 
