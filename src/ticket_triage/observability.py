@@ -29,10 +29,15 @@ class InstrumentedClassifier:
         self.classifier = classifier
         self.metrics = ClassificationMetrics()
 
-    def classify(self, ticket: Ticket) -> Recommendation:
+    def classify(
+        self,
+        ticket: Ticket,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> Recommendation:
         started = perf_counter()
         try:
-            result = self.classifier.classify(ticket)
+            result = self.classifier.classify(ticket, timeout_seconds=timeout_seconds)
         except Exception as exc:
             elapsed_ms = (perf_counter() - started) * 1000.0
             self.metrics.total_calls += 1

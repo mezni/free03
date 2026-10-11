@@ -95,7 +95,7 @@ clock, so no real API or waiting is involved:
 
 ```
 ruff check .                         -> All checks passed!
-ruff format --check .                -> 109 files already formatted
+ruff format --check .                -> 110 files already formatted
 pytest                               -> 132 passed
 ```
 

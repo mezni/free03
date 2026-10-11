@@ -44,20 +44,26 @@ class OpenAILLMClient:
                 max_retries=1,
             )
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, timeout_seconds: float | None = None) -> str:
+        request: dict = {
+            "model": self.model,
+            "input": prompt,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "ticket_recommendation",
+                    "strict": True,
+                    "schema": _RECOMMENDATION_SCHEMA,
+                }
+            },
+        }
+        # Let the SDK enforce a per-request deadline. Without this the client
+        # would always use its single construction-time timeout.
+        if timeout_seconds is not None:
+            request["timeout"] = timeout_seconds
+
         try:
-            response = self.client.responses.create(
-                model=self.model,
-                input=prompt,
-                text={
-                    "format": {
-                        "type": "json_schema",
-                        "name": "ticket_recommendation",
-                        "strict": True,
-                        "schema": _RECOMMENDATION_SCHEMA,
-                    }
-                },
-            )
+            response = self.client.responses.create(**request)
         except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
             raise TransientProviderError("Temporary OpenAI provider failure.") from exc
         if not response.output_text:

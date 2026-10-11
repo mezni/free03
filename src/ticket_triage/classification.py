@@ -8,15 +8,30 @@ class ClassificationError(RuntimeError):
 
 
 class Classifier(Protocol):
-    def classify(self, ticket: Ticket) -> Recommendation:
-        """Return a recommendation for the supplied ticket."""
+    def classify(
+        self,
+        ticket: Ticket,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> Recommendation:
+        """Return a recommendation for the supplied ticket.
+
+        ``timeout_seconds`` is an optional per-call time budget. Single-call
+        classifiers treat it as the request timeout; wrappers may use it as the
+        end-to-end budget and forward a smaller per-attempt limit downstream.
+        """
         ...
 
 
 class FakeClassifier:
     """Deterministic classifier for development and testing."""
 
-    def classify(self, ticket: Ticket) -> Recommendation:
+    def classify(
+        self,
+        ticket: Ticket,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> Recommendation:
         text = f"{ticket.subject} {ticket.description}".lower()
 
         if any(word in text for word in ("refund", "charged", "payment")):

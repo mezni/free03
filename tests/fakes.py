@@ -6,8 +6,9 @@ class FakeLLMClient:
         self.response = response
         self.last_prompt: str | None = None
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, timeout_seconds: float | None = None) -> str:
         self.last_prompt = prompt
+        self.last_timeout_seconds = timeout_seconds
         return self.response
 
 

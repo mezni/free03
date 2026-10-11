@@ -10,7 +10,7 @@ _REQUIRED_FIELDS = ("category", "priority", "destination", "rationale")
 
 
 class LLMClient(Protocol):
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, timeout_seconds: float | None = None) -> str:
         """Return the model's raw text response."""
         ...
 
@@ -19,10 +19,18 @@ class LLMClassifier:
     def __init__(self, client: LLMClient) -> None:
         self.client = client
 
-    def classify(self, ticket: Ticket) -> Recommendation:
+    def classify(
+        self,
+        ticket: Ticket,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> Recommendation:
         prompt = self._build_prompt(ticket)
         try:
-            raw_response = self.client.generate(prompt)
+            raw_response = self.client.generate(
+                prompt,
+                timeout_seconds=timeout_seconds,
+            )
         except (TransientProviderError, PermanentProviderError):
             raise
         except Exception as exc:
