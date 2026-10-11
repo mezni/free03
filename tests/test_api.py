@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
+from ticket_triage.auth import Principal, get_current_principal
 from ticket_triage.classification import FakeClassifier
 from ticket_triage.policy import RecommendationPolicy
 from ticket_triage.sqlite_repository import SQLiteCaseRepository
@@ -24,6 +25,10 @@ def make_client(tmp_path):
         service=service,
         classifier=FakeClassifier(),
         policy=policy,
+    )
+    app.dependency_overrides[get_current_principal] = lambda: Principal(
+        subject="test-submitter",
+        roles=frozenset({"submitter"}),
     )
     return TestClient(app)
 
@@ -79,3 +84,47 @@ def test_classify_moves_case_to_pending_approval(tmp_path):
     body = response.json()
     assert body["status"] == "pending_approval"
     assert body["recommendation"]["category"] == "billing"
+
+
+def test_case_endpoint_requires_authentication(tmp_path):
+    service = TriageApplicationService(
+        SQLiteCaseRepository(str(tmp_path / "unauth.db"))
+    )
+    policy = RecommendationPolicy(
+        allowed_categories={"billing", "account", "general"},
+        allowed_destinations={
+            "billing-team",
+            "account-support",
+            "general-support",
+        },
+    )
+    app = create_app(service, FakeClassifier(), policy)
+    client = TestClient(app)
+
+    response = client.get("/cases/missing-case")
+
+    assert response.status_code == 401
+
+
+def test_submitter_cannot_approve(tmp_path):
+    client = make_client(tmp_path)
+    created = client.post(
+        "/cases",
+        json={
+            "case_id": "case-100",
+            "ticket_id": "ticket-100",
+            "subject": "Charged twice",
+            "description": "I was charged twice for one order.",
+        },
+    )
+    assert created.status_code == 201
+
+    response = client.post(
+        "/cases/case-100/decision",
+        json={
+            "decision_id": "decision-100",
+            "decision": "approve",
+        },
+    )
+
+    assert response.status_code == 403

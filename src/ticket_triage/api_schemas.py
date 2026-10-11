@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from ticket_triage.domain import CaseStatus, Priority
@@ -25,3 +27,11 @@ class CaseResponse(BaseModel):
     status: CaseStatus
     recommendation: RecommendationResponse | None = None
     recommendation_version: int
+
+
+class DecisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    decision_id: str = Field(min_length=1, max_length=100)
+    decision: Literal["approve", "reject"]
+    comment: str | None = Field(default=None, max_length=2_000)
