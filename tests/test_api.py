@@ -153,3 +153,41 @@ def test_invalid_correlation_id_is_replaced(tmp_path):
 
     assert returned_id != "invalid id with spaces"
     assert 1 <= len(returned_id) <= 100
+
+
+def test_submitter_cannot_reject_case(tmp_path):
+    client = make_client(tmp_path)
+    client.post(
+        "/cases",
+        json={
+            "case_id": "case-101",
+            "ticket_id": "ticket-101",
+            "subject": "Charged twice",
+            "description": "I was charged twice for one order.",
+        },
+    )
+
+    response = client.post(
+        "/cases/case-101/decision",
+        json={
+            "decision_id": "decision-101",
+            "decision": "reject",
+        },
+    )
+
+    assert response.status_code == 403
+
+
+def test_decision_body_cannot_override_actor_identity(tmp_path):
+    client = make_client(tmp_path)
+
+    response = client.post(
+        "/cases/case-200/decision",
+        json={
+            "decision_id": "decision-200",
+            "decision": "approve",
+            "actor_id": "reviewer-spoofed",
+        },
+    )
+
+    assert response.status_code == 422
