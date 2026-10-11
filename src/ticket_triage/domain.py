@@ -54,6 +54,27 @@ class ApprovalDecision:
     comment: str | None = None
 
 
+class RoutingStatus(str, Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    OUTCOME_UNKNOWN = "outcome_unknown"
+    RECONCILIATION_REQUIRED = "reconciliation_required"
+
+
+@dataclass
+class RoutingOperation:
+    operation_id: str
+    case_id: str
+    approval_decision_id: str
+    idempotency_key: str
+    status: RoutingStatus = RoutingStatus.PENDING
+    attempts: int = 0
+    external_operation_id: str | None = None
+    error_message: str | None = None
+
+
 @dataclass
 class TriageCase:
     case_id: str
