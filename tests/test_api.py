@@ -4,14 +4,15 @@ from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
 from ticket_triage.auth import Principal, get_current_principal
 from ticket_triage.classification import FakeClassifier
+from ticket_triage.classification_worker import handle_classification_job
+from ticket_triage.domain import CaseStatus
+from ticket_triage.job_queue import SQLiteJobQueue, process_one
 from ticket_triage.policy import RecommendationPolicy
 from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
 
-def make_client(tmp_path):
-    repository = SQLiteCaseRepository(str(tmp_path / "api-test.db"))
-    service = TriageApplicationService(repository)
-    policy = RecommendationPolicy(
+def make_policy() -> RecommendationPolicy:
+    return RecommendationPolicy(
         allowed_categories={"billing", "account", "general"},
         allowed_destinations={
             "billing-team",
@@ -19,10 +20,16 @@ def make_client(tmp_path):
             "general-support",
         },
     )
+
+
+def make_client(tmp_path, job_queue=None):
+    repository = SQLiteCaseRepository(str(tmp_path / "api-test.db"))
+    service = TriageApplicationService(repository)
     app = create_app(
         service=service,
         classifier=FakeClassifier(),
-        policy=policy,
+        policy=make_policy(),
+        job_queue=job_queue,
     )
     app.dependency_overrides[get_current_principal] = lambda: Principal(
         subject="test-submitter",
@@ -199,3 +206,104 @@ def test_decision_body_cannot_override_actor_identity(tmp_path):
     )
 
     assert response.status_code == 422
+
+
+def test_classify_async_accepts_job_with_202(tmp_path):
+    queue = SQLiteJobQueue(str(tmp_path / "jobs.db"))
+    client = make_client(tmp_path, job_queue=queue)
+    client.post("/cases", json=new_case("CASE-800", "T-800"))
+
+    response = client.post("/cases/CASE-800/classify-async")
+
+    assert response.status_code == 202
+    assert response.json() == {
+        "case_id": "CASE-800",
+        "job_id": "classify:CASE-800",
+        "job_status": "queued",
+        "message": "Classification has been accepted for processing.",
+    }
+    assert queue.get_status("classify:CASE-800") == "queued"
+
+
+def test_classify_async_is_idempotent(tmp_path):
+    queue = SQLiteJobQueue(str(tmp_path / "jobs.db"))
+    client = make_client(tmp_path, job_queue=queue)
+    client.post("/cases", json=new_case("CASE-801", "T-801"))
+
+    first = client.post("/cases/CASE-801/classify-async")
+    second = client.post("/cases/CASE-801/classify-async")
+
+    assert first.status_code == 202
+    assert second.status_code == 202
+    assert queue.get_status("classify:CASE-801") == "queued"
+
+
+def test_classify_async_returns_503_without_queue(tmp_path):
+    client = make_client(tmp_path)
+    client.post("/cases", json=new_case("CASE-802", "T-802"))
+
+    response = client.post("/cases/CASE-802/classify-async")
+
+    assert response.status_code == 503
+
+
+def test_classify_async_rejects_case_not_received(tmp_path):
+    queue = SQLiteJobQueue(str(tmp_path / "jobs.db"))
+    client = make_client(tmp_path, job_queue=queue)
+    client.post("/cases", json=new_case("CASE-803", "T-803"))
+    client.post("/cases/CASE-803/classify")
+
+    response = client.post("/cases/CASE-803/classify-async")
+
+    assert response.status_code == 409
+
+
+def test_classify_async_returns_404_for_unknown_case(tmp_path):
+    queue = SQLiteJobQueue(str(tmp_path / "jobs.db"))
+    client = make_client(tmp_path, job_queue=queue)
+
+    response = client.post("/cases/missing-case/classify-async")
+
+    assert response.status_code == 404
+
+
+def test_async_classification_end_to_end(tmp_path):
+    database_path = str(tmp_path / "shared.db")
+    service = TriageApplicationService(SQLiteCaseRepository(database_path))
+    classifier = FakeClassifier()
+    policy = make_policy()
+    queue = SQLiteJobQueue(database_path)
+
+    app = create_app(
+        service=service,
+        classifier=classifier,
+        policy=policy,
+        job_queue=queue,
+    )
+    app.dependency_overrides[get_current_principal] = lambda: Principal(
+        subject="test-submitter",
+        roles=frozenset({"submitter"}),
+    )
+    client = TestClient(app)
+
+    client.post("/cases", json=new_case("CASE-900", "T-900"))
+    accepted = client.post("/cases/CASE-900/classify-async")
+    assert accepted.status_code == 202
+
+    # The API returned before classification ran: the case is still received.
+    assert service.get_case("CASE-900").status == CaseStatus.RECEIVED
+
+    processed = process_one(
+        queue,
+        lambda job: handle_classification_job(
+            job,
+            service=service,
+            classifier=classifier,
+            policy=policy,
+        ),
+    )
+    assert processed is True
+
+    body = client.get("/cases/CASE-900").json()
+    assert body["status"] == "pending_approval"
+    assert body["recommendation"]["category"] == "billing"

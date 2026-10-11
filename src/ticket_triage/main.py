@@ -4,6 +4,7 @@ from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
 from ticket_triage.classification import FakeClassifier
 from ticket_triage.config import get_settings
+from ticket_triage.job_queue import SQLiteJobQueue
 from ticket_triage.logging_config import configure_logging
 from ticket_triage.policy import RecommendationPolicy
 from ticket_triage.sqlite_repository import SQLiteCaseRepository
@@ -29,8 +30,13 @@ policy = RecommendationPolicy(
     },
 )
 
+# The queue shares the repository's database path so a case and its
+# classification job live in the same storage system.
+job_queue = SQLiteJobQueue(settings.database_path)
+
 app: FastAPI = create_app(
     service=service,
     classifier=classifier,
     policy=policy,
+    job_queue=job_queue,
 )

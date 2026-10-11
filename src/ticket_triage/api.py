@@ -27,6 +27,7 @@ from ticket_triage.errors import (
     DuplicateCaseError,
     InvalidCaseStateError,
 )
+from ticket_triage.job_queue import SQLiteJobQueue
 from ticket_triage.logging_config import (
     correlation_id_var,
     valid_correlation_id,
@@ -66,6 +67,7 @@ def create_app(
     service: TriageApplicationService,
     classifier: Classifier,
     policy: RecommendationPolicy,
+    job_queue: SQLiteJobQueue | None = None,
 ) -> FastAPI:
     app = FastAPI()
 
@@ -250,6 +252,60 @@ def create_app(
                 detail=str(exc),
             )
         return to_case_response(case)
+
+    @app.post(
+        "/cases/{case_id}/classify-async",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    def classify_async(
+        case_id: str,
+        principal: Principal = Depends(require_roles("submitter", "admin", "system")),
+    ) -> dict[str, str]:
+        if job_queue is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Background processing is not configured.",
+            )
+
+        try:
+            case = service.get_case(case_id)
+        except CaseNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Case not found.",
+            ) from exc
+        except ApplicationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+
+        if case.status != CaseStatus.RECEIVED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Case is not eligible for async classification.",
+            )
+
+        job_id = f"classify:{case_id}"
+
+        try:
+            job_queue.enqueue(
+                job_id=job_id,
+                job_type="classify_ticket",
+                payload={"case_id": case_id},
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
+
+        return {
+            "case_id": case_id,
+            "job_id": job_id,
+            "job_status": "queued",
+            "message": "Classification has been accepted for processing.",
+        }
 
     @app.post(
         "/cases/{case_id}/decision",

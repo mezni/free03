@@ -79,12 +79,42 @@ class SQLiteJobQueue:
         *,
         max_attempts: int = 3,
     ) -> None:
+        """Add a job, treating an identical re-submission as a no-op.
+
+        The payload is canonicalized (sorted keys, compact separators) so the
+        same logical request always encodes identically. Re-submitting the same
+        ``job_id`` with the same type and payload returns without creating a
+        duplicate job; a different payload under the same ID is rejected.
+
+        This is not race-free: two concurrent submissions can both pass the
+        existence check. Production code should additionally rely on the
+        database's unique constraint and handle the resulting integrity error.
+        """
         if not job_id.strip() or not job_type.strip():
             raise ValueError("Job ID and type are required.")
         if max_attempts < 1:
             raise ValueError("max_attempts must be at least 1.")
 
+        encoded_payload = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
         with self._connect() as connection:
+            existing = connection.execute(
+                """
+                SELECT job_type, payload
+                FROM jobs
+                WHERE job_id = ?
+                """,
+                (job_id,),
+            ).fetchone()
+
+            if existing is not None:
+                if (
+                    existing["job_type"] == job_type
+                    and existing["payload"] == encoded_payload
+                ):
+                    return  # Same request: no duplicate job.
+                raise ValueError("Job ID already exists with different content.")
+
             connection.execute(
                 """
                 INSERT INTO jobs (
@@ -96,7 +126,7 @@ class SQLiteJobQueue:
                 (
                     job_id,
                     job_type,
-                    json.dumps(payload),
+                    encoded_payload,
                     max_attempts,
                     # A fresh job is eligible immediately. Future availability
                     # is scheduled by fail() using an explicit clock so the
