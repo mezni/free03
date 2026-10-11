@@ -1,3 +1,5 @@
+import logging
+
 from ticket_triage.classification import (
     ClassificationError,
     Classifier,
@@ -13,6 +15,8 @@ from ticket_triage.policy import (
 )
 from ticket_triage.repositories import CaseRepository
 from ticket_triage.workflow import transition_case
+
+logger = logging.getLogger("ticket_triage.application")
 
 
 class ApplicationError(ValueError):
@@ -64,4 +68,14 @@ class TriageApplicationService:
         case.approval_decision = None
         transition_case(case, CaseStatus.PENDING_APPROVAL)
         self.repository.save(case)
+        logger.info(
+            "classification_completed",
+            extra={
+                "event": "classification_completed",
+                "case_id": case.case_id,
+                "ticket_id": case.ticket.ticket_id,
+                "recommendation_version": case.recommendation_version,
+                "status": case.status.value,
+            },
+        )
         return case

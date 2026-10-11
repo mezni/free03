@@ -4,8 +4,11 @@ from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
 from ticket_triage.classification import FakeClassifier
 from ticket_triage.config import get_settings
+from ticket_triage.logging_config import configure_logging
 from ticket_triage.policy import RecommendationPolicy
 from ticket_triage.sqlite_repository import SQLiteCaseRepository
+
+configure_logging()
 
 settings = get_settings()
 

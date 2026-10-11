@@ -1,4 +1,8 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+import logging
+import time
+import uuid
+
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 
 from ticket_triage.api_schemas import (
     CaseResponse,
@@ -17,7 +21,13 @@ from ticket_triage.auth import (
 )
 from ticket_triage.classification import Classifier
 from ticket_triage.domain import CaseStatus, DecisionType, Ticket
+from ticket_triage.logging_config import (
+    correlation_id_var,
+    valid_correlation_id,
+)
 from ticket_triage.policy import RecommendationPolicy
+
+logger = logging.getLogger("ticket_triage.http")
 
 
 def to_case_response(case) -> CaseResponse:
@@ -45,6 +55,47 @@ def create_app(
     policy: RecommendationPolicy,
 ) -> FastAPI:
     app = FastAPI()
+
+    @app.middleware("http")
+    async def request_logging_middleware(request: Request, call_next):
+        supplied_id = request.headers.get("X-Correlation-ID")
+        correlation_id = (
+            supplied_id if valid_correlation_id(supplied_id) else uuid.uuid4().hex
+        )
+
+        token = correlation_id_var.set(correlation_id)
+        started = time.perf_counter()
+        status_code = 500
+
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            response.headers["X-Correlation-ID"] = correlation_id
+            return response
+        except Exception:
+            logger.error(
+                "http_request_failed",
+                extra={
+                    "event": "http_request_failed",
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": status_code,
+                },
+            )
+            raise
+        finally:
+            duration_ms = round((time.perf_counter() - started) * 1000, 2)
+            logger.info(
+                "http_request_completed",
+                extra={
+                    "event": "http_request_completed",
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": status_code,
+                    "duration_ms": duration_ms,
+                },
+            )
+            correlation_id_var.reset(token)
 
     @app.get("/health")
     def health() -> dict[str, str]:

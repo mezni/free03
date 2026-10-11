@@ -126,3 +126,30 @@ def test_submitter_cannot_approve(tmp_path):
     )
 
     assert response.status_code == 403
+
+
+def test_health_endpoint_returns_correlation_id(tmp_path):
+    client = make_client(tmp_path)
+
+    response = client.get(
+        "/health",
+        headers={"X-Correlation-ID": "integration-test-123"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["X-Correlation-ID"] == "integration-test-123"
+
+
+def test_invalid_correlation_id_is_replaced(tmp_path):
+    client = make_client(tmp_path)
+
+    response = client.get(
+        "/health",
+        headers={"X-Correlation-ID": "invalid id with spaces"},
+    )
+
+    assert response.status_code == 200
+    returned_id = response.headers["X-Correlation-ID"]
+
+    assert returned_id != "invalid id with spaces"
+    assert 1 <= len(returned_id) <= 100
