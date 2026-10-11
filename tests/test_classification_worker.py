@@ -35,6 +35,7 @@ def classify_job(attempts: int = 1) -> Job:
         payload={"case_id": "case-001"},
         status="running",
         attempts=attempts,
+        claim_token="test-token",
     )
 
 
@@ -85,6 +86,7 @@ def test_worker_rejects_unsupported_job_type(tmp_path):
         payload={"case_id": "case-001"},
         status="running",
         attempts=1,
+        claim_token="test-token",
     )
 
     try:
@@ -109,6 +111,7 @@ def test_worker_requires_case_id_in_payload(tmp_path):
         payload={},
         status="running",
         attempts=1,
+        claim_token="test-token",
     )
 
     try:

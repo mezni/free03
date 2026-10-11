@@ -16,12 +16,16 @@ recording success, and its lease expires. Handlers must therefore be idempotent.
 """
 
 import json
+import logging
 import sqlite3
 import time
+import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+
+logger = logging.getLogger("ticket_triage.job_queue")
 
 
 @dataclass(frozen=True)
@@ -31,6 +35,7 @@ class Job:
     payload: dict
     status: str
     attempts: int
+    claim_token: str
 
 
 class SQLiteJobQueue:
@@ -55,10 +60,19 @@ class SQLiteJobQueue:
                     max_attempts INTEGER NOT NULL,
                     available_at REAL NOT NULL,
                     locked_until REAL,
-                    last_error TEXT
+                    last_error TEXT,
+                    claim_token TEXT
                 )
                 """
             )
+            # Databases created before Day 29 lack claim_token. CREATE TABLE IF
+            # NOT EXISTS never alters an existing table, so migrate explicitly.
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+            }
+            if "claim_token" not in columns:
+                connection.execute("ALTER TABLE jobs ADD COLUMN claim_token TEXT")
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -179,15 +193,20 @@ class SQLiteJobQueue:
             if row is None:
                 return None
 
+            # Each claim gets a fresh token. If this lease expires and another
+            # worker reclaims the job, that worker holds a different token, so
+            # this claim can no longer update the job.
+            claim_token = uuid.uuid4().hex
             connection.execute(
                 """
                 UPDATE jobs
                 SET status = 'running',
                     attempts = attempts + 1,
-                    locked_until = ?
+                    locked_until = ?,
+                    claim_token = ?
                 WHERE job_id = ?
                 """,
-                (now + lease_seconds, row["job_id"]),
+                (now + lease_seconds, claim_token, row["job_id"]),
             )
 
             return Job(
@@ -196,21 +215,27 @@ class SQLiteJobQueue:
                 payload=json.loads(row["payload"]),
                 status="running",
                 attempts=row["attempts"] + 1,
+                claim_token=claim_token,
             )
 
-    def complete(self, job_id: str) -> None:
+    def complete(self, job: Job) -> None:
+        """Acknowledge a job, but only while the caller still owns the claim."""
         with self._connect() as connection:
             cursor = connection.execute(
                 """
                 UPDATE jobs
-                SET status = 'succeeded', locked_until = NULL,
+                SET status = 'succeeded',
+                    locked_until = NULL,
+                    claim_token = NULL,
                     last_error = NULL
-                WHERE job_id = ? AND status = 'running'
+                WHERE job_id = ?
+                  AND status = 'running'
+                  AND claim_token = ?
                 """,
-                (job_id,),
+                (job.job_id, job.claim_token),
             )
             if cursor.rowcount != 1:
-                raise ValueError("Job is not currently running.")
+                raise ValueError("Job claim is stale or no longer owned.")
 
     def fail(
         self,
@@ -225,6 +250,9 @@ class SQLiteJobQueue:
 
         now = time.time() if now is None else now
         safe_error = error[:500]
+        status = (
+            "failed" if job.attempts >= self._max_attempts(job.job_id) else "queued"
+        )
 
         with self._connect() as connection:
             cursor = connection.execute(
@@ -233,20 +261,22 @@ class SQLiteJobQueue:
                 SET status = ?,
                     available_at = ?,
                     locked_until = NULL,
+                    claim_token = NULL,
                     last_error = ?
-                WHERE job_id = ? AND status = 'running'
+                WHERE job_id = ?
+                  AND status = 'running'
+                  AND claim_token = ?
                 """,
                 (
-                    "failed"
-                    if job.attempts >= self._max_attempts(job.job_id)
-                    else "queued",
+                    status,
                     now + retry_delay_seconds,
                     safe_error,
                     job.job_id,
+                    job.claim_token,
                 ),
             )
             if cursor.rowcount != 1:
-                raise ValueError("Job is not currently running.")
+                raise ValueError("Job claim is stale or no longer owned.")
 
     def _max_attempts(self, job_id: str) -> int:
         with self._connect() as connection:
@@ -279,6 +309,11 @@ def process_one(
     for retry, or marked failed once its attempts are exhausted. Because a
     worker can crash between performing work and recording success, handlers
     must be idempotent.
+
+    Acknowledgment requires the caller to still own its claim. If another worker
+    reclaimed the job after this lease expired, the stale worker's ``complete``
+    or ``fail`` is rejected: the stale attempt is logged for investigation and
+    must not modify the newer owner's job state.
     """
     job = queue.claim_next(now=now)
     if job is None:
@@ -287,8 +322,20 @@ def process_one(
     try:
         handler(job)
     except Exception as exc:
-        queue.fail(job, type(exc).__name__, now=now)
+        try:
+            queue.fail(job, type(exc).__name__, now=now)
+        except ValueError:
+            logger.warning(
+                "job_claim_lost",
+                extra={"event": "job_claim_lost", "job_id": job.job_id},
+            )
     else:
-        queue.complete(job.job_id)
+        try:
+            queue.complete(job)
+        except ValueError:
+            logger.warning(
+                "job_claim_lost",
+                extra={"event": "job_claim_lost", "job_id": job.job_id},
+            )
 
     return True
