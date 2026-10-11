@@ -1,7 +1,6 @@
-import os
-
 from openai import APIConnectionError, APITimeoutError, OpenAI, RateLimitError
 
+from ticket_triage.config import get_settings
 from ticket_triage.errors import InvalidModelOutputError, TransientProviderError
 
 _RECOMMENDATION_SCHEMA = {
@@ -29,15 +28,22 @@ class OpenAILLMClient:
         model: str | None = None,
         client: OpenAI | None = None,
     ) -> None:
-        self.model = model or os.getenv(
-            "OPENAI_MODEL", "gpt-4o-mini"
-        )
-        # Injection allows tests to provide a fake client.
-        self.client = client or OpenAI(
-            api_key=os.environ["OPENAI_API_KEY"],
-            timeout=20.0,
-            max_retries=1,
-        )
+        settings = get_settings()
+        self.model = model or settings.openai_model
+        if client is not None:
+            # Dependency injection keeps unit tests independent of the API.
+            self.client = client
+        else:
+            if not settings.openai_api_key:
+                raise ValueError(
+                    "OPENAI_API_KEY is required to use the real "
+                    "OpenAI client."
+                )
+            self.client = OpenAI(
+                api_key=settings.openai_api_key,
+                timeout=20.0,
+                max_retries=1,
+            )
 
     def generate(self, prompt: str) -> str:
         try:

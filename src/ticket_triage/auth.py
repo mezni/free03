@@ -1,12 +1,13 @@
 """Authentication and role-based authorization for the API."""
 
 import json
-import os
 from dataclasses import dataclass
 from typing import Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from ticket_triage.config import get_settings
 
 
 @dataclass(frozen=True)
@@ -59,9 +60,8 @@ def require_roles(*roles: str) -> Callable[..., Principal]:
 
 
 def _load_token_registry() -> dict[str, dict]:
-    raw = os.getenv("TRIAGE_API_TOKENS", "{}")
     try:
-        registry = json.loads(raw)
+        registry = json.loads(get_settings().api_tokens_json)
     except json.JSONDecodeError:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

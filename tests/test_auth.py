@@ -8,6 +8,14 @@ from ticket_triage.auth import (
     get_current_principal,
     require_roles,
 )
+from ticket_triage.config import get_settings
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_cache():
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 def test_require_roles_returns_principal_for_authorized_role():

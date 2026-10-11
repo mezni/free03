@@ -1,14 +1,15 @@
-from dotenv import load_dotenv
+from fastapi import FastAPI
 
 from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
 from ticket_triage.classification import FakeClassifier
+from ticket_triage.config import get_settings
 from ticket_triage.policy import RecommendationPolicy
 from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
-load_dotenv()
+settings = get_settings()
 
-repository = SQLiteCaseRepository("ticket_triage.db")
+repository = SQLiteCaseRepository(settings.database_path)
 service = TriageApplicationService(repository)
 
 # Use the fake classifier during local development.
@@ -25,7 +26,7 @@ policy = RecommendationPolicy(
     },
 )
 
-app = create_app(
+app: FastAPI = create_app(
     service=service,
     classifier=classifier,
     policy=policy,
