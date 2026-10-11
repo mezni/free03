@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+src/ticket_triage/__init__.py
+src/ticket_triage/domain.py
+src/ticket_triage.egg-info/PKG-INFO
+src/ticket_triage.egg-info/SOURCES.txt
+src/ticket_triage.egg-info/dependency_links.txt
+src/ticket_triage.egg-info/top_level.txt
+tests/test_domain.py
