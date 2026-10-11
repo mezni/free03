@@ -1,6 +1,8 @@
 import os
 
-from openai import OpenAI
+from openai import APIConnectionError, APITimeoutError, OpenAI, RateLimitError
+
+from ticket_triage.errors import InvalidModelOutputError, TransientProviderError
 
 _RECOMMENDATION_SCHEMA = {
     "type": "object",
@@ -38,16 +40,25 @@ class OpenAILLMClient:
         )
 
     def generate(self, prompt: str) -> str:
-        response = self.client.responses.create(
-            model=self.model,
-            input=prompt,
-            text={
-                "format": {
-                    "type": "json_schema",
-                    "name": "ticket_recommendation",
-                    "strict": True,
-                    "schema": _RECOMMENDATION_SCHEMA,
-                }
-            },
-        )
+        try:
+            response = self.client.responses.create(
+                model=self.model,
+                input=prompt,
+                text={
+                    "format": {
+                        "type": "json_schema",
+                        "name": "ticket_recommendation",
+                        "strict": True,
+                        "schema": _RECOMMENDATION_SCHEMA,
+                    }
+                },
+            )
+        except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
+            raise TransientProviderError(
+                "Temporary OpenAI provider failure."
+            ) from exc
+        if not response.output_text:
+            raise InvalidModelOutputError(
+                "The OpenAI response contained no output text."
+            )
         return response.output_text

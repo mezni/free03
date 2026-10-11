@@ -4,6 +4,7 @@ from typing import Any, Protocol
 
 from ticket_triage.classification import ClassificationError
 from ticket_triage.domain import Priority, Recommendation, Ticket
+from ticket_triage.errors import PermanentProviderError, TransientProviderError
 
 _REQUIRED_FIELDS = ("category", "priority", "destination", "rationale")
 
@@ -22,8 +23,12 @@ class LLMClassifier:
         prompt = self._build_prompt(ticket)
         try:
             raw_response = self.client.generate(prompt)
+        except (TransientProviderError, PermanentProviderError):
+            raise
         except Exception as exc:
-            raise ClassificationError("The LLM request failed.") from exc
+            raise ClassificationError(
+                "The LLM request failed."
+            ) from exc
 
         text = self._strip_code_fences(raw_response)
 

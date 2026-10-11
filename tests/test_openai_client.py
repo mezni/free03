@@ -1,5 +1,11 @@
 from types import SimpleNamespace
 
+import pytest
+
+from ticket_triage.errors import (
+    InvalidModelOutputError,
+    TransientProviderError,
+)
 from ticket_triage.openai_client import OpenAILLMClient
 
 
@@ -52,3 +58,41 @@ def test_openai_adapter_requests_structured_output():
         "destination",
         "rationale",
     ]
+
+
+def test_openai_adapter_maps_transient_errors():
+    from openai import APITimeoutError
+
+    class TimeoutResponses:
+        def create(self, **kwargs):
+            raise APITimeoutError("timed out")
+
+    class TimeoutOpenAI:
+        def __init__(self):
+            self.responses = TimeoutResponses()
+
+    adapter = OpenAILLMClient(
+        model="test-model",
+        client=TimeoutOpenAI(),
+    )
+
+    with pytest.raises(TransientProviderError):
+        adapter.generate("Classify this synthetic ticket.")
+
+
+def test_openai_adapter_rejects_empty_output():
+    class EmptyResponses:
+        def create(self, **kwargs):
+            return SimpleNamespace(output_text="")
+
+    class EmptyOpenAI:
+        def __init__(self):
+            self.responses = EmptyResponses()
+
+    adapter = OpenAILLMClient(
+        model="test-model",
+        client=EmptyOpenAI(),
+    )
+
+    with pytest.raises(InvalidModelOutputError):
+        adapter.generate("Classify this synthetic ticket.")
