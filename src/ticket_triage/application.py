@@ -1,14 +1,11 @@
-from ticket_triage.approval import record_decision
-from ticket_triage.domain import (
-    CaseStatus,
-    DecisionType,
-    Recommendation,
-    Ticket,
-    TriageCase,
-)
 from ticket_triage.classification import (
     ClassificationError,
     Classifier,
+)
+from ticket_triage.domain import (
+    CaseStatus,
+    Ticket,
+    TriageCase,
 )
 from ticket_triage.policy import (
     RecommendationPolicy,
@@ -49,9 +46,7 @@ class TriageApplicationService:
     ) -> TriageCase:
         case = self.get_case(case_id)
         if case.status != CaseStatus.PROCESSING:
-            raise ApplicationError(
-                "Case must be processing before classification."
-            )
+            raise ApplicationError("Case must be processing before classification.")
         try:
             recommendation = classifier.classify(case.ticket)
             policy.validate(recommendation)

@@ -3,7 +3,6 @@ import pytest
 from ticket_triage.domain import Priority, Recommendation
 from ticket_triage.policy import (
     RecommendationPolicy,
-    RecommendationValidationError,
 )
 
 

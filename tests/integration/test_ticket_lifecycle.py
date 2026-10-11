@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
 from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
@@ -6,7 +7,6 @@ from ticket_triage.auth import Principal, get_current_principal
 from ticket_triage.classification import FakeClassifier
 from ticket_triage.domain import CaseStatus
 from ticket_triage.policy import RecommendationPolicy
-from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
 
 def build_test_app(database_path):
@@ -32,9 +32,7 @@ def build_test_app(database_path):
             roles=frozenset({"submitter"}),
         )
     }
-    app.dependency_overrides[get_current_principal] = (
-        lambda: identity["principal"]
-    )
+    app.dependency_overrides[get_current_principal] = lambda: identity["principal"]
     return app, service, identity
 
 
@@ -89,16 +87,11 @@ def test_submitter_lifecycle_records_reviewer_identity(tmp_path):
     assert case.status == CaseStatus.APPROVED
     assert case.approval_decision is not None
     assert case.approval_decision.actor_id == "reviewer-1"
-    assert (
-        case.approval_decision.recommendation_version
-        == case.recommendation_version
-    )
+    assert case.approval_decision.recommendation_version == case.recommendation_version
 
 
 def test_rejected_case_cannot_be_approved_or_routed(tmp_path):
-    app, service, identity = build_test_app(
-        tmp_path / "rejected.db"
-    )
+    app, service, identity = build_test_app(tmp_path / "rejected.db")
     client = TestClient(app)
 
     created = client.post(
@@ -148,6 +141,4 @@ def test_rejected_case_cannot_be_approved_or_routed(tmp_path):
     except InvalidTransitionError:
         pass
     else:
-        raise AssertionError(
-            "A rejected case must not be authorizable for routing."
-        )
+        raise AssertionError("A rejected case must not be authorizable for routing.")

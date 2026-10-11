@@ -17,9 +17,7 @@ class RecommendationPolicy:
 
     def validate(self, recommendation: Recommendation) -> None:
         if not recommendation.category.strip():
-            raise RecommendationValidationError(
-                "Category cannot be empty."
-            )
+            raise RecommendationValidationError("Category cannot be empty.")
         if recommendation.category not in self.allowed_categories:
             raise RecommendationValidationError(
                 f"Unsupported category: {recommendation.category}"

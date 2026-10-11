@@ -1,9 +1,5 @@
 from ticket_triage.domain import (
-    CaseStatus,
-    Priority,
-    Recommendation,
     Ticket,
-    TriageCase,
     validate_ticket,
 )
 

@@ -13,7 +13,7 @@ backend must also enforce authorization and persist state changes safely,
 including protection against concurrent requests.
 """
 
-from ticket_triage.domain import CaseStatus, TriageCase
+from ticket_triage.domain import CaseStatus
 
 ALLOWED_TRANSITIONS: dict[CaseStatus, set[CaseStatus]] = {
     CaseStatus.RECEIVED: {

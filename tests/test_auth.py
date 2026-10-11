@@ -32,9 +32,7 @@ def test_require_roles_forbids_missing_role():
     dependency = require_roles("reviewer")
 
     with pytest.raises(HTTPException) as exc_info:
-        dependency(
-            Principal(subject="dev-user", roles=frozenset({"submitter"}))
-        )
+        dependency(Principal(subject="dev-user", roles=frozenset({"submitter"})))
 
     assert exc_info.value.status_code == 403
 
@@ -53,9 +51,7 @@ def test_unknown_token_returns_401(monkeypatch):
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        get_current_principal(
-            SimpleNamespace(credentials="dev-submit-token")
-        )
+        get_current_principal(SimpleNamespace(credentials="dev-submit-token"))
 
     assert exc_info.value.status_code == 401
 
@@ -66,9 +62,7 @@ def test_known_token_returns_principal(monkeypatch):
         '{"dev-review-token":{"subject":"reviewer-1","roles":["reviewer"]}}',
     )
 
-    principal = get_current_principal(
-        SimpleNamespace(credentials="dev-review-token")
-    )
+    principal = get_current_principal(SimpleNamespace(credentials="dev-review-token"))
 
     assert principal.subject == "reviewer-1"
     assert principal.roles == frozenset({"reviewer"})

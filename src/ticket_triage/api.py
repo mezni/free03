@@ -99,9 +99,7 @@ def create_app(
     )
     def classify(
         case_id: str,
-        principal: Principal = Depends(
-            require_roles("submitter", "admin", "system")
-        ),
+        principal: Principal = Depends(require_roles("submitter", "admin", "system")),
     ) -> CaseResponse:
         try:
             case = service.get_case(case_id)

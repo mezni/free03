@@ -44,13 +44,9 @@ class Settings(BaseSettings):
         try:
             parsed = json.loads(value)
         except json.JSONDecodeError:
-            raise ValueError(
-                "TRIAGE_API_TOKENS must be a valid JSON object."
-            )
+            raise ValueError("TRIAGE_API_TOKENS must be a valid JSON object.")
         if not isinstance(parsed, dict):
-            raise ValueError(
-                "TRIAGE_API_TOKENS must be a valid JSON object."
-            )
+            raise ValueError("TRIAGE_API_TOKENS must be a valid JSON object.")
         return value
 
 

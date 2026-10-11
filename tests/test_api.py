@@ -1,17 +1,15 @@
 from fastapi.testclient import TestClient
+from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
 from ticket_triage.api import create_app
 from ticket_triage.application import TriageApplicationService
 from ticket_triage.auth import Principal, get_current_principal
 from ticket_triage.classification import FakeClassifier
 from ticket_triage.policy import RecommendationPolicy
-from ticket_triage.sqlite_repository import SQLiteCaseRepository
 
 
 def make_client(tmp_path):
-    repository = SQLiteCaseRepository(
-        str(tmp_path / "api-test.db")
-    )
+    repository = SQLiteCaseRepository(str(tmp_path / "api-test.db"))
     service = TriageApplicationService(repository)
     policy = RecommendationPolicy(
         allowed_categories={"billing", "account", "general"},

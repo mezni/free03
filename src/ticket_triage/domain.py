@@ -1,16 +1,16 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 
 
-class Priority(str, Enum):
+class Priority(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     URGENT = "urgent"
 
 
-class CaseStatus(str, Enum):
+class CaseStatus(StrEnum):
     RECEIVED = "received"
     PROCESSING = "processing"
     PENDING_APPROVAL = "pending_approval"
@@ -21,7 +21,7 @@ class CaseStatus(str, Enum):
     MANUAL_REVIEW = "manual_review"
 
 
-class DecisionType(str, Enum):
+class DecisionType(StrEnum):
     APPROVED = "approved"
     REJECTED = "rejected"
 
@@ -48,13 +48,11 @@ class ApprovalDecision:
     recommendation_version: int
     actor_id: str
     decision: DecisionType
-    decided_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    decided_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     comment: str | None = None
 
 
-class RoutingStatus(str, Enum):
+class RoutingStatus(StrEnum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     SUCCEEDED = "succeeded"

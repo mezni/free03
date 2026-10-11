@@ -36,8 +36,7 @@ class OpenAILLMClient:
         else:
             if not settings.openai_api_key:
                 raise ValueError(
-                    "OPENAI_API_KEY is required to use the real "
-                    "OpenAI client."
+                    "OPENAI_API_KEY is required to use the real OpenAI client."
                 )
             self.client = OpenAI(
                 api_key=settings.openai_api_key,
@@ -60,9 +59,7 @@ class OpenAILLMClient:
                 },
             )
         except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
-            raise TransientProviderError(
-                "Temporary OpenAI provider failure."
-            ) from exc
+            raise TransientProviderError("Temporary OpenAI provider failure.") from exc
         if not response.output_text:
             raise InvalidModelOutputError(
                 "The OpenAI response contained no output text."

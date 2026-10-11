@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ticket_triage.config import Settings, get_settings
+from ticket_triage.config import Settings
 
 
 def test_defaults_allow_fake_classifier():

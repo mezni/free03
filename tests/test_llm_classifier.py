@@ -1,9 +1,9 @@
 import pytest
 
+from tests.fakes import FakeLLMClient
 from ticket_triage.classification import ClassificationError
 from ticket_triage.domain import Priority, Ticket
 from ticket_triage.llm_classifier import LLMClassifier
-from tests.fakes import FakeLLMClient
 
 
 @pytest.fixture

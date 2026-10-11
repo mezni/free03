@@ -26,9 +26,7 @@ class LLMClassifier:
         except (TransientProviderError, PermanentProviderError):
             raise
         except Exception as exc:
-            raise ClassificationError(
-                "The LLM request failed."
-            ) from exc
+            raise ClassificationError("The LLM request failed.") from exc
 
         text = self._strip_code_fences(raw_response)
 
@@ -61,36 +59,28 @@ class LLMClassifier:
 
     def _parse_recommendation(self, data: Any) -> Recommendation:
         if not isinstance(data, dict):
-            raise ClassificationError(
-                "The LLM response must be a JSON object."
-            )
+            raise ClassificationError("The LLM response must be a JSON object.")
 
         keys = set(data)
         required = set(_REQUIRED_FIELDS)
         missing = required - keys
         if missing:
             raise ClassificationError(
-                "The LLM response is missing fields: "
-                f"{sorted(missing)}"
+                f"The LLM response is missing fields: {sorted(missing)}"
             )
         unexpected = keys - required
         if unexpected:
             raise ClassificationError(
-                "The LLM response contains unexpected fields: "
-                f"{sorted(unexpected)}"
+                f"The LLM response contains unexpected fields: {sorted(unexpected)}"
             )
 
         values: dict[str, str] = {}
         for field_name in _REQUIRED_FIELDS:
             value = data[field_name]
             if not isinstance(value, str):
-                raise ClassificationError(
-                    f"Field '{field_name}' must be a string."
-                )
+                raise ClassificationError(f"Field '{field_name}' must be a string.")
             if not value.strip():
-                raise ClassificationError(
-                    f"Field '{field_name}' must not be empty."
-                )
+                raise ClassificationError(f"Field '{field_name}' must not be empty.")
             values[field_name] = value.strip()
 
         try:
