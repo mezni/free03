@@ -11,7 +11,6 @@ from ticket_triage.api_schemas import (
     RecommendationResponse,
 )
 from ticket_triage.application import (
-    ApplicationError,
     TriageApplicationService,
 )
 from ticket_triage.auth import (
@@ -21,6 +20,12 @@ from ticket_triage.auth import (
 )
 from ticket_triage.classification import Classifier
 from ticket_triage.domain import CaseStatus, DecisionType, Ticket
+from ticket_triage.errors import (
+    ApplicationError,
+    CaseNotFoundError,
+    DuplicateCaseError,
+    InvalidCaseStateError,
+)
 from ticket_triage.logging_config import (
     correlation_id_var,
     valid_correlation_id,
@@ -153,6 +158,11 @@ def create_app(
                 case_id=request.case_id,
                 ticket=ticket,
             )
+        except DuplicateCaseError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Case already exists.",
+            ) from exc
         except ApplicationError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -170,9 +180,14 @@ def create_app(
     ) -> CaseResponse:
         try:
             case = service.get_case(case_id)
-        except ApplicationError as exc:
+        except CaseNotFoundError as exc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
+                detail="Case not found.",
+            ) from exc
+        except ApplicationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
             )
         return to_case_response(case)
@@ -208,6 +223,16 @@ def create_app(
                 CLASSIFICATION_ATTEMPTS.labels(outcome="success").inc()
             finally:
                 CLASSIFICATION_DURATION.observe(time.perf_counter() - started)
+        except CaseNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Case not found.",
+            ) from exc
+        except InvalidCaseStateError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
         except ApplicationError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -237,6 +262,16 @@ def create_app(
                 decision=decision,
                 comment=request.comment,
             )
+        except CaseNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Case not found.",
+            ) from exc
+        except InvalidCaseStateError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
         except ApplicationError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

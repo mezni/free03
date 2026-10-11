@@ -9,6 +9,11 @@ from ticket_triage.domain import (
     Ticket,
     TriageCase,
 )
+from ticket_triage.errors import (
+    ApplicationError,
+    DuplicateCaseError,
+    InvalidCaseStateError,
+)
 from ticket_triage.policy import (
     RecommendationPolicy,
     RecommendationValidationError,
@@ -17,10 +22,6 @@ from ticket_triage.repositories import CaseRepository
 from ticket_triage.workflow import transition_case
 
 logger = logging.getLogger("ticket_triage.application")
-
-
-class ApplicationError(ValueError):
-    """Raised when an application use case cannot be completed."""
 
 
 class TriageApplicationService:
@@ -40,6 +41,8 @@ class TriageApplicationService:
 
         if not case_id.strip():
             raise ApplicationError("Case ID must not be empty.")
+        if self.repository.get(case_id) is not None:
+            raise DuplicateCaseError(f"Case {case_id} already exists.")
         errors = validate_ticket(ticket)
         if errors:
             raise ApplicationError("; ".join(errors))
@@ -53,7 +56,9 @@ class TriageApplicationService:
     ) -> TriageCase:
         case = self.get_case(case_id)
         if case.status != CaseStatus.PROCESSING:
-            raise ApplicationError("Case must be processing before classification.")
+            raise InvalidCaseStateError(
+                "Case must be processing before classification."
+            )
         try:
             recommendation = classifier.classify(case.ticket)
             policy.validate(recommendation)

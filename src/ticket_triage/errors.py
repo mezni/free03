@@ -19,3 +19,19 @@ class PolicyViolationError(ValueError):
 
 class RoutingOutcomeUnknownError(RuntimeError):
     """The external routing operation may have succeeded."""
+
+
+class ApplicationError(RuntimeError):
+    """Raised when an application use case cannot be completed."""
+
+
+class CaseNotFoundError(ApplicationError):
+    """Raised when a requested case does not exist."""
+
+
+class DuplicateCaseError(ApplicationError):
+    """Raised when creating a case that already exists."""
+
+
+class InvalidCaseStateError(ApplicationError):
+    """Raised when an operation is not valid for the current case state."""
