@@ -26,7 +26,11 @@ def researcher_node(state: AgentState):
             if tool_call["name"] == "web_search":
                 tool_output = web_search_tool.invoke(tool_call["args"])
                 output_messages.append(
-                    ToolMessage(content=tool_output, tool_call_id=tool_call["id"])
+                    ToolMessage(
+                        content=tool_output,
+                        tool_call_id=tool_call["id"],
+                        name="web_search",  # <--- Added name attribute here
+                    )
                 )
 
     return {"messages": output_messages}
