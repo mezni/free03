@@ -4,10 +4,10 @@ from langchain_openai import ChatOpenAI
 
 from src.workflows.state import AgentState
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
-
 
 def writer_node(state: AgentState):
+    llm = ChatOpenAI(model="gpt-4o", temperature=0)
+
     writer_prompt = (
         "You are an expert technical writer. Take the research notes and findings "
         "provided in the conversation and synthesize them into a clean, professional, "
