@@ -1,17 +1,10 @@
 # src/workflows/graph.py
 from langgraph.graph import END, START, StateGraph
 
+from src.agents.researcher import researcher_node
 from src.agents.supervisor import supervisor_node
+from src.agents.writer import writer_node
 from src.workflows.state import AgentState
-
-
-# Temporary placeholders (will be replaced in Phase 3)
-def researcher_placeholder(state: AgentState):
-    return {"messages": [("assistant", "[Researcher]: Gathering mock data...")]}
-
-
-def writer_placeholder(state: AgentState):
-    return {"messages": [("assistant", "[Writer]: Drafting mock summary...")]}
 
 
 def build_graph():
@@ -19,13 +12,13 @@ def build_graph():
 
     # 1. Add nodes
     workflow.add_node("Supervisor", supervisor_node)
-    workflow.add_node("Researcher", researcher_placeholder)
-    workflow.add_node("Writer", writer_placeholder)
+    workflow.add_node("Researcher", researcher_node)
+    workflow.add_node("Writer", writer_node)
 
     # 2. Set entry point
     workflow.add_edge(START, "Supervisor")
 
-    # 3. Add conditional routing from Supervisor
+    # 3. Conditional routing from Supervisor
     workflow.add_conditional_edges(
         "Supervisor",
         lambda state: state["next_agent"],
