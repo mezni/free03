@@ -12,6 +12,7 @@ dependencies = [
     "ddgs>=0.4.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "streamlit>=1.35.0",
 ]
 
 [dependency-groups]
