@@ -19,12 +19,16 @@ def load_dataset():
 
 @pytest.mark.parametrize("test_case", load_dataset(), ids=lambda tc: tc["id"])
 def test_agent_evals(test_case):
-    # 1. Execute system workflow
+    # 1. Execute system workflow with persistent thread config per test case
     initial_state = {
         "messages": [HumanMessage(content=test_case["input"])],
         "next_agent": "Supervisor",
     }
-    final_state = graph.invoke(initial_state)
+
+    # Required checkpointer config
+    config = {"configurable": {"thread_id": f"test-thread-{test_case['id']}"}}
+
+    final_state = graph.invoke(initial_state, config=config)
 
     # 2. Extract messages and executed tools
     messages = final_state["messages"]

@@ -1,10 +1,17 @@
 # src/workflows/graph.py
+import sqlite3
+
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 
 from src.agents.researcher import researcher_node
 from src.agents.supervisor import supervisor_node
 from src.agents.writer import writer_node
 from src.workflows.state import AgentState
+
+# Open a persistent SQLite connection for LangGraph checkpointing
+sqlite_conn = sqlite3.connect("checkpoints.sqlite", check_same_thread=False)
+memory = SqliteSaver(sqlite_conn)
 
 
 def build_graph():
@@ -29,7 +36,8 @@ def build_graph():
     workflow.add_edge("Researcher", "Supervisor")
     workflow.add_edge("Writer", "Supervisor")
 
-    return workflow.compile()
+    # Compile graph with the persistent checkpointer
+    return workflow.compile(checkpointer=memory)
 
 
 graph = build_graph()

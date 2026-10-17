@@ -13,8 +13,11 @@ def main():
         "and provide a structured summary."
     )
 
+    # Thread configuration for persistence memory
+    config = {"configurable": {"thread_id": "default-cli-thread"}}
+
     print("=" * 60)
-    print("🚀 [relay-agent] Starting Workflow Execution...")
+    print("🚀 [relay-agent] Starting Workflow Execution with Persistence...")
     print(f"📝 User Query: {user_prompt}")
     print("=" * 60 + "\n")
 
@@ -23,15 +26,13 @@ def main():
         "next_agent": "Supervisor",
     }
 
-    # Stream graph execution events live
     try:
-        for event in graph.stream(initial_state):
+        # Pass config with thread_id to graph.stream
+        for event in graph.stream(initial_state, config=config):
             for node_name, output in event.items():
                 print(f"⚡ [Node Executed]: {node_name}")
-
                 if "next_agent" in output:
                     print(f"🎯 Route Decision -> Next: {output['next_agent']}\n")
-
                 if "messages" in output:
                     for msg in output["messages"]:
                         if hasattr(msg, "tool_calls") and msg.tool_calls:
@@ -47,7 +48,7 @@ def main():
                             print(f"  💬 [Message]: {msg.content[:200]}...\n")
 
         print("=" * 60)
-        print("✅ Workflow Execution Complete!")
+        print("✅ Workflow Execution Complete & Persisted to checkpoints.sqlite!")
         print("=" * 60)
 
     except Exception as e:
