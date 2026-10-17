@@ -158,12 +158,13 @@ You can import and run the compiled workflow graph inside your own Python applic
 from langchain_core.messages import HumanMessage
 from src.workflows.graph import graph
 
+
 def run_agent():
     prompt = "Analyze the structural differences between monolithic and microservices architecture."
-    
+
     initial_state = {
         "messages": [HumanMessage(content=prompt)],
-        "next_agent": "Supervisor"
+        "next_agent": "Supervisor",
     }
 
     # Stream execution nodes
@@ -172,6 +173,7 @@ def run_agent():
             print(f"⚡ [Executed Node]: {node_name}")
             if "messages" in output:
                 print(f"📝 Output: {output['messages'][-1].content}\n")
+
 
 if __name__ == "__main__":
     run_agent()
