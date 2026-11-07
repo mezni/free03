@@ -1,5 +1,10 @@
+![LLM Gateway](llm-gw.jpg)
 
+# LLM Gateway
 
+Architecture:
+
+```mermaid
 flowchart TB
     A[Client Application] --> B[FastAPI]
     B --> C[LLM Gateway]
@@ -24,3 +29,4 @@ flowchart TB
     style C fill:#1d4ed8,color:#fff
     style D fill:#0369a1,color:#fff
     style M fill:#15803d,color:#fff
+```
